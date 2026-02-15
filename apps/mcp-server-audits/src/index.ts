@@ -1,0 +1,45 @@
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { registerNonconformityTools } from './tools/nonconformity-tools.js';
+import { registerAnalysisTools } from './tools/analysis-tools.js';
+import { registerMutationTools } from './tools/mutation-tools.js';
+import { registerResources } from './resources/index.js';
+import { registerPrompts } from './prompts/index.js';
+
+const server = new McpServer(
+  {
+    name: 'riskready-audits',
+    version: '0.1.0',
+  },
+  {
+    instructions: `You are querying a live audits and nonconformity management database via MCP tools. Follow these rules strictly:
+
+1. NEVER FABRICATE DATA. If a tool returns empty results, zero counts, or "not found", report that outcome exactly. Do not invent nonconformity IDs, titles, statistics, dates, or any other values.
+2. CITE TOOL RESULTS. When presenting data, always reference which tool returned it (e.g. "list_nonconformities returned 0 results").
+3. DISTINGUISH ABSENCE FROM ERROR. "No records found" (tool succeeded, result set is empty) is different from "tool call failed" (an error occurred). Communicate the difference clearly.
+4. NO INVENTED IDENTIFIERS. UUIDs, NC IDs (e.g. NC-2025-001), control IDs, and all other identifiers must come from a tool response — never construct or guess them.
+5. WHEN UNCERTAIN, QUERY AGAIN. Use search_nonconformities or list_nonconformities with different filters before concluding that data does not exist. A single query may not cover all possibilities.
+6. ZERO IS A VALID ANSWER. If counts are 0, aging reports are empty, or result sets are empty, present those numbers truthfully — they represent the genuine state of the system.`,
+    capabilities: {
+      logging: {},
+    },
+  },
+);
+
+// Register all tools
+registerNonconformityTools(server);
+registerAnalysisTools(server);
+registerMutationTools(server);
+
+// Register resources and prompts
+registerResources(server);
+registerPrompts(server);
+
+// Connect via stdio transport
+const transport = new StdioServerTransport();
+try {
+  await server.connect(transport);
+} catch (error) {
+  console.error('Failed to start MCP server:', error);
+  process.exit(1);
+}

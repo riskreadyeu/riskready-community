@@ -1,0 +1,67 @@
+# gateway/skills.yaml
+# MCP Skill Registry — defines all available MCP servers for the Gateway
+
+skills:
+  - name: riskready-controls
+    description: "Security controls, SOA, assessments, metrics, gap analysis"
+    tags: [grc, controls, compliance, soa, iso27001]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-controls/src/index.ts]
+    requiresDb: true
+
+  - name: riskready-risks
+    description: "Risk register, scenarios, KRIs, tolerance standards, treatments"
+    tags: [grc, risks, kri, risk-treatment]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-risks/src/index.ts]
+    requiresDb: true
+
+  - name: riskready-evidence
+    description: "Evidence records, requests, and links to controls, risks, incidents, assets, policies"
+    tags: [grc, evidence, compliance]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-evidence/src/index.ts]
+    requiresDb: true
+
+  - name: riskready-policies
+    description: "Policy documents, versions, reviews, exceptions, approvals, acknowledgments"
+    tags: [grc, policies, governance]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-policies/src/index.ts]
+    requiresDb: true
+
+  - name: riskready-organisation
+    description: "Organisation profiles, departments, locations, business processes, committees, regulators"
+    tags: [grc, organisation, governance]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-organisation/src/index.ts]
+    requiresDb: true
+
+  - name: riskready-itsm
+    description: "CMDB assets, change management, capacity management, software inventory"
+    tags: [itsm, cmdb, change-management]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-itsm/src/index.ts]
+    requiresDb: true
+
+  - name: riskready-audits
+    description: "Audits, findings, nonconformities, and compliance tracking"
+    tags: [grc, audits, nonconformity, compliance]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-audits/src/index.ts]
+    requiresDb: true
+
+  - name: riskready-incidents
+    description: "Security incidents, timelines, evidence, affected assets, lessons learned"
+    tags: [incidents, security, response]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-incidents/src/index.ts]
+    requiresDb: true

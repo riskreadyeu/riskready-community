@@ -1,0 +1,12 @@
+export { default as PoliciesDashboardPage } from './PoliciesDashboardPage';
+export { default as PolicyDocumentListPage } from './PolicyDocumentListPage';
+export { default as PolicyDocumentDetailPage } from './PolicyDocumentDetailPage';
+export { default as DocumentEditorPage } from './DocumentEditorPage';
+export { default as ChangeRequestsPage } from './ChangeRequestsPage';
+export { default as ExceptionsPage } from './ExceptionsPage';
+export { default as AcknowledgmentsPage } from './AcknowledgmentsPage';
+export { default as DocumentHierarchyPage } from './DocumentHierarchyPage';
+export { default as VersionHistoryPage } from './VersionHistoryPage';
+export { default as ApprovalsPage } from './ApprovalsPage';
+export { default as ReviewsPage } from './ReviewsPage';
+export { default as ControlMappingsPage } from './ControlMappingsPage';

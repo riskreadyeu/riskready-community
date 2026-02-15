@@ -1,0 +1,126 @@
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
+import { prisma } from '#src/prisma.js';
+
+export function registerEvidenceRequestTools(server: McpServer) {
+  server.tool(
+    'list_evidence_requests',
+    'List evidence requests with optional status filter. Returns request details with pagination.',
+    {
+      status: z.enum(['OPEN', 'IN_PROGRESS', 'SUBMITTED', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'OVERDUE']).optional().describe('Filter by request status'),
+      priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional().describe('Filter by priority'),
+      skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
+      take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
+    },
+    async (params) => {
+      const where: any = {};
+      if (params.status) where.status = params.status;
+      if (params.priority) where.priority = params.priority;
+
+      const [requests, total] = await Promise.all([
+        prisma.evidenceRequest.findMany({
+          where,
+          skip: params.skip || 0,
+          take: params.take || 50,
+          orderBy: { dueDate: 'asc' },
+          select: {
+            id: true,
+            requestRef: true,
+            title: true,
+            status: true,
+            priority: true,
+            dueDate: true,
+            evidenceType: true,
+            contextType: true,
+            contextRef: true,
+            requestedBy: { select: { id: true, name: true } },
+            assignedTo: { select: { id: true, name: true } },
+            assignedDepartment: { select: { id: true, name: true } },
+            _count: { select: { fulfillments: true } },
+          },
+        }),
+        prisma.evidenceRequest.count({ where }),
+      ]);
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({ requests, total, skip: params.skip || 0, take: params.take || 50 }, null, 2),
+        }],
+      };
+    },
+  );
+
+  server.tool(
+    'get_evidence_request',
+    'Get a single evidence request with full details including fulfillment records.',
+    {
+      id: z.string().describe('EvidenceRequest UUID'),
+    },
+    async ({ id }) => {
+      const request = await prisma.evidenceRequest.findUnique({
+        where: { id },
+        include: {
+          requestedBy: { select: { id: true, name: true, email: true } },
+          assignedTo: { select: { id: true, name: true, email: true } },
+          assignedDepartment: { select: { id: true, name: true } },
+          fulfillments: {
+            include: {
+              evidence: {
+                select: { id: true, evidenceRef: true, title: true, status: true },
+              },
+              submittedBy: { select: { id: true, name: true } },
+            },
+          },
+        },
+      });
+
+      if (!request) {
+        return { content: [{ type: 'text' as const, text: `Evidence request ${id} not found` }], isError: true };
+      }
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify(request, null, 2),
+        }],
+      };
+    },
+  );
+
+  server.tool(
+    'get_my_requests',
+    'Get evidence requests assigned to a specific user.',
+    {
+      userId: z.string().describe('User UUID of the assignee'),
+      status: z.enum(['OPEN', 'IN_PROGRESS', 'SUBMITTED', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'OVERDUE']).optional().describe('Filter by status'),
+    },
+    async ({ userId, status }) => {
+      const where: any = { assignedToId: userId };
+      if (status) where.status = status;
+
+      const requests = await prisma.evidenceRequest.findMany({
+        where,
+        orderBy: { dueDate: 'asc' },
+        select: {
+          id: true,
+          requestRef: true,
+          title: true,
+          status: true,
+          priority: true,
+          dueDate: true,
+          contextType: true,
+          contextRef: true,
+          _count: { select: { fulfillments: true } },
+        },
+      });
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({ requests, count: requests.length }, null, 2),
+        }],
+      };
+    },
+  );
+}

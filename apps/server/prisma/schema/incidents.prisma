@@ -1,0 +1,590 @@
+// ============================================
+// INCIDENT MANAGEMENT MODULE
+// ISO 27001:2022, NIS2, DORA Compliant
+// ============================================
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum IncidentSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum IncidentStatus {
+  DETECTED
+  TRIAGED
+  INVESTIGATING
+  CONTAINING
+  ERADICATING
+  RECOVERING
+  POST_INCIDENT
+  CLOSED
+}
+
+enum IncidentResolutionType {
+  RESOLVED
+  FALSE_POSITIVE
+  ACCEPTED_RISK
+  DUPLICATE
+  TRANSFERRED
+}
+
+enum IncidentSource {
+  SIEM
+  USER_REPORT
+  THREAT_INTEL
+  AUTOMATED
+  THIRD_PARTY
+  REGULATOR
+  VULNERABILITY_SCAN
+  PENETRATION_TEST
+  OTHER
+}
+
+enum IncidentCategory {
+  MALWARE
+  PHISHING
+  DENIAL_OF_SERVICE
+  DATA_BREACH
+  UNAUTHORIZED_ACCESS
+  INSIDER_THREAT
+  PHYSICAL
+  SUPPLY_CHAIN
+  SYSTEM_FAILURE
+  CONFIGURATION_ERROR
+  OTHER
+}
+
+enum IncidentImpactType {
+  COMPROMISED
+  AFFECTED
+  AT_RISK
+}
+
+enum IncidentEvidenceType {
+  LOG
+  SCREENSHOT
+  MEMORY_DUMP
+  DISK_IMAGE
+  NETWORK_CAPTURE
+  MALWARE_SAMPLE
+  EMAIL
+  DOCUMENT
+  OTHER
+}
+
+enum IncidentTimelineEntryType {
+  STATUS_CHANGE
+  ACTION_TAKEN
+  COMMUNICATION
+  EVIDENCE_COLLECTED
+  ESCALATION
+  FINDING
+  CLASSIFICATION_CHANGE
+  NOTIFICATION_SENT
+  OTHER
+}
+
+enum IncidentVisibility {
+  INTERNAL
+  MANAGEMENT
+  REGULATOR
+  PUBLIC
+}
+
+enum LessonsLearnedCategory {
+  DETECTION
+  RESPONSE
+  COMMUNICATION
+  TOOLING
+  TRAINING
+  PROCESS
+  THIRD_PARTY
+  DOCUMENTATION
+}
+
+enum LessonsLearnedStatus {
+  IDENTIFIED
+  IN_PROGRESS
+  IMPLEMENTED
+  VALIDATED
+}
+
+// ============================================
+// CORE INCIDENT MODEL
+// ============================================
+
+model Incident {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // ============================================
+  // IDENTIFICATION
+  // ============================================
+
+  referenceNumber String @unique // INC-2025-001
+  title           String
+  description     String @db.Text
+
+  // ============================================
+  // DETECTION & TIMELINE
+  // ============================================
+
+  detectedAt   DateTime
+  occurredAt   DateTime? // When incident actually occurred (may be earlier than detection)
+  reportedAt   DateTime? // When formally reported internally
+  classifiedAt DateTime? // CRITICAL: starts regulatory clocks
+  containedAt  DateTime?
+  eradicatedAt DateTime?
+  recoveredAt  DateTime?
+  closedAt     DateTime?
+
+  // ============================================
+  // CLASSIFICATION
+  // ============================================
+
+  severity    IncidentSeverity
+  category    IncidentCategory @default(OTHER)
+  isConfirmed Boolean          @default(false)
+
+  incidentTypeId String?
+  incidentType   IncidentType? @relation(fields: [incidentTypeId], references: [id], onDelete: SetNull)
+
+  attackVectorId String?
+  attackVector   AttackVector? @relation(fields: [attackVectorId], references: [id], onDelete: SetNull)
+
+  // ============================================
+  // OWNERSHIP
+  // ============================================
+
+  reporterId String?
+  reporter   User?   @relation("IncidentReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+
+  handlerId String?
+  handler   User?   @relation("IncidentHandler", fields: [handlerId], references: [id], onDelete: SetNull)
+
+  incidentManagerId String?
+  incidentManager   User?   @relation("IncidentManager", fields: [incidentManagerId], references: [id], onDelete: SetNull)
+
+  // ============================================
+  // STATUS & RESOLUTION
+  // ============================================
+
+  status         IncidentStatus          @default(DETECTED)
+  resolutionType IncidentResolutionType?
+
+  // ============================================
+  // CIA IMPACT
+  // ============================================
+
+  confidentialityBreach Boolean @default(false)
+  integrityBreach       Boolean @default(false)
+  availabilityBreach    Boolean @default(false)
+
+  // ============================================
+  // ISO 27001 COMPLIANCE FIELDS
+  // ============================================
+
+  evidencePreserved           Boolean @default(false)
+  chainOfCustodyMaintained    Boolean @default(false)
+  rootCauseIdentified         Boolean @default(false)
+  lessonsLearnedCompleted     Boolean @default(false)
+  correctiveActionsIdentified Boolean @default(false)
+
+  // ============================================
+  // SOURCE & METADATA
+  // ============================================
+
+  source    IncidentSource
+  sourceRef String? // External ticket/alert ID
+
+  // ============================================
+  // ORGANISATION LINK
+  // ============================================
+
+  organisationId String?
+  organisation   OrganisationProfile? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+
+  // ============================================
+  // AUDIT
+  // ============================================
+
+  createdBy User? @relation("IncidentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("IncidentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  // ============================================
+  // RELATIONSHIPS
+  // ============================================
+
+  affectedAssets     IncidentAsset[]
+  evidence           IncidentEvidence[]
+  timeline           IncidentTimelineEntry[]
+  lessonsLearned     IncidentLessonsLearned[]
+  relatedIncidents   IncidentRelation[]       @relation("SourceIncident")
+  relatedTo          IncidentRelation[]       @relation("RelatedIncident")
+  controlLinks       IncidentControl[]
+  nonconformityLinks IncidentNonconformity[]
+
+  // Evidence Module Relations (central evidence)
+  centralEvidenceLinks EvidenceIncident[]
+
+
+
+  // Risk Scenario Links
+  scenarioLinks IncidentScenario[]
+
+  @@index([referenceNumber])
+  @@index([status])
+  @@index([severity])
+  @@index([category])
+  @@index([detectedAt])
+  @@index([classifiedAt])
+  @@index([organisationId])
+  @@index([handlerId])
+  @@index([incidentManagerId])
+}
+
+// ============================================
+// INCIDENT - SCENARIO JUNCTION TABLE
+// Links incidents to risk scenarios
+// ============================================
+
+enum IncidentScenarioLinkType {
+  MATERIALIZED // This incident is a materialization of the scenario
+  RELATED // Incident is related but not direct materialization
+  NEAR_MISS // Incident could have triggered this scenario
+  CONTRIBUTED // Multiple scenarios contributed to incident
+}
+
+model IncidentScenario {
+  id         String       @id @default(cuid())
+  incidentId String
+  incident   Incident     @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  scenarioId String
+  scenario   RiskScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  // Type of link
+  linkType IncidentScenarioLinkType @default(RELATED)
+
+  // Did this incident trigger a scenario reassessment?
+  triggeredReassessment   Boolean   @default(false)
+  reassessmentDate        DateTime?
+  reassessmentCompletedBy String?
+
+  // Impact on scenario scoring (recorded from incident)
+  actualLossAmount    Decimal? @db.Decimal(15, 2)
+  actualImpactLevel   Int? // 1-5 scale
+  actualLikelihoodNow Int? // Updated likelihood after incident
+
+  // Notes on the link
+  linkNotes String? @db.Text
+
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation("IncidentScenarioCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([incidentId, scenarioId])
+  @@index([incidentId])
+  @@index([scenarioId])
+  @@index([linkType])
+  @@index([triggeredReassessment])
+}
+
+// ============================================
+// INCIDENT TYPE (Reference Data)
+// ============================================
+
+model IncidentType {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+
+  name            String
+  description     String?          @db.Text
+  category        IncidentCategory
+  defaultSeverity IncidentSeverity
+
+  // ============================================
+  // TYPICAL IMPACT FLAGS
+  // ============================================
+
+  typicalConfidentialityImpact Boolean @default(false)
+  typicalIntegrityImpact       Boolean @default(false)
+  typicalAvailabilityImpact    Boolean @default(false)
+
+  requiresLawEnforcement Boolean @default(false)
+  isActive               Boolean @default(true)
+  sortOrder              Int     @default(0)
+
+  // ============================================
+  // ORGANISATION SCOPE
+  // ============================================
+
+  organisationId String? // null = system default
+  organisation   OrganisationProfile? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+
+  // ============================================
+  // RELATIONSHIPS
+  // ============================================
+
+  incidents Incident[]
+
+  createdBy User? @relation("IncidentTypeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([name, organisationId])
+  @@index([category])
+  @@index([isActive])
+  @@index([organisationId])
+}
+
+// ============================================
+// ATTACK VECTOR (MITRE ATT&CK Aligned)
+// ============================================
+
+model AttackVector {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name            String
+  description     String? @db.Text
+  mitreAttackId   String? // e.g., T1566
+  mitreAttackName String?
+  mitreTactics    Json?   @default("[]") // e.g., ["initial-access", "execution"]
+  isActive        Boolean @default(true)
+
+  incidents Incident[]
+
+  @@unique([mitreAttackId])
+  @@index([isActive])
+}
+
+// ============================================
+// INCIDENT ASSETS (Affected Assets)
+// ============================================
+
+model IncidentAsset {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  impactType  IncidentImpactType
+  confirmedAt DateTime?
+  notes       String?            @db.Text
+
+  @@unique([incidentId, assetId])
+  @@index([assetId])
+}
+
+// ============================================
+// INCIDENT EVIDENCE
+// ============================================
+
+model IncidentEvidence {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+
+  incidentId   String
+  incident     Incident             @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  evidenceType IncidentEvidenceType
+  title        String
+  description  String?              @db.Text
+
+  // ============================================
+  // FILE REFERENCE
+  // ============================================
+
+  fileName      String?
+  fileUrl       String?
+  fileSizeBytes Int?
+  mimeType      String?
+
+  // ============================================
+  // INTEGRITY
+  // ============================================
+
+  hashSha256 String?
+  hashMd5    String?
+
+  // ============================================
+  // CHAIN OF CUSTODY
+  // ============================================
+
+  collectedAt         DateTime
+  collectedById       String
+  collectedBy         User     @relation("EvidenceCollectedBy", fields: [collectedById], references: [id])
+  collectionMethod    String?
+  chainOfCustodyNotes String?  @db.Text
+  isForensicallySound Boolean  @default(false)
+
+  // ============================================
+  // STORAGE
+  // ============================================
+
+  storageLocation String?
+  retainUntil     DateTime?
+
+  createdBy User? @relation("EvidenceCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([incidentId])
+  @@index([evidenceType])
+}
+
+// ============================================
+// INCIDENT TIMELINE
+// ============================================
+
+model IncidentTimelineEntry {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  createdById String
+
+  incidentId  String
+  incident    Incident                  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  timestamp   DateTime
+  entryType   IncidentTimelineEntryType
+  title       String
+  description String?                   @db.Text
+
+  // ============================================
+  // METADATA
+  // ============================================
+
+  visibility   IncidentVisibility @default(INTERNAL)
+  isAutomated  Boolean            @default(false)
+  sourceSystem String?
+
+  createdBy User @relation("TimelineCreatedBy", fields: [createdById], references: [id])
+
+  @@index([incidentId])
+  @@index([timestamp])
+  @@index([entryType])
+}
+
+// ============================================
+// INCIDENT LESSONS LEARNED
+// ============================================
+
+model IncidentLessonsLearned {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+
+  incidentId String
+  incident   Incident               @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  category   LessonsLearnedCategory
+
+  observation    String @db.Text
+  recommendation String @db.Text
+
+  // ============================================
+  // CORRECTIVE ACTION LINK
+  // ============================================
+
+  correctiveActionId String? // Link to Nonconformity CAP
+  status             LessonsLearnedStatus @default(IDENTIFIED)
+
+  // ============================================
+  // PRIORITY & TRACKING
+  // ============================================
+
+  priority      Int       @default(3) // 1=highest, 5=lowest
+  targetDate    DateTime?
+  completedDate DateTime?
+
+  // ============================================
+  // OWNERSHIP
+  // ============================================
+
+  assignedToId String?
+  assignedTo   User?   @relation("LessonsAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  createdBy User @relation("LessonsCreatedBy", fields: [createdById], references: [id])
+
+  @@index([incidentId])
+  @@index([status])
+  @@index([category])
+}
+
+// ============================================
+// INCIDENT RELATIONS
+// ============================================
+
+model IncidentRelation {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  createdById String
+
+  sourceIncidentId  String
+  sourceIncident    Incident @relation("SourceIncident", fields: [sourceIncidentId], references: [id], onDelete: Cascade)
+  relatedIncidentId String
+  relatedIncident   Incident @relation("RelatedIncident", fields: [relatedIncidentId], references: [id], onDelete: Cascade)
+
+  relationType String // duplicate_of, related_to, caused_by, child_of
+  notes        String? @db.Text
+
+  createdBy User @relation("RelationCreatedBy", fields: [createdById], references: [id])
+
+  @@unique([sourceIncidentId, relatedIncidentId])
+  @@index([sourceIncidentId])
+  @@index([relatedIncidentId])
+}
+
+// ============================================
+// INCIDENT - CONTROL LINK
+// ============================================
+
+model IncidentControl {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  controlId String
+  control   Control @relation(fields: [controlId], references: [id], onDelete: Cascade)
+
+  linkType String? // failed, bypassed, effective, not_applicable
+  notes    String? @db.Text
+
+  @@unique([incidentId, controlId])
+  @@index([controlId])
+}
+
+// ============================================
+// INCIDENT - NONCONFORMITY LINK
+// ============================================
+
+model IncidentNonconformity {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  nonconformityId String
+  nonconformity   Nonconformity @relation(fields: [nonconformityId], references: [id], onDelete: Cascade)
+
+  linkType String? // caused_by, revealed_by
+  notes    String? @db.Text
+
+  @@unique([incidentId, nonconformityId])
+  @@index([nonconformityId])
+}

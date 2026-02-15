@@ -1,0 +1,947 @@
+// =============================================
+// POLICY MANAGEMENT MODULE - PRISMA SCHEMA
+// ISO 27001:2022 Clause 7.5 Compliance
+// =============================================
+
+// =============================================
+// ENUMS
+// =============================================
+
+enum DocumentType {
+  POLICY // Level 1 - Strategic
+  STANDARD // Level 2 - Requirements
+  PROCEDURE // Level 3 - Operations
+  WORK_INSTRUCTION // Level 4 - Tasks
+  FORM // Supporting
+  TEMPLATE // Supporting
+  CHECKLIST // Supporting
+  GUIDELINE // Advisory
+  RECORD // Evidence
+}
+
+enum DocumentStatus {
+  DRAFT // Initial creation
+  PENDING_REVIEW // Under review
+  PENDING_APPROVAL // Awaiting approval
+  APPROVED // Active and current
+  PUBLISHED // Distributed
+  UNDER_REVISION // Being updated
+  SUPERSEDED // Replaced by newer version
+  RETIRED // No longer active
+  ARCHIVED // Historical retention
+}
+
+enum ClassificationLevel {
+  PUBLIC // External distribution OK
+  INTERNAL // Internal use only
+  CONFIDENTIAL // Restricted distribution
+  RESTRICTED // Need-to-know basis
+}
+
+enum ReviewFrequency {
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+  BIENNIAL
+  TRIENNIAL
+  ON_CHANGE
+  AS_NEEDED
+}
+
+enum ApprovalLevel {
+  BOARD
+  EXECUTIVE
+  SENIOR_MANAGEMENT
+  MANAGEMENT
+  TEAM_LEAD
+  PROCESS_OWNER
+}
+
+enum ChangeType {
+  INITIAL
+  MINOR_UPDATE
+  CLARIFICATION
+  ENHANCEMENT
+  CORRECTION
+  REGULATORY_UPDATE
+  MAJOR_REVISION
+  RESTRUCTURE
+}
+
+enum ReviewType {
+  SCHEDULED
+  TRIGGERED
+  AUDIT_FINDING
+  INCIDENT_RESPONSE
+  REGULATORY_CHANGE
+  REQUEST
+}
+
+enum ReviewOutcome {
+  NO_CHANGES
+  MINOR_CHANGES
+  MAJOR_CHANGES
+  SUPERSEDE
+  RETIRE
+}
+
+enum ApprovalWorkflowType {
+  NEW_DOCUMENT
+  REVISION
+  EXCEPTION
+  RETIREMENT
+}
+
+enum WorkflowStatus {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  CANCELLED
+  ESCALATED
+}
+
+enum ApprovalStepStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  SKIPPED
+  DELEGATED
+}
+
+enum ApprovalDecision {
+  APPROVE
+  APPROVE_WITH_CHANGES
+  REJECT
+  REQUEST_CHANGES
+  DELEGATE
+}
+
+enum ApprovalOutcome {
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ChangePriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ChangeRequestStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  IN_PROGRESS
+  IMPLEMENTED
+  VERIFIED
+  REJECTED
+  CANCELLED
+}
+
+enum ExceptionStatus {
+  REQUESTED
+  UNDER_REVIEW
+  APPROVED
+  ACTIVE
+  EXPIRED
+  REVOKED
+  CLOSED
+}
+
+enum AcknowledgmentMethod {
+  WEB_PORTAL
+  EMAIL_LINK
+  TRAINING_COMPLETION
+  DIGITAL_SIGNATURE
+}
+
+enum ControlMappingType {
+  IMPLEMENTS
+  SUPPORTS
+  REFERENCES
+  EVIDENCES
+}
+
+enum CoverageLevel {
+  FULL
+  PARTIAL
+  MINIMAL
+  NONE
+}
+
+enum RiskRelationshipType {
+  MITIGATES
+  ADDRESSES
+  CREATES
+  MONITORS
+}
+
+enum DocumentRelationType {
+  PARENT_OF
+  CHILD_OF
+  REFERENCES
+  REFERENCED_BY
+  SUPERSEDES
+  SUPERSEDED_BY
+  CONFLICTS_WITH
+  COMPLEMENTS
+  DEPENDS_ON
+}
+
+enum AttachmentType {
+  APPENDIX
+  FORM
+  TEMPLATE
+  DIAGRAM
+  REFERENCE
+  EVIDENCE
+  SIGNATURE
+}
+
+enum PolicyAuditAction {
+  CREATED
+  VIEWED
+  UPDATED
+  VERSION_CREATED
+  SUBMITTED_FOR_REVIEW
+  REVIEWED
+  SUBMITTED_FOR_APPROVAL
+  APPROVED
+  REJECTED
+  PUBLISHED
+  DISTRIBUTED
+  ACKNOWLEDGED
+  EXCEPTION_REQUESTED
+  EXCEPTION_APPROVED
+  SUPERSEDED
+  RETIRED
+  ARCHIVED
+  RESTORED
+  DELETED
+  EXPORTED
+  PRINTED
+}
+
+// =============================================
+// MAIN MODELS
+// =============================================
+
+model PolicyDocument {
+  id String @id @default(cuid())
+
+  // Identification
+  documentId   String // POL-001, STD-002-01, etc.
+  title        String
+  shortTitle   String?
+  documentType DocumentType
+
+  // Classification & Access
+  classification ClassificationLevel @default(INTERNAL)
+  distribution   String[]            @default([])
+  restrictedTo   String[]            @default([])
+
+  // Content
+  purpose     String  @db.Text
+  scope       String  @db.Text
+  content     String  @db.Text
+  summary     String? @db.Text
+  definitions Json?
+
+  // Hierarchy
+  parentDocumentId String?
+  parentDocument   PolicyDocument?  @relation("DocumentHierarchy", fields: [parentDocumentId], references: [id], onDelete: SetNull)
+  childDocuments   PolicyDocument[] @relation("DocumentHierarchy")
+
+  // Version Control
+  version        String            @default("1.0")
+  majorVersion   Int               @default(1)
+  minorVersion   Int               @default(0)
+  versionHistory DocumentVersion[]
+
+  // Status & Lifecycle
+  status         DocumentStatus   @default(DRAFT)
+  effectiveDate  DateTime?
+  expiryDate     DateTime?
+  retirementDate DateTime?
+  supersededById String?
+  supersededBy   PolicyDocument?  @relation("Supersession", fields: [supersededById], references: [id], onDelete: SetNull)
+  supersedes     PolicyDocument[] @relation("Supersession")
+
+  // Ownership
+  documentOwner   String
+  documentOwnerId String?
+  owner           User?   @relation("PolicyDocumentOwner", fields: [documentOwnerId], references: [id], onDelete: SetNull)
+  author          String
+  authorId        String?
+  authorUser      User?   @relation("PolicyDocumentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  // Approval
+  approvalLevel    ApprovalLevel
+  approvedBy       String?
+  approverId       String?
+  approver         User?         @relation("PolicyDocumentApprover", fields: [approverId], references: [id], onDelete: SetNull)
+  approvalDate     DateTime?
+  digitalSignature String?
+  approvalComments String?       @db.Text
+
+  // Review Schedule
+  reviewFrequency ReviewFrequency  @default(ANNUAL)
+  lastReviewDate  DateTime?
+  nextReviewDate  DateTime?
+  reviewReminder  Int?             @default(30)
+  reviewHistory   DocumentReview[]
+
+  // Approval Workflows
+  approvalWorkflows DocumentApprovalWorkflow[]
+
+  // ISO 27001 Mapping
+  controlMappings DocumentControlMapping[]
+  riskMappings    DocumentRiskMapping[]
+
+  // Cross-References
+  relatedDocuments DocumentRelation[] @relation("SourceDocument")
+  referencedBy     DocumentRelation[] @relation("TargetDocument")
+
+  // External References
+  externalReferences Json?
+
+  // Supporting Documents
+  attachments DocumentAttachment[]
+
+  // Change Management
+  changeRequests DocumentChangeRequest[]
+
+  // Exceptions
+  exceptions DocumentException[]
+
+  // Acknowledgment Tracking
+  acknowledgments        DocumentAcknowledgment[]
+  requiresAcknowledgment Boolean                  @default(false)
+  acknowledgmentDeadline Int?
+
+  // Audit Trail
+  auditLog PolicyDocumentAuditLog[]
+
+  // Structured Sections
+  sections            DocumentSection[]
+  documentDefinitions DocumentDefinition[]
+  processSteps        DocumentProcessStep[]
+  prerequisites       DocumentPrerequisite[]
+  roles               DocumentRole[]
+  revisions           DocumentRevision[]
+
+  // Evidence Module Relations
+  evidenceLinks EvidencePolicy[]
+
+  // Metadata
+  tags     String[] @default([])
+  keywords String[] @default([])
+  language String   @default("en")
+  locale   String?
+
+  // Organisation
+  organisationId String
+  organisation   OrganisationProfile @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("PolicyDocumentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String?
+  updatedBy   User?    @relation("PolicyDocumentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([documentId, organisationId])
+  @@index([documentType])
+  @@index([status])
+  @@index([classification])
+  @@index([nextReviewDate])
+  @@index([organisationId])
+  @@index([parentDocumentId])
+}
+
+model DocumentVersion {
+  id String @id @default(cuid())
+
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  version      String
+  majorVersion Int
+  minorVersion Int
+
+  content           String     @db.Text
+  changeDescription String     @db.Text
+  changeSummary     String?
+  changeType        ChangeType
+
+  approvedBy   String?
+  approvalDate DateTime?
+
+  diffFromPrevious String? @db.Text
+
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation("DocumentVersionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([documentId])
+  @@index([version])
+}
+
+model DocumentReview {
+  id String @id @default(cuid())
+
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  reviewType   ReviewType
+  reviewDate   DateTime
+  reviewedById String?
+  reviewedBy   User?      @relation("DocumentReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  outcome         ReviewOutcome
+  findings        String?       @db.Text
+  recommendations String?       @db.Text
+  actionItems     String?       @db.Text
+
+  changesRequired   Boolean @default(false)
+  changeDescription String? @db.Text
+
+  nextReviewDate DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([documentId])
+  @@index([reviewDate])
+}
+
+model DocumentApprovalWorkflow {
+  id String @id @default(cuid())
+
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  workflowType ApprovalWorkflowType
+  status       WorkflowStatus       @default(PENDING)
+
+  steps            ApprovalStep[]
+  currentStepOrder Int            @default(1)
+
+  initiatedById String?
+  initiatedBy   User?    @relation("WorkflowInitiatedBy", fields: [initiatedById], references: [id], onDelete: SetNull)
+  initiatedAt   DateTime @default(now())
+
+  completedAt  DateTime?
+  finalOutcome ApprovalOutcome?
+
+  comments String? @db.Text
+
+  @@index([documentId])
+  @@index([status])
+}
+
+model ApprovalStep {
+  id String @id @default(cuid())
+
+  workflowId String
+  workflow   DocumentApprovalWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  stepOrder Int
+  stepName  String
+
+  approverId   String?
+  approver     User?   @relation("ApprovalStepApprover", fields: [approverId], references: [id], onDelete: SetNull)
+  approverRole String?
+
+  status   ApprovalStepStatus @default(PENDING)
+  decision ApprovalDecision?
+  comments String?            @db.Text
+
+  signature String?
+  signedAt  DateTime?
+
+  dueDate      DateTime?
+  reminderSent Boolean   @default(false)
+  escalated    Boolean   @default(false)
+
+  delegatedToId String?
+  delegatedTo   User?   @relation("ApprovalStepDelegatedTo", fields: [delegatedToId], references: [id], onDelete: SetNull)
+
+  @@index([workflowId])
+  @@index([status])
+}
+
+model DocumentChangeRequest {
+  id String @id @default(cuid())
+
+  changeRequestId String
+
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String         @db.Text
+  justification String         @db.Text
+  changeType    ChangeType
+  priority      ChangePriority
+
+  impactAssessment  String?  @db.Text
+  affectedDocuments String[] @default([])
+  affectedProcesses String[] @default([])
+  affectedSystems   String[] @default([])
+
+  status ChangeRequestStatus @default(SUBMITTED)
+
+  requestedById String?
+  requestedBy   User?    @relation("ChangeRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  requestedAt   DateTime @default(now())
+
+  approvedById     String?
+  approvedBy       User?     @relation("ChangeApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvalDate     DateTime?
+  approvalComments String?   @db.Text
+
+  implementedById String?
+  implementedBy   User?     @relation("ChangeImplementedBy", fields: [implementedById], references: [id], onDelete: SetNull)
+  implementedAt   DateTime?
+  newVersionId    String?
+
+  targetDate           DateTime?
+  actualCompletionDate DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Organisation for unique constraint
+  organisationId String
+  organisation   OrganisationProfile @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([changeRequestId, organisationId])
+  @@index([documentId])
+  @@index([status])
+  @@index([organisationId])
+}
+
+model DocumentException {
+  id String @id @default(cuid())
+
+  exceptionId String
+
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String @db.Text
+  justification String @db.Text
+
+  scope            String   @db.Text
+  affectedEntities String[] @default([])
+
+  riskAssessment       String  @db.Text
+  residualRisk         String
+  compensatingControls String? @db.Text
+
+  status        ExceptionStatus @default(REQUESTED)
+  requestedById String?
+  requestedBy   User?           @relation("ExceptionRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  requestedAt   DateTime        @default(now())
+
+  startDate  DateTime?
+  expiryDate DateTime?
+
+  approvalLevel    ApprovalLevel
+  approvedById     String?
+  approvedBy       User?         @relation("ExceptionApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvalDate     DateTime?
+  approvalComments String?       @db.Text
+
+  reviewFrequency ReviewFrequency @default(QUARTERLY)
+  lastReviewDate  DateTime?
+  nextReviewDate  DateTime?
+
+  closedAt      DateTime?
+  closureReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Organisation for unique constraint
+  organisationId String
+  organisation   OrganisationProfile @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([exceptionId, organisationId])
+  @@index([documentId])
+  @@index([status])
+  @@index([expiryDate])
+  @@index([organisationId])
+}
+
+model DocumentAcknowledgment {
+  id String @id @default(cuid())
+
+  documentId      String
+  document        PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentVersion String
+
+  userId String
+  user   User   @relation("DocumentAcknowledgmentUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  acknowledgedAt DateTime?
+  isAcknowledged Boolean   @default(false)
+
+  method    AcknowledgmentMethod?
+  ipAddress String?
+  userAgent String?
+
+  dueDate        DateTime?
+  remindersSent  Int       @default(0)
+  lastReminderAt DateTime?
+  isOverdue      Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([documentId, userId, documentVersion])
+  @@index([documentId])
+  @@index([userId])
+  @@index([isAcknowledged])
+}
+
+model DocumentControlMapping {
+  id String @id @default(cuid())
+
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  controlId String
+  control   Control @relation(fields: [controlId], references: [id], onDelete: Cascade)
+
+  mappingType ControlMappingType @default(IMPLEMENTS)
+  coverage    CoverageLevel      @default(FULL)
+  notes       String?            @db.Text
+
+  evidenceRequired    Boolean @default(false)
+  evidenceDescription String?
+
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation("ControlMappingCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([documentId, controlId])
+  @@index([documentId])
+  @@index([controlId])
+}
+
+model DocumentRiskMapping {
+  id String @id @default(cuid())
+
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  riskId String
+  risk   Risk   @relation(fields: [riskId], references: [id], onDelete: Cascade)
+
+  relationshipType RiskRelationshipType @default(MITIGATES)
+  notes            String?              @db.Text
+
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation("RiskMappingCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([documentId, riskId])
+  @@index([documentId])
+  @@index([riskId])
+}
+
+model DocumentRelation {
+  id String @id @default(cuid())
+
+  sourceDocumentId String
+  sourceDocument   PolicyDocument @relation("SourceDocument", fields: [sourceDocumentId], references: [id], onDelete: Cascade)
+
+  targetDocumentId String
+  targetDocument   PolicyDocument @relation("TargetDocument", fields: [targetDocumentId], references: [id], onDelete: Cascade)
+
+  relationType DocumentRelationType
+  description  String?
+
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation("DocumentRelationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([sourceDocumentId, targetDocumentId, relationType])
+  @@index([sourceDocumentId])
+  @@index([targetDocumentId])
+}
+
+model DocumentAttachment {
+  id String @id @default(cuid())
+
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  filename         String
+  originalFilename String
+  mimeType         String
+  size             Int
+
+  attachmentType AttachmentType
+  description    String?
+
+  storagePath     String
+  storageProvider String @default("local")
+
+  checksum    String
+  isEncrypted Boolean @default(false)
+
+  uploadedById String?
+  uploadedBy   User?    @relation("AttachmentUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  uploadedAt   DateTime @default(now())
+
+  @@index([documentId])
+}
+
+model PolicyDocumentAuditLog {
+  id String @id @default(cuid())
+
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  action      PolicyAuditAction
+  description String            @db.Text
+
+  previousValue Json?
+  newValue      Json?
+
+  performedById String?
+  performedBy   User?    @relation("PolicyAuditPerformedBy", fields: [performedById], references: [id], onDelete: SetNull)
+  performedAt   DateTime @default(now())
+
+  ipAddress String?
+  userAgent String?
+  sessionId String?
+
+  @@index([documentId])
+  @@index([performedAt])
+  @@index([action])
+}
+
+// =============================================
+// STRUCTURED DOCUMENT SECTIONS
+// =============================================
+
+enum DocumentSectionType {
+  HEADER // Document metadata header
+  MANAGEMENT_COMMITMENT // Executive commitment statement
+  PURPOSE // Purpose/objective section
+  SCOPE // Scope and applicability
+  DEFINITIONS // Definitions table
+  ISO_CONTROLS // ISO 27001 controls addressed
+  RELATED_DOCUMENTS // Related/referenced documents
+  ROLES_RESPONSIBILITIES // RACI or roles matrix
+  POLICY_STATEMENTS // Policy statements (policies only)
+  REQUIREMENTS // Requirements (standards only)
+  PROCESS_STEPS // Step-by-step process (procedures)
+  PREREQUISITES // Prerequisites checklist (procedures)
+  WORKFLOW // Process workflow/flowchart
+  COMPLIANCE // Compliance requirements
+  EXCEPTIONS // Exception handling
+  REVISION_HISTORY // Version history
+  APPENDIX // Appendix content
+  CUSTOM // Custom/freeform section
+}
+
+model DocumentSectionTemplate {
+  id String @id @default(cuid())
+
+  // Template identification
+  name        String // "Purpose Section", "Definitions Table"
+  sectionType DocumentSectionType
+
+  // Applicable document types
+  applicableTypes DocumentType[] @default([]) // Empty = all types
+
+  // Template settings
+  isRequired   Boolean @default(false)
+  defaultOrder Int     @default(0)
+
+  // Default content/structure
+  defaultTitle   String? // Default section title
+  defaultContent String? @db.Text // Default markdown/template
+  schema         Json? // JSON schema for structured data
+
+  // Help text
+  description String? @db.Text
+  helpText    String? @db.Text
+
+  // Organization scope
+  organisationId String?
+  organisation   OrganisationProfile? @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  // System vs custom
+  isSystemTemplate Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  sections DocumentSection[]
+
+  @@unique([name, organisationId])
+  @@index([sectionType])
+  @@index([organisationId])
+}
+
+model DocumentSection {
+  id String @id @default(cuid())
+
+  // Link to document
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  // Section type and template
+  sectionType DocumentSectionType
+  templateId  String?
+  template    DocumentSectionTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  // Section content
+  title String // Section heading
+  order Int    @default(0) // Display order
+
+  // Content - supports both markdown and structured data
+  content        String? @db.Text // Markdown content
+  structuredData Json? // Structured data (tables, lists, etc.)
+
+  // Visibility
+  isVisible   Boolean @default(true)
+  isCollapsed Boolean @default(false)
+
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("SectionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([documentId])
+  @@index([sectionType])
+  @@index([order])
+}
+
+// Definition entries for DEFINITIONS section type
+model DocumentDefinition {
+  id String @id @default(cuid())
+
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  term       String
+  definition String  @db.Text
+  source     String? // Optional source reference
+  order      Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([documentId, term])
+  @@index([documentId])
+}
+
+// Process steps for PROCESS_STEPS section type
+model DocumentProcessStep {
+  id String @id @default(cuid())
+
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  stepNumber  String // "1", "1.1", "1.1.1"
+  title       String
+  description String @db.Text
+
+  // Step metadata
+  responsible String? // Who performs this step
+  accountable String? // Who is accountable
+  consulted   String[] @default([])
+  informed    String[] @default([])
+
+  // Timing
+  estimatedDuration String? // "1 hour", "2-3 days"
+
+  // Inputs/Outputs
+  inputs  String[] @default([])
+  outputs String[] @default([])
+
+  // Decision points
+  isDecisionPoint Boolean @default(false)
+  decisionOptions Json? // If decision point, possible paths
+
+  order Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([documentId])
+  @@index([order])
+}
+
+// Prerequisites checklist for PREREQUISITES section type  
+model DocumentPrerequisite {
+  id String @id @default(cuid())
+
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  category    String? // Group prerequisites
+  item        String  @db.Text
+  isMandatory Boolean @default(true)
+  order       Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([documentId])
+}
+
+// Roles and responsibilities entries
+model DocumentRole {
+  id String @id @default(cuid())
+
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  role             String // Role name
+  responsibilities String[] @default([])
+
+  // RACI for specific activities
+  raciMatrix Json? // { "activity1": "R", "activity2": "A", ... }
+
+  order Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([documentId])
+}
+
+// Revision history entries
+model DocumentRevision {
+  id String @id @default(cuid())
+
+  documentId String
+  document   PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  version     String
+  date        DateTime
+  author      String
+  approvedBy  String?
+  description String   @db.Text
+
+  order Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([documentId])
+}

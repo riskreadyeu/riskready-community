@@ -1,0 +1,1405 @@
+// ============================================
+// ORGANISATION MODULE
+// ============================================
+
+model OrganisationProfile {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  name        String
+  legalName   String
+  description String?
+  logoUrl     String?
+
+  // Industry Information
+  industrySector     String?
+  industrySubsector  String?
+  industryCode       String?
+  marketPosition     String?
+  primaryCompetitors Json?   @default("[]")
+
+  // Financial Information
+  annualRevenue     Decimal?  @db.Decimal(20, 2)
+  revenueCurrency   String    @default("USD")
+  revenueStreams    Json?     @default("[]")
+  revenueTrend      String?
+  fiscalYearStart   String?
+  fiscalYearEnd     DateTime?
+  reportingCurrency String    @default("USD")
+
+  // Employee Information
+  employeeCount        Int
+  employeeCategories   Json?    @default("[]")
+  employeeLocations    Json?    @default("[]")
+  employeeGrowthRate   Decimal? @db.Decimal(5, 2)
+  remoteWorkPercentage Int?
+  size                 String?
+
+  // Corporate Structure
+  parentOrganization String?
+  subsidiaries       Json?   @default("[]")
+  operatingCountries Json?   @default("[]")
+
+  // Contact Information
+  headquartersAddress String?
+  registeredAddress   String?
+  contactEmail        String?
+  contactPhone        String?
+  website             String?
+
+  // Legal Information
+  registrationNumber String?
+  taxIdentification  String?
+  dunsNumber         String?
+  stockSymbol        String?
+  leiCode            String?
+  naceCode           String?
+  sicCode            String?
+  foundedYear        Int?
+
+  // Strategic Information
+  missionStatement    String?
+  visionStatement     String?
+  coreValues          Json?   @default("[]")
+  strategicObjectives Json?   @default("[]")
+  businessModel       String?
+  valueProposition    String?
+
+  // ISMS Information (Clause 4.3)
+  ismsScope      String?
+  ismsPolicy     String?
+  ismsObjectives Json?   @default("[]")
+
+  // ISMS Scope Details
+  productsServicesInScope Json?   @default("[]")
+  departmentsInScope      Json?   @default("[]")
+  locationsInScope        Json?   @default("[]")
+  processesInScope        Json?   @default("[]")
+  systemsInScope          Json?   @default("[]")
+  scopeExclusions         String?
+  exclusionJustification  String?
+  scopeBoundaries         String?
+
+  // ISO Certification
+  isoCertificationStatus String    @default("not_certified")
+  certificationBody      String?
+  certificationDate      DateTime?
+  certificationExpiry    DateTime?
+  certificateNumber      String?
+  nextAuditDate          DateTime?
+
+  // Risk Management
+  riskAppetite  String?
+  riskTolerance Json?   @default("{}")
+
+  // ============================================
+  // GRC CALIBRATION PROFILE
+  // Feeds into risk calculation baseline factors
+  // ============================================
+
+  // Technical Posture (Baseline F2/F3 calculation)
+  stackType           String? // 'Cloud_Native' | 'Hybrid' | 'On_Prem'
+  securityMaturity    String? // 'Initial' | 'Defined' | 'Managed' | 'Optimized'
+  usersHaveLocalAdmin Boolean @default(true)
+  internetExposure    String? // 'High' | 'Medium' | 'Low'
+
+  // Financial Calibration (Impact threshold scaling)
+  marginHealth         String? // 'Low' | 'Standard' | 'High'
+  hasInsurance         Boolean  @default(false)
+  insuranceDeductible  Decimal? @db.Decimal(20, 2)
+  maxTolerableDowntime Int? // Hours (MTD for BCP)
+
+  // Risk Philosophy (Acceptance threshold)
+  riskPhilosophy          String? // 'Fortress' | 'Agile' | 'Disruptor'
+  riskAcceptanceThreshold Int? // Calculated: 6, 12, or 16
+
+  // Data Context (Regulatory triggers)
+  dataVolumeClassification String? // 'Low' | 'High' | 'Mass'
+  aiUsageLevel             String? // 'None' | 'AdHoc' | 'Enterprise'
+
+  // Calculated Baseline Factors (populated by calibration service)
+  // Only F2 and F3 - F1 comes from threat type, not org profile
+  baselineF2 Decimal? @db.Decimal(3, 1) // Vulnerability baseline (1.0-5.0)
+  baselineF3 Decimal? @db.Decimal(3, 1) // Attack surface baseline (1.0-5.0)
+
+  // Impact Thresholds (calculated from revenue + margins)
+  impactThresholds Json? @default("{}") // { negligible, minor, moderate, major, critical }
+
+  // Calibration Metadata
+  calibrationCompletedAt     DateTime?
+  calibrationCompletedById   String?
+  lastCalibrationTriggeredAt DateTime?
+
+  // Digital Transformation
+  digitalTransformationStage String?
+  technologyAdoptionRate     Int?
+  innovationFocus            Json?   @default("[]")
+
+  // Sustainability
+  sustainabilityGoals Json?   @default("[]")
+  esgRating           String?
+
+  // ============================================
+  // REGULATORY PROFILE (populated from survey results)
+  // ============================================
+
+  // DORA Applicability
+  isDoraApplicable    Boolean @default(false)
+  doraEntityType      String? // credit_institution, payment_institution, investment_firm, insurance, e_money, crypto_asset, csd, trading_venue, ict_provider
+  doraRegime          String? // full, simplified (Art. 16 microenterprise)
+  doraExemptionReason String?
+
+  // NIS2 Applicability
+  isNis2Applicable         Boolean @default(false)
+  nis2EntityClassification String? // essential, important
+  nis2Sector               String? // energy, transport, banking, health, water, digital_infrastructure, space, postal, waste, chemicals, food, manufacturing, digital_services, research
+  nis2AnnexType            String? // annex_i, annex_ii
+
+  // Supervisory Authority
+  primarySupervisoryAuthority   String?
+  supervisoryAuthorityCountry   String?
+  supervisoryRegistrationNumber String?
+  supervisoryRegistrationDate   DateTime?
+
+  // Survey Linkage
+  lastDoraAssessmentId       String?
+  lastNis2AssessmentId       String?
+  regulatoryProfileUpdatedAt DateTime?
+
+  createdBy User? @relation("OrgProfileCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("OrgProfileUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  // Controls Module Relations
+  controls           Control[]
+  soas               StatementOfApplicability[]
+  scopeItems         ScopeItem[]
+  assessments        Assessment[]
+
+
+  // Risk Module Relations
+  risks                   Risk[]
+  riskToleranceStatements RiskToleranceStatement[]
+  treatmentPlans          TreatmentPlan[]
+  treatmentTemplates      TreatmentTemplate[]
+
+  // Policy Module Relations
+  policyDocuments          PolicyDocument[]
+  changeRequests           DocumentChangeRequest[]
+  documentExceptions       DocumentException[]
+  documentSectionTemplates DocumentSectionTemplate[]
+
+  // Incident Module Relations
+  incidents     Incident[]
+  incidentTypes IncidentType[]
+
+  // MCP Module Relations
+  mcpPendingActions McpPendingAction[]
+
+  @@index([name])
+  @@index([industrySector])
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  name           String
+  departmentCode String  @unique
+  description    String?
+
+  // Hierarchy
+  parentId String?
+  parent   Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Department[] @relation("DepartmentHierarchy")
+
+  // Classification
+  departmentCategory String?
+  functionType       String?
+  criticalityLevel   String?
+
+  // Leadership
+  departmentHeadId String?
+  departmentHead   User?   @relation("DepartmentHead", fields: [departmentHeadId], references: [id], onDelete: SetNull)
+  deputyHeadId     String?
+  deputyHead       User?   @relation("DepartmentDeputy", fields: [deputyHeadId], references: [id], onDelete: SetNull)
+
+  // Resources
+  headcount       Int?
+  contractorCount Int?
+
+  // Responsibilities
+  keyResponsibilities   Json? @default("[]")
+  regulatoryObligations Json? @default("[]")
+  externalInterfaces    Json? @default("[]")
+
+  // Financial
+  costCenter     String?
+  budget         Decimal? @db.Decimal(15, 2)
+  budgetCurrency String   @default("USD")
+
+  // Location and Operations
+  location           String?
+  floorPlanReference String?
+  businessHours      Json?   @default("{}")
+
+  // Contact Information
+  contactEmail     String?
+  contactPhone     String?
+  emergencyContact Json?   @default("{}")
+
+  // Status
+  isActive        Boolean   @default(true)
+  establishedDate DateTime?
+  closureDate     DateTime?
+
+  // Data Handling (for ISMS)
+  handlesPersonalData  Boolean @default(false)
+  handlesFinancialData Boolean @default(false)
+
+  createdBy User? @relation("DeptCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("DeptUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  // Relations
+  members              DepartmentMember[]
+  businessProcesses    BusinessProcess[]
+  securityChampions    SecurityChampion[]
+  externalDependencies ExternalDependency[]
+
+  // ITSM Module Relations
+  assets  Asset[]
+  changes Change[]
+
+  // Evidence Module Relations
+  evidenceRequests EvidenceRequest[] @relation("RequestDepartment")
+
+  @@index([departmentCode])
+  @@index([parentId])
+  @@index([departmentHeadId])
+  @@index([isActive])
+}
+
+model DepartmentMember {
+  id           String   @id @default(cuid())
+  departmentId String
+  userId       String
+  createdAt    DateTime @default(now())
+
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([departmentId, userId])
+  @@index([userId])
+}
+
+model OrganisationalUnit {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  name        String
+  unitType    String
+  description String?
+  code        String  @unique
+
+  // Hierarchy
+  parentId String?
+  parent   OrganisationalUnit?  @relation("UnitHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children OrganisationalUnit[] @relation("UnitHierarchy")
+
+  // Leadership
+  headId String?
+  head   User?   @relation("UnitHead", fields: [headId], references: [id], onDelete: SetNull)
+
+  // Financial
+  budget         Decimal? @db.Decimal(15, 2)
+  budgetCurrency String   @default("USD")
+  costCenter     String?
+
+  // Status
+  isActive        Boolean   @default(true)
+  establishedDate DateTime?
+
+  createdBy User? @relation("UnitCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("UnitUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([code])
+  @@index([parentId])
+  @@index([headId])
+}
+
+model Location {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  locationCode String? @unique
+  name         String
+  locationType String?
+
+  // Address
+  address    String?
+  city       String?
+  state      String?
+  country    String?
+  postalCode String?
+  region     String?
+
+  // Contact
+  contactEmail String?
+  contactPhone String?
+  timezone     String?
+  latitude     Float?
+  longitude    Float?
+
+  // Capacity
+  employeeCount  Int?
+  maxCapacity    Int?
+  floorSpace     Decimal? @db.Decimal(10, 2)
+  floorSpaceUnit String   @default("sqm")
+
+  // Physical Security
+  physicalSecurityLevel String?
+  accessControlType     String?
+  securityFeatures      Json?   @default("[]")
+
+  // IT Infrastructure
+  isDataCenter     Boolean @default(false)
+  hasServerRoom    Boolean @default(false)
+  networkType      String?
+  internetProvider String?
+  backupPower      Boolean @default(false)
+
+  // Compliance
+  complianceCertifications Json? @default("[]")
+
+  // ISMS Scope
+  inIsmsScope        Boolean @default(true)
+  scopeJustification String?
+
+  // Status
+  isActive         Boolean   @default(true)
+  operationalSince DateTime?
+  closureDate      DateTime?
+
+  createdBy User? @relation("LocationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("LocationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  // ITSM Module Relations
+  assets Asset[]
+
+  @@index([locationCode])
+  @@index([name])
+  @@index([country])
+  @@index([locationType])
+  @@index([isActive])
+}
+
+model ExecutivePosition {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  title          String
+  executiveLevel String
+  personId       String?
+  person         User?   @relation("ExecutivePositionPerson", fields: [personId], references: [id], onDelete: SetNull)
+
+  // Hierarchy
+  reportsToId  String?
+  reportsTo    ExecutivePosition?  @relation("ExecutiveHierarchy", fields: [reportsToId], references: [id], onDelete: SetNull)
+  subordinates ExecutivePosition[] @relation("ExecutiveHierarchy")
+
+  // Authority and Responsibilities
+  authorityLevel           String?
+  securityResponsibilities String?
+  riskAuthorityLevel       String?
+  budgetAuthority          Boolean @default(false)
+
+  // Status
+  isActive                  Boolean @default(true)
+  isCeo                     Boolean @default(false)
+  isSecurityCommitteeMember Boolean @default(false)
+
+  // Dates
+  startDate DateTime
+  endDate   DateTime?
+
+  createdBy User? @relation("ExecCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("ExecUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([executiveLevel])
+  @@index([personId])
+  @@index([isActive])
+}
+
+model SecurityChampion {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  userId        String
+  user          User       @relation("SecurityChampionUser", fields: [userId], references: [id], onDelete: Cascade)
+  departmentId  String
+  department    Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  championLevel String
+
+  // Responsibilities
+  responsibilities  String?
+  trainingCompleted Boolean   @default(false)
+  lastTrainingDate  DateTime?
+
+  // Status
+  isActive  Boolean   @default(true)
+  startDate DateTime
+  endDate   DateTime?
+
+  createdBy User? @relation("ChampionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("ChampionUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, departmentId])
+  @@index([departmentId])
+  @@index([isActive])
+}
+
+model BusinessProcess {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  name        String
+  processCode String  @unique
+  description String?
+
+  // Classification
+  processType      String
+  criticalityLevel String @default("medium")
+
+  // Ownership
+  processOwnerId   String?
+  processOwner     User?       @relation("ProcessOwner", fields: [processOwnerId], references: [id], onDelete: SetNull)
+  processManagerId String?
+  processManager   User?       @relation("ProcessManager", fields: [processManagerId], references: [id], onDelete: SetNull)
+  departmentId     String?
+  department       Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  // Process Details
+  inputs        Json? @default("[]")
+  outputs       Json? @default("[]")
+  keyActivities Json? @default("[]")
+  stakeholders  Json? @default("[]")
+  kpis          Json? @default("[]")
+
+  // Performance
+  cycleTimeHours  Int?
+  frequency       String?
+  automationLevel String?
+
+  // Compliance and Risk
+  complianceRequirements Json?   @default("[]")
+  riskRating             String?
+
+  // Review and Documentation
+  lastReviewDate           DateTime?
+  nextReviewDate           DateTime?
+  sopReference             String?
+  processMapUrl            String?
+  documentation            Json?     @default("[]")
+  improvementOpportunities String?
+
+  // Status
+  isActive Boolean @default(true)
+
+  // ============================================
+  // BIA STATUS (gates BCP eligibility)
+  // ============================================
+  biaStatus         String    @default("pending") // pending, in_progress, completed
+  biaCompletedAt    DateTime?
+  biaCompletedById  String?
+  biaLastReviewedAt DateTime?
+  biaNextReviewDue  DateTime?
+
+  // BCP Fields (populated by BIA assessment)
+  bcpEnabled     Boolean @default(false)
+  bcpCriticality String?
+
+  // Recovery Objectives
+  recoveryTimeObjectiveMinutes    Int?
+  recoveryPointObjectiveMinutes   Int?
+  maximumTolerableDowntimeMinutes Int?
+
+  // Staffing
+  minimumStaff  Int?
+  backupOwnerId String?
+  backupOwner   User?   @relation("ProcessBackupOwner", fields: [backupOwnerId], references: [id], onDelete: SetNull)
+
+  // Operational Details
+  operatingHours Json? @default("{}")
+  peakPeriods    Json? @default("{}")
+
+  // Dependencies
+  criticalRoles        Json? @default("[]")
+  requiredSkills       Json? @default("[]")
+  systemDependencies   Json? @default("[]")
+  supplierDependencies Json? @default("[]")
+
+  // Recovery
+  alternateProcesses   String?
+  workaroundProcedures String?
+  manualProcedures     String?
+  recoveryStrategies   Json?   @default("[]")
+
+  // Performance Metrics
+  workRecoveryTimeMinutes            Int?
+  minimumBusinessContinuityObjective String?
+  volumeMetrics                      Json?   @default("{}")
+  performanceIndicators              Json?   @default("{}")
+  seasonalVariations                 Json?   @default("{}")
+
+  // Process Hierarchy
+  parentProcessId String?
+  parentProcess   BusinessProcess?  @relation("ProcessHierarchy", fields: [parentProcessId], references: [id], onDelete: SetNull)
+  subProcesses    BusinessProcess[] @relation("ProcessHierarchy")
+
+  upstreamBias   String?
+  downstreamBias String?
+
+  createdBy User? @relation("ProcessCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("ProcessUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  externalDependencies ExternalDependency[]
+
+  // ITSM Module Relations
+  assetLinks AssetBusinessProcess[]
+
+  @@index([processCode])
+  @@index([processOwnerId])
+  @@index([departmentId])
+  @@index([bcpEnabled, bcpCriticality])
+  @@index([biaStatus])
+}
+
+model ExternalDependency {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  name           String
+  dependencyType String
+  description    String
+  vendorWebsite  String?
+
+  // Risk Assessment
+  criticalityLevel     String
+  businessImpact       String?
+  singlePointOfFailure Boolean @default(false)
+
+  // Contract Information
+  contractReference String?
+  contractStart     DateTime
+  contractEnd       DateTime
+  annualCost        Decimal? @db.Decimal(15, 2)
+  paymentTerms      String?
+
+  // SLA
+  slaDetails Json? @default("{}")
+
+  // Data Processing
+  dataProcessed            Json?   @default("[]")
+  dataLocation             String?
+  complianceCertifications Json?   @default("[]")
+
+  // Assessment
+  lastAssessmentDate DateTime?
+  riskRating         String?
+
+  // Contact
+  primaryContact String?
+  contactEmail   String
+  contactPhone   String?
+
+  // Contingency
+  alternativeProviders  Json?   @default("[]")
+  exitStrategy          String?
+  dataRecoveryProcedure String?
+
+  createdBy User? @relation("DependencyCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("DependencyUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  // Relations
+  departments       Department[]
+  businessProcesses BusinessProcess[]
+
+  // ITSM Module Relations
+  providedAssets Asset[]
+  vendorChanges  Change[]
+
+  @@index([name])
+  @@index([dependencyType])
+  @@index([criticalityLevel])
+}
+
+model Regulator {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  name              String
+  acronym           String?
+  regulatorType     String
+  jurisdiction      String
+  jurisdictionLevel String
+  description       String?
+
+  // Contact
+  website        String?
+  contactEmail   String?
+  contactPhone   String?
+  contactAddress String?
+
+  // Regulatory Framework
+  keyRegulations      Json? @default("[]")
+  applicableStandards Json? @default("[]")
+
+  // Registration
+  registrationStatus String    @default("not_required")
+  registrationNumber String?
+  registrationDate   DateTime?
+  renewalDate        DateTime?
+
+  // Inspections
+  lastInspectionDate DateTime?
+  nextInspectionDate DateTime?
+
+  // Reporting
+  reportingFrequency String?
+  lastReportDate     DateTime?
+  nextReportDate     DateTime?
+
+  // Compliance History
+  penaltiesFines  Json?   @default("[]")
+  complianceNotes String?
+
+  // Status
+  isActive Boolean @default(true)
+
+  createdBy User? @relation("RegulatorCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("RegulatorUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([name])
+  @@index([regulatorType])
+  @@index([jurisdiction])
+}
+
+model SecurityCommittee {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  name          String
+  committeeType String
+  description   String?
+
+  // Governance
+  chairId        String?
+  chair          User?   @relation("CommitteeChair", fields: [chairId], references: [id], onDelete: SetNull)
+  authorityLevel String?
+
+  // Meeting Information
+  meetingFrequency String
+  nextMeetingDate  DateTime?
+
+  // Status
+  isActive        Boolean   @default(true)
+  establishedDate DateTime
+  dissolvedDate   DateTime?
+
+  createdBy User? @relation("CommitteeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("CommitteeUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  memberships CommitteeMembership[]
+  meetings    CommitteeMeeting[]
+
+  @@index([committeeType])
+  @@index([chairId])
+  @@index([isActive])
+}
+
+model CommitteeMembership {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  userId      String
+  user        User              @relation("CommitteeMember", fields: [userId], references: [id], onDelete: Cascade)
+  committeeId String
+  committee   SecurityCommittee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+  role        String
+
+  // Responsibilities
+  responsibilities String?
+  votingRights     Boolean @default(true)
+
+  // Status
+  isActive  Boolean   @default(true)
+  startDate DateTime
+  endDate   DateTime?
+
+  createdBy User? @relation("MembershipCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("MembershipUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  meetingAttendances MeetingAttendance[]
+
+  @@unique([userId, committeeId])
+  @@index([committeeId])
+  @@index([isActive])
+}
+
+model CommitteeMeeting {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  committeeId   String
+  committee     SecurityCommittee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+  meetingNumber String?
+  title         String
+  meetingType   String            @default("regular")
+
+  // Scheduling
+  meetingDate     DateTime
+  startTime       String
+  endTime         String?
+  durationMinutes Int?
+
+  // Location
+  locationType       String  @default("virtual")
+  physicalLocation   String?
+  virtualMeetingLink String?
+  virtualMeetingId   String?
+
+  // Content
+  agenda     String?
+  objectives String?
+  minutes    String?
+
+  // Participants
+  chairId                String?
+  chair                  User?   @relation("MeetingChair", fields: [chairId], references: [id], onDelete: SetNull)
+  secretaryId            String?
+  secretary              User?   @relation("MeetingSecretary", fields: [secretaryId], references: [id], onDelete: SetNull)
+  expectedAttendeesCount Int     @default(0)
+  actualAttendeesCount   Int     @default(0)
+
+  // Status
+  status            String  @default("scheduled")
+  quorumAchieved    Boolean @default(false)
+  quorumRequirement Int?
+
+  // Follow-up
+  followUpRequired     Boolean @default(false)
+  nextMeetingScheduled Boolean @default(false)
+
+  // Attachments
+  attachments Json? @default("[]")
+
+  // Cancellation
+  cancellationReason String?
+  postponedToDate    DateTime?
+
+  createdBy User? @relation("MeetingCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("MeetingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  attendances MeetingAttendance[]
+  decisions   MeetingDecision[]
+  actionItems MeetingActionItem[]
+
+  @@unique([committeeId, meetingDate, startTime])
+  @@index([committeeId])
+  @@index([meetingDate])
+  @@index([status])
+}
+
+model MeetingAttendance {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  meetingId    String
+  meeting      CommitteeMeeting     @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  memberId     String
+  member       User                 @relation("AttendanceMember", fields: [memberId], references: [id], onDelete: Cascade)
+  membershipId String?
+  membership   CommitteeMembership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+
+  // Attendance Details
+  attendanceStatus String  @default("present")
+  arrivalTime      String?
+  departureTime    String?
+
+  // Participation
+  participatedInVoting    Boolean @default(false)
+  contributedToDiscussion Boolean @default(false)
+
+  // Notes
+  absenceReason String?
+  notes         String?
+
+  // Proxy
+  proxyAttendeeId String?
+  proxyAttendee   User?   @relation("ProxyAttendee", fields: [proxyAttendeeId], references: [id], onDelete: SetNull)
+
+  createdBy User? @relation("AttendanceCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("AttendanceUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([meetingId, memberId])
+  @@index([meetingId])
+  @@index([attendanceStatus])
+}
+
+model MeetingDecision {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  meetingId      String
+  meeting        CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  decisionNumber String?
+  title          String
+  description    String
+
+  // Decision Details
+  decisionType String
+  rationale    String?
+
+  // Voting
+  voteType     String @default("majority")
+  votesFor     Int    @default(0)
+  votesAgainst Int    @default(0)
+  votesAbstain Int    @default(0)
+
+  // Implementation
+  responsiblePartyId     String?
+  responsibleParty       User?     @relation("DecisionResponsible", fields: [responsiblePartyId], references: [id], onDelete: SetNull)
+  effectiveDate          DateTime?
+  reviewDate             DateTime?
+  implementationDeadline DateTime?
+
+  // Status
+  implemented         Boolean   @default(false)
+  implementationDate  DateTime?
+  implementationNotes String?
+
+  // References
+  relatedDocuments Json? @default("[]")
+
+  createdBy User? @relation("DecisionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("DecisionUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([meetingId])
+  @@index([decisionType])
+  @@index([implemented])
+}
+
+model MeetingActionItem {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  meetingId    String
+  meeting      CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  actionNumber String?
+  title        String
+  description  String
+
+  // Assignment
+  assignedToId String?
+  assignedTo   User?   @relation("ActionAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedById String?
+  assignedBy   User?   @relation("ActionAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  // Priority & Timing
+  priority       String   @default("medium")
+  dueDate        DateTime
+  estimatedHours Decimal? @db.Decimal(5, 1)
+
+  // Status
+  status          String    @default("open")
+  completionDate  DateTime?
+  completionNotes String?
+
+  // Progress
+  progressPercentage Int     @default(0)
+  lastUpdateNotes    String?
+
+  // Dependencies
+  dependsOnId    String?
+  dependsOn      MeetingActionItem?  @relation("ActionDependency", fields: [dependsOnId], references: [id], onDelete: SetNull)
+  dependentItems MeetingActionItem[] @relation("ActionDependency")
+  blockingReason String?
+
+  // Follow-up
+  requiresCommitteeReview Boolean   @default(false)
+  reviewed                Boolean   @default(false)
+  reviewDate              DateTime?
+
+  createdBy User? @relation("ActionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("ActionUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([meetingId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([priority, dueDate])
+}
+
+// ============================================
+// WORKBOOK ALIGNMENT ENTITIES
+// ============================================
+
+model ProductService {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  productCode String  @unique
+  name        String
+  productType String
+  description String?
+
+  // Classification
+  category       String?
+  customerFacing Boolean @default(true)
+  internalOnly   Boolean @default(false)
+
+  // Business Information
+  revenueContribution String?
+  pricingModel        String?
+  targetMarket        String?
+
+  // Lifecycle
+  lifecycleStage String?
+  launchDate     DateTime?
+  sunsetDate     DateTime?
+
+  // Ownership
+  productOwnerId String?
+  departmentId   String?
+
+  // Compliance & Security
+  dataClassification     String?
+  containsPersonalData   Boolean @default(false)
+  containsSensitiveData  Boolean @default(false)
+  complianceRequirements Json?   @default("[]")
+
+  // ISMS Scope
+  inIsmsScope        Boolean @default(true)
+  scopeJustification String?
+
+  // Status
+  isActive Boolean @default(true)
+
+  @@index([productCode])
+  @@index([productType])
+  @@index([isActive])
+}
+
+model TechnologyPlatform {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  platformCode String  @unique
+  name         String
+  platformType String
+  description  String?
+
+  // Vendor Information
+  vendor         String?
+  vendorWebsite  String?
+  supportContact String?
+  licenseType    String?
+
+  // Hosting & Deployment
+  hostingLocation String?
+  cloudProvider   String?
+  deploymentModel String?
+
+  // Technical Details
+  version             String?
+  architecture        String?
+  integrations        Json?   @default("[]")
+  dataStorageLocation String?
+
+  // Criticality & Risk
+  criticalityLevel String?
+  businessImpact   String?
+  riskRating       String?
+
+  // Lifecycle
+  implementationDate DateTime?
+  endOfLifeDate      DateTime?
+  lastUpgradeDate    DateTime?
+  nextUpgradeDate    DateTime?
+
+  // Ownership
+  technicalOwnerId String?
+  businessOwnerId  String?
+  departmentId     String?
+
+  // Compliance
+  complianceCertifications Json?   @default("[]")
+  dataClassification       String?
+
+  // ISMS Scope
+  inIsmsScope        Boolean @default(true)
+  scopeJustification String?
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Environments
+  environments Json? @default("[]")
+
+  @@index([platformCode])
+  @@index([platformType])
+  @@index([criticalityLevel])
+  @@index([isActive])
+}
+
+model InterestedParty {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information (ISO 27001 Clause 4.2)
+  partyCode   String  @unique
+  name        String
+  partyType   String
+  description String?
+
+  // Stakeholder Analysis
+  expectations     String?
+  requirements     String?
+  informationNeeds Json?   @default("[]")
+
+  // Power/Interest Matrix
+  powerLevel     String?
+  interestLevel  String?
+  influenceLevel String?
+
+  // Engagement
+  engagementStrategy     String?
+  communicationMethod    String?
+  communicationFrequency String?
+
+  // Contact
+  primaryContact String?
+  contactEmail   String?
+  contactPhone   String?
+
+  // Relevance to ISMS
+  ismsRelevance        String?
+  securityExpectations String?
+
+  // Status
+  isActive Boolean @default(true)
+
+  @@index([partyCode])
+  @@index([partyType])
+  @@index([isActive])
+}
+
+model ContextIssue {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information (ISO 27001 Clause 4.1)
+  issueCode   String  @unique
+  issueType   String
+  category    String
+  title       String
+  description String?
+
+  // Impact Assessment
+  impactType  String?
+  impactLevel String?
+  likelihood  String?
+
+  // ISMS Relevance
+  ismsRelevance       String?
+  affectedAreas       Json?   @default("[]")
+  controlImplications String?
+
+  // Response
+  responseStrategy   String?
+  mitigationActions  Json?   @default("[]")
+  responsiblePartyId String?
+
+  // Monitoring
+  monitoringFrequency String?
+  lastReviewDate      DateTime?
+  nextReviewDate      DateTime?
+  trendDirection      String?
+
+  // Status
+  status   String  @default("active")
+  isActive Boolean @default(true)
+
+  // Risk Escalation
+  escalatedToRisk Boolean @default(false)
+  linkedRiskId    String?
+
+  @@index([issueCode])
+  @@index([issueType])
+  @@index([category])
+  @@index([status])
+}
+
+// ============================================
+// KEY PERSONNEL & ISMS ROLES
+// ============================================
+
+model KeyPersonnel {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Basic Information
+  personCode String  @unique
+  userId     String?
+  user       User?   @relation("KeyPersonnelUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  // If no user account, store name directly
+  name     String
+  jobTitle String
+  email    String?
+  phone    String?
+
+  // Department
+  departmentId String?
+
+  // ISMS Role
+  ismsRole                 String
+  securityResponsibilities String?
+  authorityLevel           String?
+
+  // Backup
+  backupPersonId String?
+  backupPerson   KeyPersonnel?  @relation("KeyPersonnelBackup", fields: [backupPersonId], references: [id], onDelete: SetNull)
+  backupFor      KeyPersonnel[] @relation("KeyPersonnelBackup")
+
+  // Training
+  trainingCompleted Boolean   @default(false)
+  lastTrainingDate  DateTime?
+  certifications    Json?     @default("[]")
+
+  // Status
+  isActive  Boolean   @default(true)
+  startDate DateTime?
+  endDate   DateTime?
+
+  createdBy User? @relation("KeyPersonnelCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("KeyPersonnelUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([personCode])
+  @@index([ismsRole])
+  @@index([userId])
+  @@index([isActive])
+}
+
+// ============================================
+// APPLICABLE FRAMEWORKS (Regulatory Profile)
+// ============================================
+
+model ApplicableFramework {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Framework Information
+  frameworkCode String  @unique
+  name          String
+  frameworkType String
+  description   String?
+  version       String?
+
+  // Applicability
+  isApplicable        Boolean   @default(false)
+  applicabilityReason String?
+  applicabilityDate   DateTime?
+  assessedById        String?
+
+  // Compliance Status
+  complianceStatus     String    @default("not_assessed")
+  compliancePercentage Int?
+  lastAssessmentDate   DateTime?
+  nextAssessmentDate   DateTime?
+
+  // Supervisory Authority
+  supervisoryAuthority String?
+  authorityContact     String?
+  registrationNumber   String?
+  registrationDate     DateTime?
+
+  // Certification (if applicable)
+  isCertifiable       Boolean   @default(false)
+  certificationStatus String?
+  certificationBody   String?
+  certificateNumber   String?
+  certificationDate   DateTime?
+  certificationExpiry DateTime?
+
+  // Requirements
+  keyRequirements    Json? @default("[]")
+  applicableControls Json? @default("[]")
+
+  // Notes
+  notes String?
+
+  createdBy User? @relation("FrameworkCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("FrameworkUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([frameworkCode])
+  @@index([frameworkType])
+  @@index([isApplicable])
+  @@index([complianceStatus])
+}
+
+model RegulatoryEligibilitySurvey {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // Survey Info
+  surveyType    String
+  surveyVersion String @default("1.0")
+
+  // Status
+  status      String    @default("in_progress")
+  completedAt DateTime?
+
+  // Result
+  isApplicable         Boolean?
+  applicabilityReason  String?
+  entityClassification String?
+  regulatoryRegime     String?
+
+  // Notes
+  notes String?
+
+  createdBy User? @relation("SurveyCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("SurveyUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  responses SurveyResponse[]
+
+  @@index([surveyType])
+  @@index([status])
+}
+
+model SurveyQuestion {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Question Info
+  surveyType   String
+  stepNumber   String
+  stepCategory String
+  questionText String
+
+  // Logic
+  ifYes          String?
+  ifNo           String?
+  legalReference String?
+  notes          String?
+
+  // Ordering
+  sortOrder Int
+
+  responses SurveyResponse[]
+
+  @@unique([surveyType, stepNumber])
+  @@index([surveyType, sortOrder])
+}
+
+model SurveyResponse {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  surveyId   String
+  survey     RegulatoryEligibilitySurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  questionId String
+  question   SurveyQuestion              @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  // Response
+  answer String?
+  notes  String?
+
+  @@unique([surveyId, questionId])
+  @@index([surveyId])
+}
+

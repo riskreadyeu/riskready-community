@@ -1,0 +1,151 @@
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
+import { prisma } from '#src/prisma.js';
+
+export function registerTreatmentTools(server: McpServer) {
+  server.tool(
+    'list_treatment_plans',
+    'List treatment plans with optional filters. Returns plan ID, title, type, status, priority, and progress.',
+    {
+      status: z.enum(['DRAFT', 'PROPOSED', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD', 'CANCELLED']).optional().describe('Filter by treatment status'),
+      type: z.enum(['MITIGATE', 'TRANSFER', 'ACCEPT', 'AVOID', 'SHARE']).optional().describe('Filter by treatment type'),
+      priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Filter by priority'),
+      riskId: z.string().optional().describe('Filter by parent risk UUID'),
+      skip: z.number().int().min(0).default(0).describe('Pagination offset'),
+      take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
+    },
+    async ({ status, type, priority, riskId, skip, take }) => {
+      const where: any = {};
+      if (status) where.status = status;
+      if (type) where.treatmentType = type;
+      if (priority) where.priority = priority;
+      if (riskId) where.riskId = riskId;
+
+      const [results, count] = await Promise.all([
+        prisma.treatmentPlan.findMany({
+          where,
+          skip,
+          take,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            treatmentId: true,
+            title: true,
+            treatmentType: true,
+            priority: true,
+            status: true,
+            progressPercentage: true,
+            targetEndDate: true,
+            actualEndDate: true,
+            estimatedCost: true,
+            risk: { select: { id: true, riskId: true, title: true } },
+            _count: { select: { actions: true } },
+          },
+        }),
+        prisma.treatmentPlan.count({ where }),
+      ]);
+
+      const response: any = { results, total: count, skip, take };
+      if (count === 0) {
+        response.note = 'No treatment plans found matching the specified filters.';
+      }
+
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    'get_treatment_plan',
+    'Get a single treatment plan with full details: actions, dependencies, history, and financial info.',
+    {
+      id: z.string().describe('TreatmentPlan UUID'),
+    },
+    async ({ id }) => {
+      const plan = await prisma.treatmentPlan.findUnique({
+        where: { id },
+        include: {
+          risk: { select: { id: true, riskId: true, title: true } },
+          scenario: { select: { id: true, scenarioId: true, title: true } },
+          actions: {
+            orderBy: { actionId: 'asc' },
+            include: {
+              assignedTo: { select: { id: true, email: true, firstName: true, lastName: true } },
+            },
+          },
+          history: {
+            orderBy: { createdAt: 'desc' },
+            take: 20,
+            include: {
+              user: { select: { id: true, email: true, firstName: true, lastName: true } },
+            },
+          },
+          sourceDependencies: {
+            include: {
+              targetTreatment: { select: { id: true, treatmentId: true, title: true, status: true } },
+            },
+          },
+          targetDependencies: {
+            include: {
+              sourceTreatment: { select: { id: true, treatmentId: true, title: true, status: true } },
+            },
+          },
+          riskOwner: { select: { id: true, email: true, firstName: true, lastName: true } },
+          implementer: { select: { id: true, email: true, firstName: true, lastName: true } },
+          approvedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          updatedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+        },
+      });
+
+      if (!plan) {
+        return { content: [{ type: 'text' as const, text: `Treatment plan with ID ${id} not found` }], isError: true };
+      }
+
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(plan, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    'get_treatment_stats',
+    'Get aggregate treatment plan statistics: total count, by status, by type, progress distribution.',
+    {
+      organisationId: z.string().optional().describe('Organisation UUID'),
+    },
+    async ({ organisationId }) => {
+      const where: any = {};
+      if (organisationId) where.organisationId = organisationId;
+
+      const [total, byStatus, byType, byPriority, plans] = await Promise.all([
+        prisma.treatmentPlan.count({ where }),
+        prisma.treatmentPlan.groupBy({ by: ['status'], _count: true, where }),
+        prisma.treatmentPlan.groupBy({ by: ['treatmentType'], _count: true, where }),
+        prisma.treatmentPlan.groupBy({ by: ['priority'], _count: true, where }),
+        prisma.treatmentPlan.findMany({
+          where,
+          select: { progressPercentage: true },
+        }),
+      ]);
+
+      const avgProgress = plans.length > 0
+        ? Math.round(plans.reduce((sum: number, p: any) => sum + p.progressPercentage, 0) / plans.length)
+        : 0;
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            total,
+            averageProgress: avgProgress,
+            byStatus: Object.fromEntries(byStatus.map((s: any) => [s.status, s._count])),
+            byType: Object.fromEntries(byType.map((t: any) => [t.treatmentType, t._count])),
+            byPriority: Object.fromEntries(byPriority.map((p: any) => [p.priority, p._count])),
+          }, null, 2),
+        }],
+      };
+    },
+  );
+}

@@ -1,0 +1,100 @@
+services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-riskready}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-riskready}
+      POSTGRES_DB: ${POSTGRES_DB:-riskready}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-riskready}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: ./apps/server
+    command: ["sh", "-c", "npx prisma db push"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-riskready}:${POSTGRES_PASSWORD:-riskready}@db:5432/${POSTGRES_DB:-riskready}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  server:
+    build:
+      context: ./apps/server
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-riskready}:${POSTGRES_PASSWORD:-riskready}@db:5432/${POSTGRES_DB:-riskready}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      ACCESS_TOKEN_TTL_SECONDS: ${ACCESS_TOKEN_TTL_SECONDS:-900}
+      REFRESH_SESSION_TTL_DAYS: ${REFRESH_SESSION_TTL_DAYS:-14}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:8080}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "3000:3000"
+    volumes:
+      - evidence_data:/app/data
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-riskready}:${POSTGRES_PASSWORD:-riskready}@db:5432/${POSTGRES_DB:-riskready}?schema=public
+      GATEWAY_PORT: 3100
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+      server:
+        condition: service_healthy
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./apps/web
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - server
+      - web
+    ports:
+      - "8080:80"
+      - "8443:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+      WEB_UPSTREAM: ${WEB_UPSTREAM:-web:80}
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  evidence_data:
+  caddy_data:
+  caddy_config:

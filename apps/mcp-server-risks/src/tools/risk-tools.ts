@@ -1,0 +1,220 @@
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
+import { prisma } from '#src/prisma.js';
+
+export function registerRiskTools(server: McpServer) {
+  server.tool(
+    'list_risks',
+    'List risks with optional filters. Returns risk ID, title, status, tier, scores, and scenario counts.',
+    {
+      status: z.enum(['IDENTIFIED', 'ASSESSED', 'TREATING', 'ACCEPTED', 'CLOSED', 'MONITORING']).optional().describe('Filter by risk status'),
+      tier: z.enum(['CORE', 'EXTENDED', 'ADVANCED']).optional().describe('Filter by risk tier'),
+      framework: z.enum(['ISO', 'SOC2', 'NIS2', 'DORA']).optional().describe('Filter by control framework'),
+      organisationId: z.string().optional().describe('Filter by organisation UUID'),
+      skip: z.number().int().min(0).default(0).describe('Pagination offset'),
+      take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
+    },
+    async ({ status, tier, framework, organisationId, skip, take }) => {
+      const where: any = {};
+      if (status) where.status = status;
+      if (tier) where.tier = tier;
+      if (framework) where.framework = framework;
+      if (organisationId) where.organisationId = organisationId;
+
+      const [results, count] = await Promise.all([
+        prisma.risk.findMany({
+          where,
+          skip,
+          take,
+          orderBy: { riskId: 'asc' },
+          select: {
+            id: true,
+            riskId: true,
+            title: true,
+            description: true,
+            tier: true,
+            status: true,
+            framework: true,
+            applicable: true,
+            enabled: true,
+            likelihood: true,
+            impact: true,
+            inherentScore: true,
+            residualScore: true,
+            derivedStatus: true,
+            maxScenarioScore: true,
+            avgScenarioScore: true,
+            scenarioCount: true,
+            scenariosExceedingTolerance: true,
+            riskOwner: true,
+            _count: { select: { scenarios: true, kris: true, treatmentPlans: true } },
+          },
+        }),
+        prisma.risk.count({ where }),
+      ]);
+
+      const response: any = { results, total: count, skip, take };
+      if (count === 0) {
+        response.note = 'No risks found matching the specified filters.';
+      }
+
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    'get_risk',
+    'Get a single risk with full details: scenarios, KRIs, treatment plans, tolerance statements, and audit metadata.',
+    {
+      id: z.string().describe('Risk UUID'),
+    },
+    async ({ id }) => {
+      const risk = await prisma.risk.findUnique({
+        where: { id },
+        include: {
+          scenarios: {
+            orderBy: { scenarioId: 'asc' },
+            select: {
+              id: true,
+              scenarioId: true,
+              title: true,
+              status: true,
+              likelihood: true,
+              impact: true,
+              inherentScore: true,
+              residualScore: true,
+              toleranceStatus: true,
+              _count: { select: { controlLinks: true } },
+            },
+          },
+          kris: {
+            orderBy: { kriId: 'asc' },
+            select: {
+              id: true,
+              kriId: true,
+              name: true,
+              currentValue: true,
+              status: true,
+              trend: true,
+              unit: true,
+              lastMeasured: true,
+            },
+          },
+          treatmentPlans: {
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              treatmentId: true,
+              title: true,
+              treatmentType: true,
+              priority: true,
+              status: true,
+              progressPercentage: true,
+              targetEndDate: true,
+            },
+          },
+          toleranceStatements: {
+            select: {
+              id: true,
+              rtsId: true,
+              title: true,
+              proposedToleranceLevel: true,
+              status: true,
+            },
+          },
+          _count: { select: { scenarios: true, kris: true, treatmentPlans: true, toleranceStatements: true } },
+          createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          updatedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+        },
+      });
+
+      if (!risk) {
+        return { content: [{ type: 'text' as const, text: `Risk with ID ${id} not found` }], isError: true };
+      }
+
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(risk, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    'search_risks',
+    'Search risks by title or riskId pattern. Returns matching risks with basic info.',
+    {
+      query: z.string().describe('Search term (matches against title and riskId)'),
+    },
+    async ({ query }) => {
+      const results = await prisma.risk.findMany({
+        where: {
+          OR: [
+            { riskId: { contains: query, mode: 'insensitive' } },
+            { title: { contains: query, mode: 'insensitive' } },
+            { description: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        take: 50,
+        orderBy: { riskId: 'asc' },
+        select: {
+          id: true,
+          riskId: true,
+          title: true,
+          description: true,
+          tier: true,
+          status: true,
+          inherentScore: true,
+          residualScore: true,
+          _count: { select: { scenarios: true } },
+        },
+      });
+
+      const response: any = { results, count: results.length };
+      if (results.length === 0) {
+        response.note = `No risks matched the search query '${query}'.`;
+      }
+
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    'get_risk_stats',
+    'Get aggregate risk statistics: total count, by status, by tier, by framework, scenario and KRI counts.',
+    {
+      organisationId: z.string().optional().describe('Organisation UUID (uses all orgs if omitted)'),
+    },
+    async ({ organisationId }) => {
+      const where: any = {};
+      if (organisationId) where.organisationId = organisationId;
+
+      const [total, byStatus, byTier, byFramework, scenarioCount, kriCount, treatmentCount] = await Promise.all([
+        prisma.risk.count({ where }),
+        prisma.risk.groupBy({ by: ['status'], _count: true, where }),
+        prisma.risk.groupBy({ by: ['tier'], _count: true, where }),
+        prisma.risk.groupBy({ by: ['framework'], _count: true, where }),
+        prisma.riskScenario.count(),
+        prisma.keyRiskIndicator.count(),
+        prisma.treatmentPlan.count(),
+      ]);
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            total,
+            scenarioCount,
+            kriCount,
+            treatmentCount,
+            byStatus: Object.fromEntries(byStatus.map((s: any) => [s.status, s._count])),
+            byTier: Object.fromEntries(byTier.map((t: any) => [t.tier, t._count])),
+            byFramework: Object.fromEntries(byFramework.map((f: any) => [f.framework, f._count])),
+          }, null, 2),
+        }],
+      };
+    },
+  );
+}

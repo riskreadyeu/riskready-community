@@ -1,0 +1,1478 @@
+// ============================================
+// CONTROLS MODULE
+// ISO 27001:2022 Control Management
+// ============================================
+
+// ============================================
+// ENUMS
+// ============================================
+
+// How often tests should be executed
+enum TestFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+  CONTINUOUS // Real-time/automated monitoring
+  PER_EVENT // Triggered by events
+}
+
+// Status of a test definition
+enum TestStatus {
+  NOT_TESTED // Never executed
+  IN_PROGRESS // Currently being executed
+  COMPLETED // Execution complete (check result)
+}
+
+enum ControlTheme {
+  ORGANISATIONAL
+  PEOPLE
+  PHYSICAL
+  TECHNOLOGICAL
+}
+
+enum ControlFramework {
+  ISO
+  SOC2
+  NIS2
+  DORA
+}
+
+enum ImplementationStatus {
+  NOT_STARTED
+  PARTIAL
+  IMPLEMENTED
+}
+
+enum TestResult {
+  PASS
+  PARTIAL
+  FAIL
+  NOT_TESTED
+  NOT_APPLICABLE
+}
+
+enum RootCauseCategory {
+  PEOPLE
+  PROCESS
+  TECHNOLOGY
+  BUDGET
+  THIRD_PARTY
+  DESIGN
+  UNKNOWN
+}
+
+enum RemediationEffort {
+  TRIVIAL
+  MINOR
+  MODERATE
+  MAJOR
+  STRATEGIC
+}
+
+enum RAGStatus {
+  GREEN
+  AMBER
+  RED
+  NOT_MEASURED
+}
+
+enum TrendDirection {
+  IMPROVING
+  STABLE
+  DECLINING
+  NEW
+}
+
+enum CollectionFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+  PER_EVENT
+  PER_INCIDENT
+}
+
+// Assessment lifecycle statuses
+enum ControlAssessmentStatus {
+  DRAFT
+  IN_PROGRESS
+  UNDER_REVIEW
+  COMPLETED
+  CANCELLED
+}
+
+// Individual assessment test statuses
+enum AssessmentTestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+// How a test is executed
+enum TestMethod {
+  MANUAL          // Tester manually performs the test
+  SELF_ASSESSMENT // Control owner self-assesses
+  AUTOMATED       // Automated/tooling-based execution
+}
+
+enum AutomationStatus {
+  MANUAL
+  SEMI_AUTOMATED
+  FULLY_AUTOMATED
+  NOT_CONFIGURED
+}
+
+// ============================================
+// SCOPE-BASED TESTING ENUMS & MODEL
+// ============================================
+
+enum ScopeType {
+  APPLICATION       // IT systems, SaaS apps, databases
+  ASSET_CLASS       // Servers, endpoints, network, cloud infra
+  LOCATION          // Offices, data centers, branches
+  PERSONNEL_TYPE    // Permanent, contractor, executive, third-party
+  BUSINESS_UNIT     // Departments, divisions
+  PLATFORM          // Windows, macOS, Linux, iOS, Android
+  PROVIDER          // Cloud providers, SaaS vendors, MSPs
+  NETWORK_ZONE      // DMZ, internal, guest, OT
+  PROCESS           // Business processes
+}
+
+enum ScopeCriticality {
+  CRITICAL    // Weight 4
+  HIGH        // Weight 3
+  MEDIUM      // Weight 2
+  LOW         // Weight 1
+}
+
+model ScopeItem {
+  id             String              @id @default(cuid())
+  organisationId String
+  organisation   OrganisationProfile @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  scopeType   ScopeType
+  code        String
+  name        String
+  description String?            @db.Text
+  criticality ScopeCriticality   @default(MEDIUM)
+  isActive    Boolean            @default(true)
+
+  // Assessment relations
+  assessmentScopes AssessmentScope[]
+  assessmentTests  AssessmentTest[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("ScopeItemCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([organisationId, scopeType, code])
+  @@index([organisationId])
+  @@index([scopeType])
+  @@index([isActive])
+}
+
+// ============================================
+// SOA STATUS ENUM
+// ============================================
+
+enum SOAStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  SUPERSEDED
+}
+
+// ============================================
+// STATEMENT OF APPLICABILITY (SOA) MODEL
+// Versioned document for ISO 27001 compliance
+// ============================================
+
+model StatementOfApplicability {
+  id      String    @id @default(cuid())
+  version String // "1.0", "1.1", "2.0", etc.
+  status  SOAStatus @default(DRAFT)
+  name    String? // Optional name like "Initial SOA" or "2024 Review"
+  notes   String?   @db.Text
+
+  // Approval workflow
+  approvedAt   DateTime?
+  approvedById String?
+  approvedBy   User?     @relation("SOAApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  // Relationships
+  organisationId String
+  organisation   OrganisationProfile @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  entries        SOAEntry[]
+
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("SOACreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String?
+  updatedBy   User?    @relation("SOAUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([version, organisationId])
+  @@index([status])
+  @@index([organisationId])
+}
+
+// ============================================
+// SOA ENTRY MODEL
+// Individual control applicability decision
+// ============================================
+
+model SOAEntry {
+  id String @id @default(cuid())
+
+  // Control reference (denormalized for historical integrity)
+  controlId   String // "A.5.1", "A.8.12", etc.
+  controlName String
+  theme       ControlTheme
+
+  // Applicability decision
+  applicable        Boolean @default(true)
+  justificationIfNa String? @db.Text
+
+  // Implementation details
+  implementationStatus ImplementationStatus @default(NOT_STARTED)
+  implementationDesc   String?              @db.Text
+
+  // Risk linkage (for future Risk Module integration)
+  parentRiskId String?
+  scenarioIds  String? // Comma-separated scenario IDs
+
+  // Relationships
+  soaId String
+  soa   StatementOfApplicability @relation(fields: [soaId], references: [id], onDelete: Cascade)
+
+  // Link to actual Control record (optional, for live data sync)
+  controlRecordId String?
+  controlRecord   Control? @relation(fields: [controlRecordId], references: [id], onDelete: SetNull)
+
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([controlId, soaId])
+  @@index([soaId])
+  @@index([applicable])
+  @@index([implementationStatus])
+  @@index([controlRecordId])
+}
+
+// ============================================
+// CONTROL MODEL
+// Represents ISO 27001:2022 Annex A controls
+// ============================================
+
+model Control {
+  id          String       @id @default(cuid())
+  controlId   String // "5.1", "8.12", "SOC2-PI.1", "DORA-INC.1", etc.
+  theme       ControlTheme
+  name        String
+  description String?      @db.Text
+
+  // Multi-framework support
+  framework      ControlFramework @default(ISO)
+  sourceStandard String? // "ISO 27001:2022 Annex A", "DORA Article 19", etc.
+  soc2Criteria   String? // "CC1.1, CC2.1" for SOC2 mapping
+  tscCategory    String? // "Security", "Availability", "Processing Integrity", etc.
+
+  // Statement of Applicability (SoA) fields - current state
+  applicable        Boolean @default(true)
+  justificationIfNa String? @db.Text
+
+  // Manual enable/disable (separate from regulatory applicability)
+  enabled        Boolean   @default(true)
+  disabledReason String?   @db.Text
+  disabledAt     DateTime?
+  disabledById   String?
+  disabledBy     User?     @relation("ControlDisabledBy", fields: [disabledById], references: [id], onDelete: SetNull)
+
+  implementationStatus ImplementationStatus @default(NOT_STARTED)
+  implementationDesc   String?              @db.Text
+
+  // Relationships
+  organisationId  String
+  organisation    OrganisationProfile @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  soaEntries      SOAEntry[]
+  // NOTE: Risk-level control linking removed - use RiskScenarioControl for scenario-level linking
+  nonconformities Nonconformity[]
+
+  // Policy Module Relations
+  documentMappings DocumentControlMapping[]
+
+  // ITSM Module Relations
+  assetLinks AssetControl[]
+
+  // Incident Module Relations
+  incidentLinks IncidentControl[]
+
+  // Evidence Module Relations
+  evidenceLinks EvidenceControl[]
+
+  // Risk Scenario Links (for F2 calculation)
+  scenarioLinks RiskScenarioControl[]
+
+
+  // Automated Control Evidence (from Wazuh/other sources)
+
+
+  // Assessment Relations
+  assessmentControls AssessmentControl[]
+
+  // Metrics
+  metrics ControlMetric[]
+
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("ControlCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String?
+  updatedBy   User?    @relation("ControlUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([controlId, organisationId])
+  @@index([theme])
+  @@index([framework])
+  @@index([implementationStatus])
+  @@index([organisationId])
+  @@index([applicable])
+}
+
+// ============================================
+// ASSESSMENT MODEL
+// Scoped work unit covering multiple controls
+// ============================================
+
+model Assessment {
+  id               String              @id @default(cuid())
+  organisationId   String
+  organisation     OrganisationProfile @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  assessmentRef    String              // "ASM-2026-001"
+  title            String
+  description      String?             @db.Text
+  status           ControlAssessmentStatus    @default(DRAFT)
+
+  // Team
+  leadTesterId     String?
+  leadTester       User?               @relation("AssessmentLead", fields: [leadTesterId], references: [id], onDelete: SetNull)
+  reviewerId       String?
+  reviewer         User?               @relation("AssessmentReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  // Dates
+  plannedStartDate DateTime?
+  plannedEndDate   DateTime?
+  actualStartDate  DateTime?
+  actualEndDate    DateTime?
+  dueDate          DateTime?
+  periodStart      DateTime?           // period under test
+  periodEnd        DateTime?
+
+  // Scope
+  controls         AssessmentControl[]
+  scopeItems       AssessmentScope[]
+  tests            AssessmentTest[]
+
+  // Review
+  reviewNotes      String?             @db.Text
+  reviewedAt       DateTime?
+
+  // Cached stats
+  totalTests       Int                 @default(0)
+  completedTests   Int                 @default(0)
+  passedTests      Int                 @default(0)
+  failedTests      Int                 @default(0)
+
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  createdById      String?
+  createdBy        User?               @relation("AssessmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([assessmentRef, organisationId])
+  @@index([organisationId, status])
+  @@index([leadTesterId])
+  @@index([dueDate])
+}
+
+// ============================================
+// ASSESSMENT CONTROL MODEL
+// Which controls the assessment covers
+// ============================================
+
+model AssessmentControl {
+  id           String     @id @default(cuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  controlId    String
+  control      Control    @relation(fields: [controlId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, controlId])
+  @@index([assessmentId])
+  @@index([controlId])
+}
+
+// ============================================
+// ASSESSMENT SCOPE MODEL
+// Which scope items are in scope for the assessment
+// ============================================
+
+model AssessmentScope {
+  id           String     @id @default(cuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  scopeItemId  String
+  scopeItem    ScopeItem  @relation(fields: [scopeItemId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, scopeItemId])
+  @@index([assessmentId])
+  @@index([scopeItemId])
+}
+
+// ============================================
+// ASSESSMENT TEST MODEL
+// Individual test within an assessment
+// ============================================
+
+model AssessmentTest {
+  id               String               @id @default(cuid())
+  assessmentId     String
+  assessment       Assessment           @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  testCode         String               // "GOV-01", "PLAT-02", etc.
+  testName         String               // Human-readable test name
+  scopeItemId      String?
+  scopeItem        ScopeItem?           @relation(fields: [scopeItemId], references: [id], onDelete: SetNull)
+
+  status           AssessmentTestStatus @default(PENDING)
+  result           TestResult?
+
+  assignedTesterId String?
+  assignedTester   User?               @relation("AssessmentTestAssignee", fields: [assignedTesterId], references: [id], onDelete: SetNull)
+
+  testMethod       TestMethod?
+
+  ownerId          String?
+  owner            User?               @relation("AssessmentTestOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  assessorId       String?
+  assessor         User?               @relation("AssessmentTestAssessor", fields: [assessorId], references: [id], onDelete: SetNull)
+
+  findings         String?             @db.Text
+  recommendations  String?             @db.Text
+  rootCause        RootCauseCategory?
+  rootCauseNotes   String?             @db.Text
+  remediationEffort RemediationEffort?
+  estimatedHours   Int?
+  estimatedCost    Decimal?            @db.Decimal(10, 2)
+  skipJustification String?            @db.Text
+
+  executions       AssessmentExecution[]
+
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@unique([assessmentId, testCode, scopeItemId])
+  @@index([assessmentId])
+  @@index([scopeItemId])
+  @@index([assignedTesterId])
+  @@index([ownerId])
+  @@index([assessorId])
+  @@index([status])
+}
+
+// ============================================
+// ASSESSMENT EXECUTION MODEL
+// Single test run within an assessment test
+// ============================================
+
+model AssessmentExecution {
+  id               String         @id @default(cuid())
+  assessmentTestId String
+  assessmentTest   AssessmentTest @relation(fields: [assessmentTestId], references: [id], onDelete: Cascade)
+
+  executionDate    DateTime
+  testerId         String
+  tester           User           @relation("AssessmentExecutor", fields: [testerId], references: [id])
+  result           TestResult
+  findings         String?        @db.Text
+  recommendations  String?        @db.Text
+
+  evidenceLocation String?
+  evidenceNotes    String?        @db.Text
+  evidenceFileIds  String[]
+
+  durationMinutes  Int?
+  samplesReviewed  Int?
+  periodStart      DateTime?
+  periodEnd        DateTime?
+
+  createdAt        DateTime       @default(now())
+
+  @@index([assessmentTestId])
+  @@index([testerId])
+  @@index([executionDate])
+}
+
+// ============================================
+// CONTROL METRIC MODEL
+// Operational metrics per activity
+// ============================================
+
+model ControlMetric {
+  id        String  @id @default(cuid())
+  controlId String
+  control   Control @relation(fields: [controlId], references: [id], onDelete: Cascade)
+
+  metricId    String // "M-A.5.15-001"
+  name        String
+  description String? @db.Text
+  formula     String? @db.Text
+  unit        String // "%", "Count", "Days", "Hours"
+
+  greenThreshold String?
+  amberThreshold String?
+  redThreshold   String?
+
+  dataSource          String?
+  collectionFrequency CollectionFrequency @default(MONTHLY)
+  owner               String?
+  automationStatus    AutomationStatus    @default(NOT_CONFIGURED)
+
+  currentValue String?
+  status       RAGStatus?      @default(NOT_MEASURED)
+  trend        TrendDirection? @default(NEW)
+  lastMeasured DateTime?
+
+  history ControlMetricHistory[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("MetricCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String?
+  updatedBy   User?    @relation("MetricUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([metricId, controlId])
+  @@index([controlId])
+  @@index([status])
+  @@index([lastMeasured])
+}
+
+// ============================================
+// CONTROL METRIC HISTORY MODEL
+// Historical metric measurements
+// ============================================
+
+model ControlMetricHistory {
+  id         String        @id @default(cuid())
+  value      String
+  status     RAGStatus
+  measuredAt DateTime
+  measuredBy String?
+  notes      String?       @db.Text
+  metricId   String
+  metric     ControlMetric @relation(fields: [metricId], references: [id], onDelete: Cascade)
+  createdAt  DateTime      @default(now())
+
+  @@index([metricId])
+  @@index([measuredAt])
+}
+
+// ============================================
+// RISK MODULE
+// Risk Management for ISO 27001
+// ============================================
+
+enum RiskTier {
+  CORE // Essential risks for all organizations
+  EXTENDED // Additional risks for medium/large organizations
+  ADVANCED // Comprehensive risks for large organizations
+}
+
+enum RiskStatus {
+  IDENTIFIED
+  ASSESSED
+  TREATING
+  ACCEPTED
+  CLOSED
+}
+
+enum LikelihoodLevel {
+  RARE // 1
+  UNLIKELY // 2
+  POSSIBLE // 3
+  LIKELY // 4
+  ALMOST_CERTAIN // 5
+}
+
+enum ImpactLevel {
+  NEGLIGIBLE // 1
+  MINOR // 2
+  MODERATE // 3
+  MAJOR // 4
+  SEVERE // 5
+}
+
+// ============================================
+// BIRT (BUSINESS IMPACT REFERENCE TABLE) MODULE
+// Multi-dimensional impact assessment
+// ============================================
+
+enum ImpactCategory {
+  FINANCIAL
+  OPERATIONAL
+  LEGAL_REGULATORY
+  REPUTATIONAL
+  STRATEGIC
+}
+
+// ============================================
+// SCENARIO IMPACT ASSESSMENT MODEL
+// Per-category impact assessment for scenarios
+// ============================================
+
+model ScenarioImpactAssessment {
+  id         String       @id @default(cuid())
+  scenarioId String
+  scenario   RiskScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  category  ImpactCategory
+  level     ImpactLevel // Selected level for this category
+  value     Int // Numeric value 1-5
+  rationale String?        @db.Text
+
+  // For residual assessment (after controls)
+  isResidual Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([scenarioId, category, isResidual])
+  @@index([scenarioId])
+}
+
+// ============================================
+// RISK MODEL
+// Parent risks linked to controls
+// ============================================
+
+model Risk {
+  id          String     @id @default(cuid())
+  riskId      String // "R-01", "R-02", etc.
+  title       String
+  description String?    @db.Text
+  tier        RiskTier   @default(CORE)
+  orgSize     String? // "S,M,L" - applicable organization sizes
+  status      RiskStatus @default(IDENTIFIED)
+
+  // ============================================
+  // DERIVED STATUS (from worst child scenario)
+  // ============================================
+  derivedStatus          DerivedRiskStatus?
+  derivedStatusUpdatedAt DateTime?
+
+  // Aggregated scores from child scenarios
+  maxScenarioScore            Int? // Highest scenario score
+  avgScenarioScore            Float? // Average scenario score
+  scenarioCount               Int    @default(0)
+  scenariosExceedingTolerance Int    @default(0)
+
+  // Multi-framework support
+  framework    ControlFramework @default(ISO)
+  soc2Criteria String? // "CC1.1, CC1.2" for SOC2 mapping
+  tscCategory  String? // "Security", "Availability", etc.
+
+  // Applicability (based on regulatory scope)
+  applicable        Boolean @default(true)
+  justificationIfNa String? @db.Text // Reason if not applicable (e.g., "Organisation not in scope of DORA")
+
+  // Manual enable/disable (separate from regulatory applicability)
+  enabled        Boolean   @default(true)
+  disabledReason String?   @db.Text
+  disabledAt     DateTime?
+  disabledById   String?
+  disabledBy     User?     @relation("RiskDisabledBy", fields: [disabledById], references: [id], onDelete: SetNull)
+
+  // Risk assessment (current state)
+  likelihood         LikelihoodLevel?
+  impact             ImpactLevel?
+  inherentScore      Int? // likelihood * impact (1-25)
+  residualScore      Int? // after controls
+  riskOwner          String?
+  treatmentPlan      String?          @db.Text
+  acceptanceCriteria String?          @db.Text
+
+  // Relationships
+  organisationId      String
+  organisation        OrganisationProfile      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  // NOTE: Risk-level control linking removed - use RiskScenarioControl for scenario-level linking
+  scenarios           RiskScenario[]
+  kris                KeyRiskIndicator[]
+  nonconformities     Nonconformity[]
+  treatmentPlans      TreatmentPlan[]
+  toleranceStatements RiskToleranceStatement[] @relation("RiskToleranceRisks")
+  assetLinks          AssetRisk[]
+
+  // Policy Module Relations
+  documentMappings DocumentRiskMapping[]
+
+  // Evidence Module Relations
+  evidenceLinks EvidenceRisk[]
+
+  // Risk Lifecycle Relations (from risks.prisma)
+  eventLog             RiskEventLog[]
+  toleranceEvaluations ToleranceEvaluation[]
+
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("RiskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String?
+  updatedBy   User?    @relation("RiskUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([riskId, organisationId])
+  @@index([tier])
+  @@index([status])
+  @@index([framework])
+  @@index([organisationId])
+}
+
+// ============================================
+// RISK SCENARIO MODEL
+// Specific scenarios under a parent risk
+// ============================================
+
+model RiskScenario {
+  id          String  @id @default(cuid())
+  scenarioId  String // "R-01-S01", "R-01-S02", etc.
+  title       String
+  cause       String? @db.Text
+  event       String? @db.Text
+  consequence String? @db.Text
+
+  // ============================================
+  // STATE MACHINE (10 states per spec)
+  // ============================================
+  status            ScenarioStatus @default(DRAFT)
+  statusChangedAt   DateTime?
+  statusChangedById String?
+  statusChangedBy   User?          @relation("ScenarioStatusChangedBy", fields: [statusChangedById], references: [id], onDelete: SetNull)
+
+  // Tolerance status for quick filtering
+  toleranceStatus    ToleranceStatus?
+  toleranceThreshold Int? // Current tolerance threshold
+  toleranceGap       Int? // Score - Threshold (positive = exceeds)
+
+  // Single Loss Expectancy (SLE) ranges
+  sleLow    Decimal? @db.Decimal(15, 2) // Low estimate
+  sleLikely Decimal? @db.Decimal(15, 2) // Most likely estimate
+  sleHigh   Decimal? @db.Decimal(15, 2) // High estimate
+
+  // Annualized metrics
+  aro Decimal? @db.Decimal(5, 2) // Annual Rate of Occurrence
+  ale Decimal? @db.Decimal(15, 2) // Annual Loss Expectancy
+
+  // Inherent Assessment (before controls)
+  likelihood    LikelihoodLevel?
+  impact        ImpactLevel?
+  inherentScore Int?
+
+  // Residual Assessment (after controls)
+  residualLikelihood LikelihoodLevel?
+  residualImpact     ImpactLevel?
+  residualScore      Int?
+
+  // System-calculated residual (from control effectiveness)
+  calculatedResidualLikelihood LikelihoodLevel?
+  calculatedResidualImpact     ImpactLevel?
+  calculatedResidualScore      Int?
+
+  // Override tracking (with full audit trail)
+  residualOverridden            Boolean   @default(false)
+  residualOverrideJustification String?   @db.Text
+  residualOverriddenById        String?
+  residualOverriddenBy          User?     @relation("ScenarioResidualOverriddenBy", fields: [residualOverriddenById], references: [id], onDelete: SetNull)
+  residualOverriddenAt          DateTime?
+  residualPreviousScore         Int? // Store calculated score before override
+
+  // BIRT weighted impact (calculated from category assessments)
+  weightedImpact         Int? // Weighted average of inherent category impacts (1-5)
+  residualWeightedImpact Int? // Weighted average after controls
+
+  // Multi-framework support
+  framework  ControlFramework @default(ISO)
+  // @deprecated Use controlLinks relation instead. This field is for backwards compatibility only.
+  controlIds String? // Comma-separated control IDs - DEPRECATED
+
+  // ============================================
+  // FACTOR-BASED CALCULATION FIELDS (F1-F6)
+  // 3-Factor INHERENT Likelihood Model:
+  //   F1 (34%): Threat Frequency - How often do attackers try?
+  //   F2 (33%): Vulnerability/Ease of Exploit - How easy is it to exploit?
+  //   F3 (33%): Attack Surface - How many entry points exist?
+  // F4-F6 are supplementary (0% weight) for informational tracking
+  // ============================================
+
+  // F1: Threat Frequency
+  // Measures: How often do attackers attempt this type of attack?
+  f1ThreatFrequency       Int?
+  f1Source                String?
+  f1Override              Boolean @default(false)
+  f1OverrideJustification String? @db.Text
+
+  // F2: Vulnerability / Ease of Exploit
+  // SEMANTIC: Measures technical difficulty to exploit (NOT control effectiveness)
+  // NOTE: Field name "f2ControlEffectiveness" is legacy - actual meaning is Vulnerability
+  // Control effectiveness is applied during RESIDUAL calculation, not inherent
+  f2ControlEffectiveness  Int? // TODO: Rename to f2VulnerabilityExposure in future migration
+  f2Source                String?
+  f2Override              Boolean @default(false)
+  f2OverrideJustification String? @db.Text
+
+  // F3: Attack Surface
+  // SEMANTIC: Measures how many entry points/opportunities exist for attackers
+  // NOTE: Field name "f3GapVulnerability" is legacy - actual meaning is Attack Surface
+  f3GapVulnerability      Int? // TODO: Rename to f3AttackSurface in future migration
+  f3Source                String?
+  f3Override              Boolean @default(false)
+  f3OverrideJustification String? @db.Text
+
+  // F4: Incident History (from Incidents)
+  f4IncidentHistory       Int?
+  f4Source                String?
+  f4Override              Boolean @default(false)
+  f4OverrideJustification String? @db.Text
+
+  // F5: Attack Surface (from Assets, Applications)
+  f5AttackSurface         Int?
+  f5Source                String?
+  f5Override              Boolean @default(false)
+  f5OverrideJustification String? @db.Text
+
+  // F6: Environmental (Threat Intel / Manual)
+  f6Environmental         Int?
+  f6Source                String?
+  f6Override              Boolean @default(false)
+  f6OverrideJustification String? @db.Text
+
+  // ============================================
+  // IMPACT CATEGORY FIELDS (I1-I5)
+  // ============================================
+
+  // I1: Financial Impact
+  i1Financial Int?
+  i1Breakdown Json? // { assetCosts, vendorValue, piiCost }
+
+  // I2: Operational Impact
+  i2Operational Int?
+  i2Breakdown   Json? // { rto, userImpact, criticality }
+
+  // I3: Regulatory Impact
+  i3Regulatory Int?
+  i3Breakdown  Json? // { gdpr, dora, nis2, pci }
+
+  // I4: Reputational Impact
+  i4Reputational Int?
+  i4Breakdown    Json? // { externalFacing, customerData }
+
+  // I5: Strategic Impact
+  i5Strategic Int?
+  i5Breakdown Json? // { criticalFunction, competitiveAdvantage }
+
+  // ============================================
+  // AGGREGATED CALCULATED SCORES
+  // ============================================
+
+  calculatedLikelihood Int? // Weighted sum of F1-F6
+  calculatedImpact     Int? // Max of I1-I5
+  targetResidualScore  Int? // Post-treatment target
+
+  // Calculation metadata
+  lastCalculatedAt   DateTime?
+  lastCalculatedById String?
+  lastCalculatedBy   User?     @relation("ScenarioCalculatedBy", fields: [lastCalculatedById], references: [id], onDelete: SetNull)
+  calculationTrigger String? // MANUAL, ASSET_UPDATED, CONTROL_TESTED, etc.
+  calculationTrace   Json? // Full audit trail
+
+  // ============================================
+  // FAIR QUANTITATIVE MODE FIELDS
+  // ============================================
+
+  // Enable quantitative analysis for this scenario
+  quantitativeMode Boolean @default(false)
+
+  // Threat Event Frequency (TEF) - PERT parameters
+  tefMin  Float? // Minimum annual attempts
+  tefMode Float? // Most likely annual attempts
+  tefMax  Float? // Maximum annual attempts
+
+  // Vulnerability override for FAIR (0-1)
+  // If null, derived from F2 factor
+  fairVulnerability Float?
+
+  // Primary Loss (SLE) - PERT parameters in currency
+  primaryLossMin  Float? // Minimum loss per event
+  primaryLossMode Float? // Most likely loss per event
+  primaryLossMax  Float? // Maximum loss per event
+
+  // Secondary Loss - PERT parameters (optional)
+  secondaryLossMin         Float?
+  secondaryLossMode        Float?
+  secondaryLossMax         Float?
+  secondaryLossProbability Float? // P(secondary loss | event)
+
+  // Cached simulation results
+  lastSimulationAt     DateTime?
+  simulationIterations Int?
+
+  // ALE Statistics (cached from last simulation)
+  aleMean   Float?
+  aleMedian Float?
+  aleP90    Float?
+  aleP95    Float?
+  aleP99    Float?
+
+  // LEF Statistics
+  lefMean Float?
+
+  // Probability metrics
+  probabilityOfLoss Float?
+
+  // Full simulation result JSON (for charts)
+  simulationResult Json?
+
+  // ============================================
+  // RELATIONSHIPS
+  // ============================================
+
+  riskId              String
+  risk                Risk                       @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  toleranceStatements RiskToleranceStatement[]   @relation("RTSScenarios")
+  impactAssessments   ScenarioImpactAssessment[]
+
+  // Entity links for factor calculation
+  assetLinks         RiskScenarioAsset[]
+  controlLinks       RiskScenarioControl[]
+  calculationHistory RiskCalculationHistory[]
+
+  // State Machine Relations
+  stateHistory   ScenarioStateHistory[]
+  treatmentPlans TreatmentPlan[]        @relation("ScenarioTreatmentPlans")
+
+  // Audit fields
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  createdById      String?
+  createdBy        User?                @relation("ScenarioCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById      String?
+  updatedBy        User?                @relation("ScenarioUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  IncidentScenario IncidentScenario[]
+
+  @@unique([scenarioId, riskId])
+  @@index([riskId])
+  @@index([lastCalculatedAt])
+  @@index([status])
+  @@index([toleranceStatus])
+  @@index([calculationTrigger])
+  @@index([f1Override, f2Override, f3Override])
+}
+
+// ============================================
+// KEY RISK INDICATOR (KRI) MODEL
+// Metrics that indicate risk levels
+// ============================================
+
+model KeyRiskIndicator {
+  id          String  @id @default(cuid())
+  kriId       String // "KRI-001", "KRI-002", etc.
+  name        String
+  description String? @db.Text
+  formula     String? @db.Text
+  unit        String // "%", "Count", "Days", etc.
+
+  // Thresholds
+  thresholdGreen String? // "≥95%"
+  thresholdAmber String? // "80-94%"
+  thresholdRed   String? // "<80%"
+
+  // Collection
+  frequency  CollectionFrequency @default(MONTHLY)
+  dataSource String?
+  automated  Boolean             @default(false)
+  tier       RiskTier            @default(CORE)
+
+  // Current state
+  currentValue String?
+  status       RAGStatus?
+  trend        TrendDirection?
+  lastMeasured DateTime?
+
+  // Multi-framework support
+  framework    ControlFramework @default(ISO)
+  soc2Criteria String?
+
+  // Relationships
+  riskId              String
+  risk                Risk                     @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  history             KRIHistory[]
+  toleranceStatements RiskToleranceStatement[] @relation("RTSKRIs")
+
+  // Audit fields
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  createdById     String?
+  createdBy       User?             @relation("KRICreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById     String?
+  updatedBy       User?             @relation("KRIUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([kriId, riskId])
+  @@index([riskId])
+  @@index([status])
+  @@index([tier])
+}
+
+// ============================================
+// KRI HISTORY MODEL
+// Historical KRI values for trend analysis
+// ============================================
+
+model KRIHistory {
+  id         String    @id @default(cuid())
+  value      String
+  status     RAGStatus
+  measuredAt DateTime
+  measuredBy String?
+  notes      String?   @db.Text
+
+  // Relationships
+  kriId String
+  kri   KeyRiskIndicator @relation(fields: [kriId], references: [id], onDelete: Cascade)
+
+  // Audit fields
+  createdAt DateTime @default(now())
+
+  @@index([kriId])
+  @@index([measuredAt])
+}
+
+// ============================================
+// RISK TOLERANCE STATEMENT (RTS) MODEL
+// Defines acceptable risk levels per domain
+// ============================================
+
+enum ToleranceLevel {
+  HIGH // Willing to accept significant risk
+  MEDIUM // Moderate risk acceptance
+  LOW // Minimal risk tolerance
+}
+
+enum RTSStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  ACTIVE
+  SUPERSEDED
+  RETIRED
+}
+
+model RiskToleranceStatement {
+  id    String @id @default(cuid())
+  rtsId String // "RTS-001", "RTS-002", etc.
+
+  // Core content
+  title     String
+  objective String  @db.Text // What this RTS aims to achieve
+  domain    String? // "Vulnerability Management", "Access Control", etc.
+
+  // Tolerance definition
+  proposedToleranceLevel ToleranceLevel @default(MEDIUM)
+  proposedRTS            String         @db.Text // Full text of the tolerance statement
+
+  // Appetite-based tolerance
+  appetiteLevel      String? // MINIMAL/LOW/MODERATE/HIGH
+  category           ImpactCategory? // Which impact category this RTS covers
+  toleranceThreshold Int? // Calculated threshold based on appetite level
+
+  // Conditions - JSON array of threshold conditions
+  // Each condition: { level: "HIGH"|"MEDIUM"|"LOW", description, proposedRts, conditions[], anticipatedImpact }
+  conditions Json @default("[]")
+
+  // Impact and rationale
+  anticipatedOperationalImpact String? @db.Text
+  rationale                    String? @db.Text
+
+  // Workflow
+  status        RTSStatus @default(DRAFT)
+  approvedDate  DateTime?
+  approvedById  String?
+  approvedBy    User?     @relation("RTSApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  effectiveDate DateTime?
+  reviewDate    DateTime?
+
+  // Framework alignment
+  framework  ControlFramework @default(ISO)
+  controlIds String? // Comma-separated control IDs this RTS relates to
+
+  // Relationships
+  organisationId String
+  organisation   OrganisationProfile @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  // Many-to-many with risks
+  risks     Risk[]             @relation("RiskToleranceRisks")
+  scenarios RiskScenario[]     @relation("RTSScenarios")
+  kris      KeyRiskIndicator[] @relation("RTSKRIs")
+
+
+
+  // Tolerance evaluations using this RTS
+  toleranceEvaluations ToleranceEvaluation[]
+
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("RTSCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String?
+  updatedBy   User?    @relation("RTSUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([rtsId, organisationId])
+  @@index([status])
+  @@index([proposedToleranceLevel])
+  @@index([domain])
+  @@index([organisationId])
+  @@index([appetiteLevel])
+  @@index([category])
+}
+
+
+// ============================================
+// TREATMENT PLAN MODEL
+// Risk treatment strategies and actions
+// ============================================
+
+enum TreatmentType {
+  MITIGATE // Reduce risk through controls
+  TRANSFER // Transfer risk (e.g., insurance)
+  ACCEPT // Accept the risk with justification
+  AVOID // Eliminate the risk source
+  SHARE // Share risk with third party
+}
+
+enum TreatmentStatus {
+  DRAFT
+  PROPOSED
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum TreatmentPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model TreatmentPlan {
+  id          String @id @default(cuid())
+  treatmentId String // "TP-001", "TP-002", etc.
+
+  // Core content
+  title       String
+  description String @db.Text
+
+  // Treatment details
+  treatmentType TreatmentType     @default(MITIGATE)
+  priority      TreatmentPriority @default(MEDIUM)
+  status        TreatmentStatus   @default(DRAFT)
+
+  // Risk reduction targets
+  targetResidualScore  Int? // Target residual risk score after treatment
+  currentResidualScore Int? // Current residual risk score
+  expectedReduction    Int? // Expected % reduction
+
+  // Financial
+  estimatedCost Decimal? @db.Decimal(15, 2)
+  actualCost    Decimal? @db.Decimal(15, 2)
+  costBenefit   String?  @db.Text
+  roi           Decimal? @db.Decimal(10, 2)
+
+  // Timeline
+  proposedDate    DateTime?
+  approvedDate    DateTime?
+  targetStartDate DateTime?
+  targetEndDate   DateTime?
+  actualStartDate DateTime?
+  actualEndDate   DateTime?
+
+  // Ownership
+  riskOwnerId   String?
+  riskOwner     User?   @relation("TreatmentRiskOwner", fields: [riskOwnerId], references: [id], onDelete: SetNull)
+  implementerId String?
+  implementer   User?   @relation("TreatmentImplementer", fields: [implementerId], references: [id], onDelete: SetNull)
+  approvedById  String?
+  approvedBy    User?   @relation("TreatmentApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  // Acceptance criteria (for ACCEPT treatment type)
+  acceptanceRationale  String?   @db.Text
+  acceptanceCriteria   String?   @db.Text
+  acceptanceConditions Json?     @default("[]") // Conditions under which acceptance is valid
+  acceptanceExpiryDate DateTime?
+
+  // Progress tracking
+  progressPercentage Int     @default(0)
+  progressNotes      String? @db.Text
+
+  // Relationships
+  riskId String
+  risk   Risk   @relation(fields: [riskId], references: [id], onDelete: Cascade)
+
+  // Optional link to specific scenario (for scenario-level treatments)
+  scenarioId String?
+  scenario   RiskScenario? @relation("ScenarioTreatmentPlans", fields: [scenarioId], references: [id], onDelete: SetNull)
+
+  organisationId String
+  organisation   OrganisationProfile @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  // Related items
+  actions    TreatmentAction[]
+  history    TreatmentPlanHistory[]
+  controlIds String? // Controls to be implemented
+
+  // Dependencies
+  sourceDependencies TreatmentDependency[] @relation("SourceDependencies")
+  targetDependencies TreatmentDependency[] @relation("TargetDependencies")
+
+  // Evidence Module Relations
+  evidenceLinks EvidenceTreatment[]
+
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("TreatmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String?
+  updatedBy   User?    @relation("TreatmentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([treatmentId, organisationId])
+  @@index([riskId])
+  @@index([scenarioId])
+  @@index([status])
+  @@index([priority])
+  @@index([treatmentType])
+  @@index([organisationId])
+}
+
+// ============================================
+// TREATMENT ACTION MODEL
+// Individual actions within a treatment plan
+// ============================================
+
+enum ActionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+  CANCELLED
+}
+
+model TreatmentAction {
+  id       String @id @default(cuid())
+  actionId String // "TP-001-A01", etc.
+
+  // Core content
+  title       String
+  description String? @db.Text
+
+  // Status and progress
+  status   ActionStatus      @default(NOT_STARTED)
+  priority TreatmentPriority @default(MEDIUM)
+
+  // Timeline
+  dueDate       DateTime?
+  completedDate DateTime?
+
+  // Ownership
+  assignedToId String?
+  assignedTo   User?   @relation("ActionAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  // Effort
+  estimatedHours Int?
+  actualHours    Int?
+
+  // Notes
+  completionNotes String? @db.Text
+  blockerNotes    String? @db.Text
+
+  // Relationships
+  treatmentPlanId String
+  treatmentPlan   TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
+
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("ActionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([actionId, treatmentPlanId])
+  @@index([treatmentPlanId])
+  @@index([status])
+  @@index([assignedToId])
+  @@index([dueDate])
+}
+
+// ============================================
+// TREATMENT TEMPLATES
+// Reusable treatment plan templates
+// ============================================
+
+model TreatmentTemplate {
+  id          String  @id @default(cuid())
+  templateId  String // "TPL-001", "TPL-002", etc.
+  name        String
+  description String? @db.Text
+
+  // Template details
+  treatmentType TreatmentType
+  priority      TreatmentPriority @default(MEDIUM)
+
+  // Risk reduction targets (as percentages/guidelines)
+  expectedReductionMin Int? // Minimum expected reduction %
+  expectedReductionMax Int? // Maximum expected reduction %
+
+  // Financial estimates
+  estimatedCostMin Decimal? @db.Decimal(15, 2)
+  estimatedCostMax Decimal? @db.Decimal(15, 2)
+
+  // Timeline estimates (in days)
+  estimatedDurationDays Int?
+
+  // Template content
+  descriptionTemplate         String? @db.Text // Template for treatment description
+  acceptanceRationaleTemplate String? @db.Text // Template for acceptance rationale
+
+  // Pre-defined actions (JSON array)
+  actionTemplates Json? @default("[]") // Array of action template objects
+
+  // Applicable contexts
+  applicableRiskLevels String? // Comma-separated: "HIGH,CRITICAL"
+  applicableRiskTypes  String? // Comma-separated risk categories
+  recommendedControls  String? // Comma-separated control IDs
+
+  // Usage tracking
+  usageCount Int @default(0)
+
+  // Organisation scope
+  organisationId String?
+  organisation   OrganisationProfile? @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  isGlobal       Boolean              @default(false) // Available to all organisations
+
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("TemplateCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([templateId, organisationId])
+  @@index([treatmentType])
+  @@index([priority])
+  @@index([organisationId])
+  @@index([isGlobal])
+}
+
+// ============================================
+// TREATMENT DEPENDENCIES
+// Track dependencies between treatment plans
+// ============================================
+
+enum DependencyType {
+  BLOCKS // This treatment blocks another (must complete first)
+  REQUIRES // This treatment requires another (dependency must complete first)
+  RELATED // This treatment is related to another (informational)
+}
+
+model TreatmentDependency {
+  id String @id @default(cuid())
+
+  // Source treatment (the one with the dependency)
+  sourceTreatmentId String
+  sourceTreatment   TreatmentPlan @relation("SourceDependencies", fields: [sourceTreatmentId], references: [id], onDelete: Cascade)
+
+  // Target treatment (the one being depended upon)
+  targetTreatmentId String
+  targetTreatment   TreatmentPlan @relation("TargetDependencies", fields: [targetTreatmentId], references: [id], onDelete: Cascade)
+
+  // Dependency details
+  dependencyType DependencyType
+  description    String?        @db.Text // Why this dependency exists
+  isMandatory    Boolean        @default(true) // Can be overridden or not
+
+  // Audit fields
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation("DependencyCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([sourceTreatmentId, targetTreatmentId])
+  @@index([sourceTreatmentId])
+  @@index([targetTreatmentId])
+  @@index([dependencyType])
+}
+
+// ============================================
+// TREATMENT PLAN HISTORY
+// Track changes to treatment plans over time
+// ============================================
+
+enum TreatmentHistoryAction {
+  CREATED
+  UPDATED
+  APPROVED
+  REJECTED
+  STATUS_CHANGED
+  PROGRESS_UPDATED
+  ACTION_ADDED
+  ACTION_UPDATED
+  ACTION_COMPLETED
+  COMPLETED
+  CANCELLED
+}
+
+model TreatmentPlanHistory {
+  id String @id @default(cuid())
+
+  // Reference to treatment plan
+  treatmentPlanId String
+  treatmentPlan   TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
+
+  // Change details
+  action      TreatmentHistoryAction
+  fieldName   String? // Field that was changed (e.g., "status", "progressPercentage")
+  oldValue    String?                @db.Text // Previous value (JSON stringified if complex)
+  newValue    String?                @db.Text // New value (JSON stringified if complex)
+  description String?                @db.Text // Human-readable description of the change
+
+  // Context
+  actionId String? // If related to a specific action
+  userId   String? // User who made the change
+  user     User?   @relation("TreatmentHistoryUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  // Audit
+  createdAt DateTime @default(now())
+
+  @@index([treatmentPlanId])
+  @@index([action])
+  @@index([userId])
+  @@index([createdAt])
+}
+
