@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.mcp-base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "composite": true,
+    "paths": {
+      "#src/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

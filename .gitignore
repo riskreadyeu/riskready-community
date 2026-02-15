@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+.vite/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temp
+_temp/
+.temp/
+.venv/
+
+# Local dev database
+dev.db
+
+# MCP configuration (contains local paths and credentials)
+.mcp.json
+
+# Internal dev files
+docs/
+scripts/
+*.toml
+INVENTORY.md
+apps/server/scripts/
+apps/server/*.md
+apps/server/*.ts
+apps/server/prisma/*.ts
+
+# Agent Artifacts
+.claude/
+.playwright-mcp/
+image.png
+*.png

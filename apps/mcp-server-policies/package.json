@@ -1,0 +1,27 @@
+{
+  "name": "riskready-mcp-server-policies",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "postinstall": "node -e \"const fs=require('fs');const src='../server/node_modules/.prisma';const dst='node_modules/.prisma';if(fs.existsSync(src)&&!fs.existsSync(dst)){fs.mkdirSync('node_modules',{recursive:true});fs.symlinkSync(require('path').resolve(src),dst)}\"",
+    "test": "vitest run"
+  },
+  "imports": {
+    "#src/*": "./src/*",
+    "#mcp-shared": "../../packages/mcp-shared/src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.12.1",
+    "@prisma/client": "5.19.1",
+    "zod": "3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.33",
+    "tsx": "4.21.0",
+    "typescript": "5.5.4",
+    "vitest": "3.0.5"
+  }
+}

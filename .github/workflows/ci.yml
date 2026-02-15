@@ -1,0 +1,151 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: riskready_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: '22'
+
+      # Server setup and checks
+      - name: Install server dependencies
+        working-directory: apps/server
+        run: npm ci
+
+      - name: Audit server dependencies
+        working-directory: apps/server
+        run: npm audit --audit-level=high
+
+      - name: Server TypeScript type check
+        working-directory: apps/server
+        run: npx tsc --noEmit
+
+      - name: Build server
+        working-directory: apps/server
+        run: npm run build
+
+      - name: Run server tests
+        working-directory: apps/server
+        run: npm test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/riskready_test
+
+      # Web setup and checks
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Audit web dependencies
+        working-directory: apps/web
+        run: npm audit --audit-level=high
+
+      - name: Web TypeScript type check
+        working-directory: apps/web
+        run: npx tsc --noEmit
+
+      - name: Build web
+        working-directory: apps/web
+        run: npm run build
+
+  mcp-servers:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        server: [controls, risks, itsm, audits, incidents, evidence, policies, organisation]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Install server dependencies (for Prisma client)
+        working-directory: apps/server
+        run: npm ci
+
+      - name: Install MCP server dependencies
+        working-directory: apps/mcp-server-${{ matrix.server }}
+        run: npm ci
+
+      - name: Audit MCP server dependencies
+        working-directory: apps/mcp-server-${{ matrix.server }}
+        run: npm audit --audit-level=high
+
+      - name: TypeScript type check
+        working-directory: apps/mcp-server-${{ matrix.server }}
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        working-directory: apps/mcp-server-${{ matrix.server }}
+        run: npx vitest run
+
+  gateway:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Install server dependencies (for Prisma client)
+        working-directory: apps/server
+        run: npm ci
+
+      - name: Install gateway dependencies
+        working-directory: gateway
+        run: npm ci
+
+      - name: Audit gateway dependencies
+        working-directory: gateway
+        run: npm audit --audit-level=high
+
+      - name: TypeScript type check
+        working-directory: gateway
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        working-directory: gateway
+        run: npm test

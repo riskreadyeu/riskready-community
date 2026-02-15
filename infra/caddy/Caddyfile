@@ -1,0 +1,38 @@
+:80 {
+  encode gzip
+
+  log {
+    output stdout
+  }
+
+  header {
+    X-Frame-Options "DENY"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    # Uncomment the line below when serving over HTTPS
+    # Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  }
+
+  handle /api/* {
+    reverse_proxy server:3000
+  }
+
+  handle {
+    reverse_proxy {$WEB_UPSTREAM:web:80}
+  }
+}
+
+# Production HTTPS example (uncomment and replace the :80 block above):
+#
+# yourdomain.com {
+#   encode gzip
+#
+#   handle /api/* {
+#     reverse_proxy server:3000
+#   }
+#
+#   handle {
+#     reverse_proxy {$WEB_UPSTREAM:web:80}
+#   }
+# }
