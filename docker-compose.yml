@@ -41,8 +41,8 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in .env}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
-      COOKIE_SECURE: ${COOKIE_SECURE:-true}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:8080}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
     depends_on:
       db:
         condition: service_healthy
