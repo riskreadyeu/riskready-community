@@ -42,7 +42,7 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
     depends_on:
       db:
         condition: service_healthy

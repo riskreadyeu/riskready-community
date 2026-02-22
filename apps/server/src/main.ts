@@ -40,18 +40,19 @@ async function bootstrap() {
   app.useGlobalInterceptors(new EnrichContextInterceptor());
 
   // CORS configuration
-  // In development, allow all origins for Tailscale/remote access
-  // In production, set CORS_ORIGIN env var with comma-separated allowed origins
-  const isDevelopment = process.env['NODE_ENV'] !== 'production';
-  const allowedOrigins = process.env['CORS_ORIGIN'] ? process.env['CORS_ORIGIN'].split(',') : [];
-  
+  // When CORS_ORIGIN is set, only those origins are allowed.
+  // When CORS_ORIGIN is not set, all origins are allowed (suitable for
+  // single-server Docker deployments accessed via localhost, IP, or hostname).
+  const corsOriginEnv = process.env['CORS_ORIGIN']?.trim();
+  const allowedOrigins = corsOriginEnv ? corsOriginEnv.split(',').map(o => o.trim()) : [];
+
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       // Allow requests with no origin (like mobile apps or curl)
       if (!origin) return callback(null, true);
-      // In development, allow all origins (Tailscale, localhost, 127.0.0.1, etc.)
-      if (isDevelopment) return callback(null, true);
-      // In production, check against allowed list
+      // If no CORS_ORIGIN configured, allow all origins
+      if (allowedOrigins.length === 0) return callback(null, true);
+      // Check against allowed list
       if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error('Not allowed by CORS'), false);
     },
