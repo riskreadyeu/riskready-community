@@ -429,9 +429,14 @@ export class DocumentAttachmentService {
   }
 
   /**
-   * Get full storage path
+   * Get full storage path, ensuring it stays within the storage base directory.
    */
   getFullStoragePath(storagePath: string): string {
-    return path.isAbsolute(storagePath) ? storagePath : path.join(process.cwd(), storagePath);
+    const baseDir = path.resolve(this.STORAGE_BASE_PATH);
+    const resolved = path.resolve(baseDir, storagePath);
+    if (!resolved.startsWith(baseDir + path.sep) && resolved !== baseDir) {
+      throw new BadRequestException('Invalid storage path');
+    }
+    return resolved;
   }
 }

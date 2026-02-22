@@ -7,26 +7,44 @@ import { prisma } from './prisma.js';
 import { logger } from './logger.js';
 import { createDecipheriv, scryptSync } from 'node:crypto';
 
+const SALT_LENGTH = 32;
 const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;
 
 function decryptCredential(encryptedData: string): string {
   if (!encryptedData) return encryptedData;
+  const key = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET;
+  if (!key) throw new Error('ENCRYPTION_KEY or JWT_SECRET required');
+
+  const combined = Buffer.from(encryptedData, 'base64');
+
+  // New format: salt (32) + IV (16) + authTag (16) + data
+  if (combined.length >= SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH + 1) {
+    try {
+      const salt = combined.subarray(0, SALT_LENGTH);
+      const iv = combined.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
+      const authTag = combined.subarray(SALT_LENGTH + IV_LENGTH, SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH);
+      const encrypted = combined.subarray(SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH);
+      const derivedKey = scryptSync(key, salt, 32);
+      const decipher = createDecipheriv('aes-256-gcm', derivedKey, iv);
+      decipher.setAuthTag(authTag);
+      return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+    } catch {
+      // Fall through to legacy format
+    }
+  }
+
+  // Legacy format: IV (16) + authTag (16) + data with hardcoded salt
   try {
-    const key = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET;
-    if (!key) return encryptedData;
     const derivedKey = scryptSync(key, 'riskready-credential-salt', 32);
-    const combined = Buffer.from(encryptedData, 'base64');
     const iv = combined.subarray(0, IV_LENGTH);
     const authTag = combined.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
     const encrypted = combined.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
     const decipher = createDecipheriv('aes-256-gcm', derivedKey, iv);
     decipher.setAuthTag(authTag);
-    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-    return decrypted.toString('utf8');
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
   } catch {
-    // If decryption fails, return as-is (may be legacy unencrypted)
-    return encryptedData;
+    throw new Error('Failed to decrypt credential');
   }
 }
 

@@ -7,6 +7,7 @@ import { AppModule } from './app.module';
 import { SanitizePipe } from './shared/pipes/sanitize.pipe';
 import { GlobalExceptionFilter } from './shared/filters/http-exception.filter';
 import { EnrichContextInterceptor } from './shared/interceptors/enrich-context.interceptor';
+import { PaginationInterceptor } from './shared/interceptors/pagination.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -37,7 +38,7 @@ async function bootstrap() {
 
   // Global exception filter for consistent error responses
   app.useGlobalFilters(new GlobalExceptionFilter());
-  app.useGlobalInterceptors(new EnrichContextInterceptor());
+  app.useGlobalInterceptors(new EnrichContextInterceptor(), new PaginationInterceptor());
 
   // CORS configuration
   // When CORS_ORIGIN is set, only those origins are allowed.
