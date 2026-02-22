@@ -85,7 +85,7 @@ USER node
 
 EXPOSE 3100
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
   CMD wget -qO- http://localhost:3100/health || exit 1
 
 CMD ["npx", "tsx", "src/main.ts"]

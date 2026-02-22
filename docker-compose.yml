@@ -79,8 +79,10 @@ services:
   caddy:
     image: caddy:2-alpine
     depends_on:
-      - server
-      - web
+      server:
+        condition: service_healthy
+      web:
+        condition: service_started
     ports:
       - "8080:80"
       - "8443:443"
