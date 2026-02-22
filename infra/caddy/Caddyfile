@@ -1,5 +1,4 @@
-{$APP_DOMAIN} {
-  tls internal
+:80 {
   encode gzip
 
   handle /api/* {
@@ -10,3 +9,17 @@
     reverse_proxy {$WEB_UPSTREAM:web:80}
   }
 }
+
+# Production HTTPS example (uncomment and replace the :80 block above):
+#
+# yourdomain.com {
+#   encode gzip
+#
+#   handle /api/* {
+#     reverse_proxy server:3000
+#   }
+#
+#   handle {
+#     reverse_proxy {$WEB_UPSTREAM:web:80}
+#   }
+# }

@@ -85,9 +85,7 @@ services:
         condition: service_started
     ports:
       - "8080:80"
-      - "8443:443"
     environment:
-      APP_DOMAIN: ${APP_DOMAIN:-localhost}
       WEB_UPSTREAM: ${WEB_UPSTREAM:-web:80}
     volumes:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
