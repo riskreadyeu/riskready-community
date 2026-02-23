@@ -225,7 +225,7 @@ export interface Asset {
   outageCount12Months?: number;
 
   // Metadata
-  typeAttributes?: any;
+  typeAttributes?: Record<string, unknown>;
   tags?: string[];
   discoverySource?: string;
   lastVerified?: string;
@@ -334,6 +334,41 @@ export type ChangeStatus =
   | 'REVIEWED';
 export type SecurityImpact = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
 
+export interface ChangeAssetLink {
+  id: string;
+  impactType: string;
+  notes?: string;
+  asset: {
+    id: string;
+    assetTag: string;
+    name: string;
+    assetType: string;
+    businessCriticality: string;
+  };
+}
+
+export interface ChangeHistoryEntry {
+  id: string;
+  field: string;
+  oldValue?: string;
+  newValue: string;
+  changedBy?: UserBasic;
+  createdAt: string;
+}
+
+export interface ChangeAttachment {
+  id: string;
+  fileName?: string;
+  name?: string;
+  fileSize?: number;
+}
+
+export interface ChangeChildSummary {
+  id: string;
+  changeRef: string;
+  title: string;
+}
+
 export interface Change {
   id: string;
   createdAt: string;
@@ -360,6 +395,7 @@ export interface Change {
   riskAssessment?: string;
   backoutPlan?: string;
   testPlan?: string;
+  testResults?: string;
 
   plannedStart?: string;
   plannedEnd?: string;
@@ -369,6 +405,25 @@ export interface Change {
   cabRequired: boolean;
   pirRequired: boolean;
   successful?: boolean;
+
+  // Scheduling & Operations
+  maintenanceWindow?: boolean;
+  outageRequired?: boolean;
+  estimatedDowntime?: number;
+  rollbackTime?: number;
+  affectedServices?: string[];
+  successCriteria?: string;
+  userImpact?: string;
+
+  // Hierarchy
+  parentChangeId?: string;
+  parentChange?: ChangeChildSummary;
+  childChanges?: ChangeChildSummary[];
+
+  // Related data (populated on detail views)
+  assetLinks?: ChangeAssetLink[];
+  attachments?: ChangeAttachment[];
+  history?: ChangeHistoryEntry[];
 
   _count?: {
     approvals: number;
@@ -457,7 +512,7 @@ export async function getAssetSummary(): Promise<AssetSummary> {
   return request('/api/itsm/assets/summary');
 }
 
-export async function getAssetImpact(id: string): Promise<{
+export interface AssetImpactAnalysis {
   asset: Partial<Asset>;
   directlyImpactedAssets: Partial<Asset>[];
   impactedBusinessProcesses: { id: string; name: string; processCode: string; criticalityLevel: string }[];
@@ -466,7 +521,9 @@ export async function getAssetImpact(id: string): Promise<{
     impactedByBusinessCriticality: Record<string, number>;
     impactedProcessCount: number;
   };
-}> {
+}
+
+export async function getAssetImpact(id: string): Promise<AssetImpactAnalysis> {
   return request(`/api/itsm/assets/${id}/impact`);
 }
 
@@ -492,7 +549,7 @@ export async function deleteAsset(id: string): Promise<void> {
   return request(`/api/itsm/assets/${id}`, { method: 'DELETE' });
 }
 
-export async function importAssets(assets: any[]): Promise<{
+export async function importAssets(assets: Record<string, string | boolean | undefined>[]): Promise<{
   imported: number;
   updated: number;
   errors: Array<{ row: number; error: string }>;
@@ -512,7 +569,7 @@ export async function getImportTemplate(): Promise<{
     values?: string[];
     default?: string;
   }>;
-  sampleData: any[];
+  sampleData: Record<string, unknown>[];
 }> {
   return request('/api/itsm/assets/export/template');
 }

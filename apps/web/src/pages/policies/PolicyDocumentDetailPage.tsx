@@ -12,25 +12,18 @@ import {
   Shield,
   AlertTriangle,
   AlertCircle,
-  FolderTree,
   UserCheck,
   ChevronRight,
   ArrowLeft,
-  Calendar,
-  User,
-  Building2,
-  Link as LinkIcon,
-  Target,
   Download,
   FileDown,
   Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,12 +46,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { PageHeader } from "@/components/common";
-import {
-  DocumentRenderer,
-  type PolicyDocumentData,
-} from "@/components/policies/document-sections";
-import { parsePolicyContent } from "@/lib/parse-policy-content";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   getPolicy,
   getVersions,
@@ -68,8 +58,6 @@ import {
   getRiskMappings,
   createReview,
   createWorkflow,
-  updatePolicyStatus,
-  getDefaultWorkflowSteps,
   getDefaultWorkflowByDocumentType,
   type PolicyDocument,
   type DocumentVersion,
@@ -78,12 +66,18 @@ import {
   type ControlMapping,
   type RiskMapping,
   type ReviewOutcome,
-  type ApprovalLevel,
   type DefaultWorkflowConfig,
 } from "@/lib/policies-api";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import {
+  exportPolicyToPDF,
+  exportPolicyToMarkdown,
+  exportPolicyToHTML,
+} from "@/lib/policy-export-utils";
+import { PolicyContentTab, PolicyRawContentTab } from "@/components/policies/tabs/PolicyContentTab";
+import { PolicyVersionsTab } from "@/components/policies/tabs/PolicyVersionsTab";
+import { PolicyReviewsTab } from "@/components/policies/tabs/PolicyReviewsTab";
+import { PolicyMappingsTab } from "@/components/policies/tabs/PolicyMappingsTab";
+import { PolicyWorkflowSidebar } from "@/components/policies/tabs/PolicyWorkflowSidebar";
 
 const documentTypeColors: Record<string, string> = {
   POLICY: "bg-blue-500/10 text-blue-500 border-blue-500/30",
@@ -219,201 +213,6 @@ export default function PolicyDocumentDetailPage() {
     new Date(document.nextReviewDate) <
       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  // Export functions
-  const exportToPDF = () => {
-    // Create printable content
-    const printContent = `
-      <html>
-        <head>
-          <title>${document.documentId} - ${document.title}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
-            h1 { font-size: 24px; margin-bottom: 8px; }
-            .meta { color: #666; font-size: 12px; margin-bottom: 20px; }
-            .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-right: 8px; }
-            .section { margin-top: 24px; }
-            .section-title { font-size: 14px; font-weight: bold; color: #666; margin-bottom: 8px; }
-            .content { white-space: pre-wrap; line-height: 1.6; }
-            @media print { body { padding: 20px; } }
-          </style>
-        </head>
-        <body>
-          <h1>${document.title}</h1>
-          <div class="meta">
-            <span class="badge" style="background: #e3f2fd;">${document.documentId}</span>
-            <span class="badge" style="background: #e8f5e9;">${document.status}</span>
-            <span class="badge" style="background: #fff3e0;">${document.classification}</span>
-            <span>Version ${document.version}</span>
-          </div>
-          <div class="section">
-            <div class="section-title">Purpose</div>
-            <div class="content">${document.purpose}</div>
-          </div>
-          <div class="section">
-            <div class="section-title">Scope</div>
-            <div class="content">${document.scope}</div>
-          </div>
-          <div class="section">
-            <div class="section-title">Content</div>
-            <div class="content">${document.content}</div>
-          </div>
-          <div class="section" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd;">
-            <div class="meta">
-              Document Owner: ${document.documentOwner}<br/>
-              Author: ${document.author}<br/>
-              Review Frequency: ${document.reviewFrequency}<br/>
-              ${document.effectiveDate ? `Effective Date: ${new Date(document.effectiveDate).toLocaleDateString()}<br/>` : ''}
-              ${document.nextReviewDate ? `Next Review: ${new Date(document.nextReviewDate).toLocaleDateString()}<br/>` : ''}
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-    
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.print();
-    }
-  };
-
-  const exportToMarkdown = () => {
-    const markdown = `# ${document.title}
-
-**Document ID:** ${document.documentId}
-**Version:** ${document.version}
-**Status:** ${document.status}
-**Classification:** ${document.classification}
-**Document Type:** ${document.documentType}
-
----
-
-## Document Metadata
-
-- **Owner:** ${document.documentOwner}
-- **Author:** ${document.author}
-- **Review Frequency:** ${document.reviewFrequency}
-${document.effectiveDate ? `- **Effective Date:** ${new Date(document.effectiveDate).toLocaleDateString()}` : ''}
-${document.nextReviewDate ? `- **Next Review:** ${new Date(document.nextReviewDate).toLocaleDateString()}` : ''}
-
----
-
-## Purpose
-
-${document.purpose}
-
----
-
-## Scope
-
-${document.scope}
-
----
-
-## Content
-
-${document.content}
-
----
-
-${document.tags && document.tags.length > 0 ? `## Tags\n\n${document.tags.join(', ')}\n\n---` : ''}
-
-*Generated on ${new Date().toLocaleDateString()} from RiskReady GRC*
-`;
-
-    const blob = new Blob([markdown], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = window.document.createElement('a');
-    a.href = url;
-    a.download = `${document.documentId}-${document.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.md`;
-    window.document.body.appendChild(a);
-    a.click();
-    window.document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const exportToHTML = () => {
-    const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${document.documentId} - ${document.title}</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 40px; line-height: 1.6; color: #333; }
-    .header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
-    h1 { margin: 0 0 10px; font-size: 28px; }
-    .badges { display: flex; gap: 8px; margin-bottom: 15px; }
-    .badge { padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; }
-    .badge-primary { background: #e3f2fd; color: #1565c0; }
-    .badge-success { background: #e8f5e9; color: #2e7d32; }
-    .badge-warning { background: #fff3e0; color: #ef6c00; }
-    .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 14px; color: #666; }
-    .section { margin-top: 30px; }
-    .section-title { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-    .content { white-space: pre-wrap; }
-    .tags { display: flex; flex-wrap: wrap; gap: 8px; }
-    .tag { background: #f5f5f5; padding: 4px 10px; border-radius: 4px; font-size: 12px; }
-    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #999; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>${document.title}</h1>
-    <div class="badges">
-      <span class="badge badge-primary">${document.documentId}</span>
-      <span class="badge badge-success">${document.status}</span>
-      <span class="badge badge-warning">${document.classification}</span>
-      <span class="badge">v${document.version}</span>
-    </div>
-    <div class="meta-grid">
-      <div><strong>Owner:</strong> ${document.documentOwner}</div>
-      <div><strong>Author:</strong> ${document.author}</div>
-      <div><strong>Type:</strong> ${document.documentType}</div>
-      <div><strong>Review:</strong> ${document.reviewFrequency}</div>
-    </div>
-  </div>
-  
-  <div class="section">
-    <div class="section-title">Purpose</div>
-    <div class="content">${document.purpose}</div>
-  </div>
-  
-  <div class="section">
-    <div class="section-title">Scope</div>
-    <div class="content">${document.scope}</div>
-  </div>
-  
-  <div class="section">
-    <div class="section-title">Content</div>
-    <div class="content">${document.content}</div>
-  </div>
-  
-  ${document.tags && document.tags.length > 0 ? `
-  <div class="section">
-    <div class="section-title">Tags</div>
-    <div class="tags">${document.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
-  </div>
-  ` : ''}
-  
-  <div class="footer">
-    Generated on ${new Date().toLocaleString()} from RiskReady GRC
-  </div>
-</body>
-</html>`;
-
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = window.document.createElement('a');
-    a.href = url;
-    a.download = `${document.documentId}-${document.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.html`;
-    window.document.body.appendChild(a);
-    a.click();
-    window.document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   // Handle opening review dialog
   const openReviewDialog = (type: "start" | "schedule") => {
     setReviewType(type);
@@ -426,7 +225,7 @@ ${document.tags && document.tags.length > 0 ? `## Tags\n\n${document.tags.join('
   // Handle submitting review
   const handleSubmitReview = async () => {
     if (!document || !id || !currentUserId) return;
-    
+
     try {
       setSubmittingReview(true);
       await createReview(id, {
@@ -450,10 +249,10 @@ ${document.tags && document.tags.length > 0 ? `## Tags\n\n${document.tags.join('
   // Handle submitting for approval
   const handleSubmitForApproval = async () => {
     if (!document || !id) return;
-    
+
     try {
       setSubmittingApproval(true);
-      
+
       // Create the approval workflow (this also updates document status to PENDING_APPROVAL)
       await createWorkflow(id, {
         workflowType: document.status === "UNDER_REVISION" ? "REVISION" : "NEW_DOCUMENT",
@@ -470,7 +269,7 @@ ${document.tags && document.tags.length > 0 ? `## Tags\n\n${document.tags.join('
 
       setApprovalDialogOpen(false);
       setApprovalComments("");
-      
+
       // Reload to show updated data
       loadDocument(id);
     } catch (error) {
@@ -490,7 +289,7 @@ ${document.tags && document.tags.length > 0 ? `## Tags\n\n${document.tags.join('
 
       // Load default workflow config based on document type
       const config = await getDefaultWorkflowByDocumentType(
-        document.documentType as any,
+        document.documentType,
         document.documentOwnerId || undefined
       );
 
@@ -588,15 +387,15 @@ ${document.tags && document.tags.length > 0 ? `## Tags\n\n${document.tags.join('
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={exportToPDF}>
+              <DropdownMenuItem onClick={() => exportPolicyToPDF(document)}>
                 <Printer className="h-4 w-4 mr-2" />
                 Print / PDF
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportToMarkdown}>
+              <DropdownMenuItem onClick={() => exportPolicyToMarkdown(document)}>
                 <FileDown className="h-4 w-4 mr-2" />
                 Markdown (.md)
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportToHTML}>
+              <DropdownMenuItem onClick={() => exportPolicyToHTML(document)}>
                 <FileText className="h-4 w-4 mr-2" />
                 HTML
               </DropdownMenuItem>
@@ -634,9 +433,9 @@ ${document.tags && document.tags.length > 0 ? `## Tags\n\n${document.tags.join('
               {new Date(document.nextReviewDate!).toLocaleDateString()}
             </p>
           </div>
-          <Button 
-            variant="destructive" 
-            size="sm" 
+          <Button
+            variant="destructive"
+            size="sm"
             className="ml-auto"
             onClick={() => openReviewDialog("start")}
           >
@@ -655,9 +454,9 @@ ${document.tags && document.tags.length > 0 ? `## Tags\n\n${document.tags.join('
               {new Date(document.nextReviewDate!).toLocaleDateString()}
             </p>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="ml-auto"
             onClick={() => openReviewDialog("schedule")}
           >
@@ -695,7 +494,7 @@ ${document.tags && document.tags.length > 0 ? `## Tags\n\n${document.tags.join('
                       : "bg-muted text-muted-foreground"
                   )}
                 >
-                  {step.status === "APPROVED" ? "✓" : idx + 1}
+                  {step.status === "APPROVED" ? "\u2713" : idx + 1}
                 </div>
                 <span
                   className={cn(
@@ -729,304 +528,37 @@ ${document.tags && document.tags.length > 0 ? `## Tags\n\n${document.tags.join('
               <TabsTrigger value="acknowledgments">Ack</TabsTrigger>
             </TabsList>
 
-            {/* Structured View - Using DocumentRenderer */}
             <TabsContent value="structured" className="mt-4">
-              {(() => {
-                // Parse the markdown content to extract structured data
-                const parsedContent = parsePolicyContent(document.content || "");
-                
-                return (
-                  <DocumentRenderer
-                    document={{
-                      id: document.id,
-                      documentId: document.documentId,
-                      title: document.title,
-                      shortTitle: document.shortTitle || undefined,
-                      documentType: document.documentType as PolicyDocumentData["documentType"],
-                      classification: document.classification,
-                      status: document.status,
-                      version: document.version,
-                      documentOwner: document.owner
-                        ? `${document.owner.firstName} ${document.owner.lastName}`
-                        : document.documentOwner,
-                      author: document.authorUser
-                        ? `${document.authorUser.firstName} ${document.authorUser.lastName}`
-                        : document.author,
-                      approvedBy: document.approver
-                        ? `${document.approver.firstName} ${document.approver.lastName}`
-                        : document.approvedBy || undefined,
-                      approvalDate: document.approvalDate || undefined,
-                      effectiveDate: document.effectiveDate || undefined,
-                      nextReviewDate: document.nextReviewDate || undefined,
-                      reviewFrequency: document.reviewFrequency,
-                      distribution: document.distribution || undefined,
-                      purpose: document.purpose,
-                      scope: document.scope,
-                      
-                      // Parsed structured content from markdown
-                      managementCommitment: parsedContent.managementCommitment,
-                      definitions: parsedContent.definitions,
-                      roles: parsedContent.roles,
-                      relatedDocuments: parsedContent.relatedDocuments,
-                      policyStatements: parsedContent.policyStatements,
-                      
-                      // Transform control mappings to ISO controls format
-                      isoControls: controlMappings.map((m) => ({
-                        controlId: m.control?.controlId || "",
-                        controlTitle: m.control?.name || "",
-                        relevance: m.notes || m.mappingType,
-                        coverage: m.coverage as "FULL" | "PARTIAL" | "MINIMAL" | undefined,
-                      })),
-                      
-                      // Transform version history to revisions format
-                      revisions: versions.map((v) => ({
-                        version: v.version,
-                        date: v.createdAt,
-                        author: v.createdBy
-                          ? `${v.createdBy.firstName} ${v.createdBy.lastName}`
-                          : "System",
-                        description: v.changeDescription || v.changeType.replace(/_/g, " "),
-                      })),
-                    }}
-                    showTableOfContents
-                  />
-                );
-              })()}
+              <PolicyContentTab
+                document={document}
+                versions={versions}
+                controlMappings={controlMappings}
+              />
             </TabsContent>
 
-            {/* Raw Content View - Original Simple View */}
             <TabsContent value="content" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Raw Document Content</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {document.summary && (
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                        Summary
-                      </h4>
-                      <p className="text-sm">{document.summary}</p>
-                    </div>
-                  )}
-                  <Separator />
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                      Purpose
-                    </h4>
-                    <p className="text-sm whitespace-pre-wrap">{document.purpose}</p>
-                  </div>
-                  <Separator />
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                      Scope
-                    </h4>
-                    <p className="text-sm whitespace-pre-wrap">{document.scope}</p>
-                  </div>
-                  <Separator />
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                      Content
-                    </h4>
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <div
-                        dangerouslySetInnerHTML={{ __html: document.content }}
-                        className="text-sm whitespace-pre-wrap"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <PolicyRawContentTab document={document} />
             </TabsContent>
 
             <TabsContent value="versions" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Version History</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {versions.length > 0 ? (
-                    <div className="space-y-4">
-                      {versions.map((version, idx) => (
-                        <div
-                          key={version.id}
-                          className="flex items-start gap-4 p-4 rounded-lg bg-secondary/30 border border-border"
-                        >
-                          <div className="flex flex-col items-center">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-medium text-sm">
-                              v{version.version}
-                            </div>
-                            {idx < versions.length - 1 && (
-                              <div className="w-px h-8 bg-border mt-2" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <Badge variant="outline">{version.changeType.replace(/_/g, " ")}</Badge>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(version.createdAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <p className="text-sm">{version.changeDescription}</p>
-                            {version.createdBy && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                by {version.createdBy.firstName} {version.createdBy.lastName}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <GitBranch className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No version history</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <PolicyVersionsTab versions={versions} />
             </TabsContent>
 
             <TabsContent value="reviews" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Review History</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {reviews.length > 0 ? (
-                    <div className="space-y-4">
-                      {reviews.map((review) => (
-                        <div
-                          key={review.id}
-                          className="p-4 rounded-lg bg-secondary/30 border border-border"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <Badge variant="outline">{review.outcome.replace(/_/g, " ")}</Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(review.reviewDate).toLocaleDateString()}
-                            </span>
-                          </div>
-                          {review.findings && (
-                            <p className="text-sm mb-2">
-                              <span className="font-medium">Findings:</span> {review.findings}
-                            </p>
-                          )}
-                          {review.recommendations && (
-                            <p className="text-sm mb-2">
-                              <span className="font-medium">Recommendations:</span>{" "}
-                              {review.recommendations}
-                            </p>
-                          )}
-                          {review.reviewedBy && (
-                            <p className="text-xs text-muted-foreground">
-                              Reviewed by {review.reviewedBy.firstName} {review.reviewedBy.lastName}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No reviews yet</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <PolicyReviewsTab reviews={reviews} />
             </TabsContent>
 
-            <TabsContent value="mappings" className="mt-4 space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
-                    Control Mappings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {controlMappings.length > 0 ? (
-                    <div className="space-y-2">
-                      {controlMappings.map((mapping) => (
-                        <Link
-                          key={mapping.id}
-                          to={`/controls/${mapping.controlId}`}
-                          className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border hover:border-primary/30 transition-all"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="font-mono text-xs text-muted-foreground">
-                              {mapping.control?.controlId}
-                            </span>
-                            <span className="text-sm">{mapping.control?.name}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">{mapping.mappingType}</Badge>
-                            <Badge
-                              variant="outline"
-                              className={
-                                mapping.coverage === "FULL"
-                                  ? "bg-green-500/10 text-green-500"
-                                  : mapping.coverage === "PARTIAL"
-                                  ? "bg-amber-500/10 text-amber-500"
-                                  : "bg-gray-500/10 text-gray-500"
-                              }
-                            >
-                              {mapping.coverage}
-                            </Badge>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Shield className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No control mappings</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Target className="w-4 h-4" />
-                    Risk Mappings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {riskMappings.length > 0 ? (
-                    <div className="space-y-2">
-                      {riskMappings.map((mapping) => (
-                        <Link
-                          key={mapping.id}
-                          to={`/risks/${mapping.riskId}`}
-                          className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border hover:border-primary/30 transition-all"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="font-mono text-xs text-muted-foreground">
-                              {mapping.risk?.riskId}
-                            </span>
-                            <span className="text-sm">{mapping.risk?.title}</span>
-                          </div>
-                          <Badge variant="outline">{mapping.relationshipType}</Badge>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No risk mappings</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+            <TabsContent value="mappings" className="mt-4">
+              <PolicyMappingsTab
+                controlMappings={controlMappings}
+                riskMappings={riskMappings}
+              />
             </TabsContent>
 
             <TabsContent value="acknowledgments" className="mt-4">
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Acknowledgment Status</CardTitle>
-                </CardHeader>
-                <CardContent>
+                <div className="p-6">
+                  <h3 className="text-base font-semibold mb-4">Acknowledgment Status</h3>
                   <div className="text-center py-8 text-muted-foreground">
                     <UserCheck className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">
@@ -1035,176 +567,18 @@ ${document.tags && document.tags.length > 0 ? `## Tags\n\n${document.tags.join('
                         : "Acknowledgment not required"}
                     </p>
                   </div>
-                </CardContent>
+                </div>
               </Card>
             </TabsContent>
           </Tabs>
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Metadata */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Document Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Owner</p>
-                  <p className="text-sm font-medium">
-                    {document.owner
-                      ? `${document.owner.firstName} ${document.owner.lastName}`
-                      : document.documentOwner}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Author</p>
-                  <p className="text-sm font-medium">
-                    {document.authorUser
-                      ? `${document.authorUser.firstName} ${document.authorUser.lastName}`
-                      : document.author}
-                  </p>
-                </div>
-              </div>
-              {document.approver && (
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Approved By</p>
-                    <p className="text-sm font-medium">
-                      {document.approver.firstName} {document.approver.lastName}
-                    </p>
-                  </div>
-                </div>
-              )}
-              <Separator />
-              <div className="flex items-center gap-3">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Review Frequency</p>
-                  <p className="text-sm font-medium">
-                    {document.reviewFrequency.replace(/_/g, " ")}
-                  </p>
-                </div>
-              </div>
-              {document.effectiveDate && (
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Effective Date</p>
-                    <p className="text-sm font-medium">
-                      {new Date(document.effectiveDate).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              )}
-              {document.nextReviewDate && (
-                <div className="flex items-center gap-3">
-                  <Clock
-                    className={cn(
-                      "h-4 w-4",
-                      isOverdue
-                        ? "text-destructive"
-                        : isDueSoon
-                        ? "text-warning"
-                        : "text-muted-foreground"
-                    )}
-                  />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Next Review</p>
-                    <p
-                      className={cn(
-                        "text-sm font-medium",
-                        isOverdue && "text-destructive",
-                        isDueSoon && !isOverdue && "text-warning"
-                      )}
-                    >
-                      {new Date(document.nextReviewDate).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Hierarchy */}
-          {(document.parentDocument || (document.childDocuments && document.childDocuments.length > 0)) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FolderTree className="w-4 h-4" />
-                  Document Hierarchy
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {document.parentDocument && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Parent Document</p>
-                    <Link
-                      to={`/policies/documents/${document.parentDocument.id}`}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-all"
-                    >
-                      <FileText className="h-4 w-4" />
-                      <div>
-                        <p className="font-mono text-xs text-muted-foreground">
-                          {document.parentDocument.documentId}
-                        </p>
-                        <p className="text-sm">{document.parentDocument.title}</p>
-                      </div>
-                    </Link>
-                  </div>
-                )}
-                {document.childDocuments && document.childDocuments.length > 0 && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Child Documents ({document.childDocuments.length})
-                    </p>
-                    <div className="space-y-2">
-                      {document.childDocuments.map((child) => (
-                        <Link
-                          key={child.id}
-                          to={`/policies/documents/${child.id}`}
-                          className="flex items-center gap-2 p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-all"
-                        >
-                          <FileText className="h-4 w-4" />
-                          <div>
-                            <p className="font-mono text-xs text-muted-foreground">
-                              {child.documentId}
-                            </p>
-                            <p className="text-sm truncate">{child.title}</p>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Tags */}
-          {document.tags && document.tags.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Tags</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {document.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        <PolicyWorkflowSidebar
+          document={document}
+          isOverdue={!!isOverdue}
+          isDueSoon={!!isDueSoon}
+        />
       </div>
 
       {/* Review Dialog */}

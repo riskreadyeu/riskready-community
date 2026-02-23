@@ -1,47 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-
-async function getDefaultOrganisationId(): Promise<string> {
-  const org = await prisma.organisationProfile.findFirst({ select: { id: true } });
-  if (!org) throw new Error('No organisation found in the database. Please create one first.');
-  return org.id;
-}
-
-async function createPendingAction(params: {
-  actionType: string;
-  summary: string;
-  reason?: string;
-  payload: unknown;
-  mcpSessionId?: string;
-  mcpToolName: string;
-  organisationId?: string;
-}) {
-  const orgId = params.organisationId || await getDefaultOrganisationId();
-  const action = await prisma.mcpPendingAction.create({
-    data: {
-      actionType: params.actionType as never,
-      summary: params.summary,
-      reason: params.reason,
-      payload: params.payload as never,
-      mcpSessionId: params.mcpSessionId,
-      mcpToolName: params.mcpToolName,
-      organisationId: orgId,
-    },
-  });
-  return {
-    content: [{
-      type: 'text' as const,
-      text: JSON.stringify({
-        message: `Action proposed successfully. Awaiting human approval.`,
-        actionId: action.id,
-        actionType: action.actionType,
-        status: action.status,
-        summary: action.summary,
-      }, null, 2),
-    }],
-  };
-}
+import { createPendingAction, withErrorHandling } from '#mcp-shared';
 
 function registerNonconformityMutations(server: McpServer) {
   server.tool(
@@ -59,12 +19,12 @@ function registerNonconformityMutations(server: McpServer) {
       findings: z.string().optional().describe('Detailed audit findings'),
       rootCause: z.string().optional().describe('Root cause analysis'),
       impact: z.string().optional().describe('Business/security impact'),
-      targetClosureDate: z.string().optional().describe('Target closure date (ISO 8601)'),
+      targetClosureDate: z.string().datetime().optional().describe('Target closure date (ISO 8601)'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
       organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_nc', async (params) => {
       // Check for duplicate ncId
       const existing = await prisma.nonconformity.findUnique({
         where: { ncId: params.ncId },
@@ -100,11 +60,11 @@ function registerNonconformityMutations(server: McpServer) {
       rootCause: z.string().optional().describe('Root cause analysis'),
       impact: z.string().optional().describe('Business/security impact'),
       correctiveAction: z.string().optional().describe('Corrective action plan text'),
-      targetClosureDate: z.string().optional().describe('Target closure date (ISO 8601)'),
+      targetClosureDate: z.string().datetime().optional().describe('Target closure date (ISO 8601)'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_nc', async (params) => {
       const nc = await prisma.nonconformity.findUnique({
         where: { id: params.ncId },
         select: { id: true, ncId: true, title: true, controlId: true, control: { select: { organisationId: true } } },
@@ -122,7 +82,7 @@ function registerNonconformityMutations(server: McpServer) {
         mcpToolName: 'propose_update_nc',
         organisationId: nc.control?.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -135,7 +95,7 @@ function registerNonconformityMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_transition_nc', async (params) => {
       const nc = await prisma.nonconformity.findUnique({
         where: { id: params.ncId },
         select: { id: true, ncId: true, title: true, status: true, controlId: true, control: { select: { organisationId: true } } },
@@ -153,7 +113,7 @@ function registerNonconformityMutations(server: McpServer) {
         mcpToolName: 'propose_transition_nc',
         organisationId: nc.control?.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -164,11 +124,11 @@ function registerNonconformityMutations(server: McpServer) {
       verificationMethod: z.string().optional().describe('Verification method (e.g. "RE_TEST", "RE_AUDIT", "DOCUMENT_REVIEW", "WALKTHROUGH")'),
       verificationResult: z.string().optional().describe('Verification result (e.g. "EFFECTIVE", "INEFFECTIVE")'),
       verificationNotes: z.string().optional().describe('Verification notes'),
-      verificationDate: z.string().optional().describe('Verification date (ISO 8601)'),
+      verificationDate: z.string().datetime().optional().describe('Verification date (ISO 8601)'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_close_nc', async (params) => {
       const nc = await prisma.nonconformity.findUnique({
         where: { id: params.ncId },
         select: { id: true, ncId: true, title: true, status: true, controlId: true, control: { select: { organisationId: true } } },
@@ -186,7 +146,7 @@ function registerNonconformityMutations(server: McpServer) {
         mcpToolName: 'propose_close_nc',
         organisationId: nc.control?.organisationId,
       });
-    },
+    }),
   );
 }
 
@@ -197,12 +157,12 @@ function registerCapMutations(server: McpServer) {
     {
       ncId: z.string().describe('Nonconformity UUID'),
       correctiveAction: z.string().describe('Corrective action plan text'),
-      targetClosureDate: z.string().optional().describe('Target closure date (ISO 8601)'),
+      targetClosureDate: z.string().datetime().optional().describe('Target closure date (ISO 8601)'),
       responsibleUserId: z.string().optional().describe('Responsible user UUID'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_submit_cap', async (params) => {
       const nc = await prisma.nonconformity.findUnique({
         where: { id: params.ncId },
         select: { id: true, ncId: true, title: true, capStatus: true, controlId: true, control: { select: { organisationId: true } } },
@@ -220,7 +180,7 @@ function registerCapMutations(server: McpServer) {
         mcpToolName: 'propose_submit_cap',
         organisationId: nc.control?.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -232,7 +192,7 @@ function registerCapMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_approve_cap', async (params) => {
       const nc = await prisma.nonconformity.findUnique({
         where: { id: params.ncId },
         select: { id: true, ncId: true, title: true, capStatus: true, controlId: true, control: { select: { organisationId: true } } },
@@ -250,7 +210,7 @@ function registerCapMutations(server: McpServer) {
         mcpToolName: 'propose_approve_cap',
         organisationId: nc.control?.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -262,7 +222,7 @@ function registerCapMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_reject_cap', async (params) => {
       const nc = await prisma.nonconformity.findUnique({
         where: { id: params.ncId },
         select: { id: true, ncId: true, title: true, capStatus: true, controlId: true, control: { select: { organisationId: true } } },
@@ -280,7 +240,7 @@ function registerCapMutations(server: McpServer) {
         mcpToolName: 'propose_reject_cap',
         organisationId: nc.control?.organisationId,
       });
-    },
+    }),
   );
 }
 

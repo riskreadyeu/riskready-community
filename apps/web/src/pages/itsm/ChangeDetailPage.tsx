@@ -17,6 +17,8 @@ import {
   submitChange,
   type Change,
   type ChangeApproval,
+  type ChangePriority,
+  type ITSMChangeType,
 } from '@/lib/itsm-api';
 
 import { ChangeOverviewTab } from '@/components/itsm/tabs/change/change-overview-tab';
@@ -82,14 +84,14 @@ export default function ChangeDetailPage() {
     return <div className="p-6">Change not found</div>;
   }
 
-  const priorityColors = {
+  const priorityColors: Record<ChangePriority, "default" | "secondary" | "destructive" | "outline"> = {
     CRITICAL: 'destructive',
     HIGH: 'default',
     MEDIUM: 'secondary',
     LOW: 'outline',
   };
 
-  const typeColors = {
+  const typeColors: Record<ITSMChangeType, "default" | "secondary" | "destructive"> = {
     EMERGENCY: 'destructive',
     NORMAL: 'default',
     STANDARD: 'secondary',
@@ -111,8 +113,8 @@ export default function ChangeDetailPage() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold tracking-tight">{change.title}</h1>
-              <Badge variant={typeColors[change.changeType] as any}>{change.changeType}</Badge>
-              <Badge variant={priorityColors[change.priority] as any}>{change.priority}</Badge>
+              <Badge variant={typeColors[change.changeType]}>{change.changeType}</Badge>
+              <Badge variant={priorityColors[change.priority]}>{change.priority}</Badge>
             </div>
             <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
               <span>{change.changeRef}</span>

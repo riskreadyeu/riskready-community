@@ -138,8 +138,7 @@ export default function OrganisationProfileDetailPage() {
     try {
       // TODO: Implement delete API call when available
       // await deleteOrganisationProfile(id);
-      toast.success("Organisation profile deleted");
-      navigate("/organisation/profiles");
+      toast.info("Delete functionality not yet available");
     } catch (err) {
       toast.error("Failed to delete profile");
       console.error(err);

@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { MeetingDecisionService } from '../services/meeting-decision.service';
 
 @Controller('organisation/meeting-decisions')
@@ -13,7 +14,7 @@ export class MeetingDecisionController {
     @Query('decisionType') decisionType?: string,
     @Query('implemented') implemented?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.MeetingDecisionWhereInput = {};
     if (meetingId) where.meetingId = meetingId;
     if (decisionType) where.decisionType = decisionType;
     if (implemented !== undefined) where.implemented = implemented === 'true';
@@ -36,12 +37,12 @@ export class MeetingDecisionController {
   }
 
   @Post()
-  async create(@Body() data: any) {
+  async create(@Body() data: Prisma.MeetingDecisionCreateInput) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Prisma.MeetingDecisionUpdateInput) {
     return this.service.update(id, data);
   }
 

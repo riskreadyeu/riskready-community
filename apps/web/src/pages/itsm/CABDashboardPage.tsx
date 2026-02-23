@@ -72,7 +72,7 @@ export default function CABDashboardPage() {
     return <div className="p-6">Failed to load data</div>;
   }
 
-  const priorityColors: Record<string, string> = {
+  const priorityColors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
     CRITICAL: 'destructive',
     HIGH: 'default',
     MEDIUM: 'secondary',
@@ -165,7 +165,7 @@ export default function CABDashboardPage() {
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{change.changeRef}</span>
-                            <Badge variant={priorityColors[change.priority] as any}>
+                            <Badge variant={priorityColors[change.priority]}>
                               {change.priority}
                             </Badge>
                             {hasCriticalAsset && (
@@ -229,7 +229,7 @@ export default function CABDashboardPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{change.changeRef}</span>
-                          <Badge variant={priorityColors[change.priority] as any}>
+                          <Badge variant={priorityColors[change.priority]}>
                             {change.priority}
                           </Badge>
                         </div>

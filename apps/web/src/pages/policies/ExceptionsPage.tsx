@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import {
   AlertTriangle,
   Plus,
@@ -193,9 +194,8 @@ export default function ExceptionsPage() {
     {
       label: "View Details",
       icon: <Eye className="w-4 h-4" />,
-      onClick: (exc) => {
-        // TODO: Navigate to detail page or open dialog
-        console.log("View:", exc.id);
+      onClick: () => {
+        toast.info("This feature is not yet available");
       },
     },
     {
@@ -208,9 +208,8 @@ export default function ExceptionsPage() {
       label: "Revoke",
       icon: <XCircle className="w-4 h-4" />,
       variant: "destructive",
-      onClick: (exc) => {
-        // TODO: Implement revoke
-        console.log("Revoke:", exc.id);
+      onClick: () => {
+        toast.info("This feature is not yet available");
       },
       hidden: (exc) => exc.status !== "ACTIVE" && exc.status !== "APPROVED",
     },

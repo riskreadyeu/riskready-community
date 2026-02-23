@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { InterestedPartyService } from '../services/interested-party.service';
 
 @Controller('organisation/interested-parties')
@@ -13,7 +14,7 @@ export class InterestedPartyController {
     @Query('partyType') partyType?: string,
     @Query('powerLevel') powerLevel?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.InterestedPartyWhereInput = {};
     if (isActive !== undefined) where.isActive = isActive === 'true';
     if (partyType) where.partyType = partyType;
     if (powerLevel) where.powerLevel = powerLevel;
@@ -36,12 +37,12 @@ export class InterestedPartyController {
   }
 
   @Post()
-  async create(@Body() data: any) {
+  async create(@Body() data: Prisma.InterestedPartyCreateInput) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Prisma.InterestedPartyUpdateInput) {
     return this.service.update(id, data);
   }
 

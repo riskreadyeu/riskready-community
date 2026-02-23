@@ -4,7 +4,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { Prisma, IncidentStatus, IncidentSeverity, IncidentCategory, IncidentSource, IncidentResolutionType } from '@prisma/client';
+import { Prisma, IncidentStatus, IncidentSeverity, IncidentCategory, IncidentSource, IncidentResolutionType, IncidentImpactType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 // ============================================
@@ -343,8 +343,14 @@ export class IncidentService {
     const statusChanged = data.status && data.status !== existing.status;
     const previousStatus = existing.status;
 
-    const updateData: any = {
-      ...data,
+    const updateData: Prisma.IncidentUncheckedUpdateInput = {
+      title: data.title,
+      description: data.description,
+      severity: data.severity,
+      category: data.category,
+      status: data.status,
+      source: data.source,
+      sourceRef: data.sourceRef,
       detectedAt: data.detectedAt ? new Date(data.detectedAt) : undefined,
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
       reportedAt: data.reportedAt ? new Date(data.reportedAt) : undefined,
@@ -353,9 +359,23 @@ export class IncidentService {
       eradicatedAt: data.eradicatedAt ? new Date(data.eradicatedAt) : undefined,
       recoveredAt: data.recoveredAt ? new Date(data.recoveredAt) : undefined,
       closedAt: data.closedAt ? new Date(data.closedAt) : undefined,
+      reporterId: data.reporterId,
+      handlerId: data.handlerId,
+      incidentManagerId: data.incidentManagerId,
+      incidentTypeId: data.incidentTypeId,
+      attackVectorId: data.attackVectorId,
+      isConfirmed: data.isConfirmed,
+      confidentialityBreach: data.confidentialityBreach,
+      integrityBreach: data.integrityBreach,
+      availabilityBreach: data.availabilityBreach,
+      evidencePreserved: data.evidencePreserved,
+      chainOfCustodyMaintained: data.chainOfCustodyMaintained,
+      rootCauseIdentified: data.rootCauseIdentified,
+      lessonsLearnedCompleted: data.lessonsLearnedCompleted,
+      correctiveActionsIdentified: data.correctiveActionsIdentified,
       updatedById: userId,
     };
-    
+
     // Cast resolutionType to enum if provided
     if (data.resolutionType) {
       updateData.resolutionType = data.resolutionType as IncidentResolutionType;
@@ -681,9 +701,9 @@ export class IncidentService {
 
     // NIS2/DORA/Notification models not available in Community Edition
     return {
-      nis2: [] as any[],
-      dora: [] as any[],
-      notifications: [] as any[],
+      nis2: [] as unknown[],
+      dora: [] as unknown[],
+      notifications: [] as unknown[],
     };
   }
 
@@ -752,7 +772,7 @@ export class IncidentService {
       data: {
         incidentId,
         assetId,
-        impactType: impactType as any,
+        impactType: impactType as IncidentImpactType,
         notes,
       },
       include: {

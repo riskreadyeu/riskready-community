@@ -82,6 +82,7 @@ export class OrganisationProfileService {
    */
   async updateWithAppetite(
     id: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: Record<string, any>,
     userId?: string
   ) {
@@ -90,7 +91,7 @@ export class OrganisationProfileService {
 
     this.logger.log(`updateWithAppetite called. appetiteLevel=${appetiteLevel}, keys=${Object.keys(profileData).join(',')}`);
 
-    if (appetiteLevel) {
+    if (appetiteLevel && typeof appetiteLevel === 'string') {
       profileData['riskAppetite'] = mapAppetiteLevel(appetiteLevel);
     }
 

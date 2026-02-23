@@ -9,7 +9,7 @@ import { RequestContextData } from '../context/request-context';
 
 @Injectable()
 export class EnrichContextInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const req = context.switchToHttp().getRequest();
     const ctx: RequestContextData | undefined = req._requestContext;
 

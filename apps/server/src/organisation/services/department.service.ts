@@ -107,7 +107,8 @@ export class DepartmentService {
     });
 
     // Build tree structure
-    const buildTree = (parentId: string | null): any[] => {
+    interface DepartmentTreeNode extends Record<string, unknown> { children: DepartmentTreeNode[] }
+    const buildTree = (parentId: string | null): DepartmentTreeNode[] => {
       return departments
         .filter(d => d.parentId === parentId)
         .map(d => ({

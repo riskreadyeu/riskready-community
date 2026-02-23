@@ -1,7 +1,7 @@
-import { Injectable, BadRequestException, ForbiddenException, OnModuleInit, Optional, Inject } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, Logger, OnModuleInit, Optional, Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NonconformitySource, NCSeverity, NCCategory, NCStatus, CAPStatus } from '@prisma/client';
+import { NonconformitySource, NCSeverity, NCCategory, NCStatus, CAPStatus, Prisma } from '@prisma/client';
 
 // LayerType is defined in schema but not attached to a model, so Prisma doesn't export it
 const LayerType = { GOVERNANCE: 'GOVERNANCE', PLATFORM: 'PLATFORM', CONSUMPTION: 'CONSUMPTION', OVERSIGHT: 'OVERSIGHT' } as const;
@@ -9,6 +9,8 @@ import { TestFailedEvent } from '../../shared/events/control-events';
 
 @Injectable()
 export class NonconformityService implements OnModuleInit {
+  private readonly logger = new Logger(NonconformityService.name);
+
   constructor(
     private prisma: PrismaService,
     @Optional() private eventEmitter: EventEmitter2,
@@ -16,7 +18,7 @@ export class NonconformityService implements OnModuleInit {
 
   onModuleInit() {
     if (!this.eventEmitter) {
-      console.warn('WARNING: EventEmitter is not available in NonconformityService - event listening disabled');
+      this.logger.warn('EventEmitter is not available - event listening disabled');
       return;
     }
 
@@ -44,7 +46,7 @@ export class NonconformityService implements OnModuleInit {
           raisedById: event.updatedById,
         });
       } catch (err) {
-        console.error('Failed to auto-create nonconformity from test.failed event:', err);
+        this.logger.error('Failed to auto-create nonconformity from test.failed event', err instanceof Error ? err.stack : String(err));
         // Don't throw - event listeners should not break the system
       }
     });
@@ -59,7 +61,7 @@ export class NonconformityService implements OnModuleInit {
     responsibleUserId?: string;
     controlId?: string;
   }) {
-    const where: any = {};
+    const where: Prisma.NonconformityWhereInput = {};
     if (params?.source) where.source = params.source;
     if (params?.severity) where.severity = params.severity;
     if (params?.status) where.status = params.status;

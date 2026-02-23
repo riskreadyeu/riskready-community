@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Shield, CheckCircle2, AlertTriangle, Clock, Eye, Edit3, LayoutDashboard, Power, PowerOff, Download, ClipboardList, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,7 +23,7 @@ import {
   type RowAction,
 } from "@/components/common";
 import { ActiveStatusBadge } from "@/components/shared/ActiveStatusBadge";
-import { getControls, getControlStats, type Control, type ControlStats } from "@/lib/controls-api";
+import { getControls, getControlStats, type Control, type ControlStats, type ControlTheme, type ImplementationStatus, type ControlFramework } from "@/lib/controls-api";
 import { useBulkSelection } from "@/components/archer/hooks/use-bulk-selection";
 import { BulkActionBar } from "@/components/archer/bulk-action-bar";
 import { ExportDropdown } from "@/components/common/export-dropdown";
@@ -79,9 +80,9 @@ export default function ControlsLibraryPage() {
         getControls({
           skip: (currentPage - 1) * pageSize,
           take: pageSize,
-          ...(themeFilter !== "all" && { theme: themeFilter as any }),
-          ...(statusFilter !== "all" && { implementationStatus: statusFilter as any }),
-          ...(frameworkFilter !== "all" && { framework: frameworkFilter as any }),
+          ...(themeFilter !== "all" && { theme: themeFilter as ControlTheme }),
+          ...(statusFilter !== "all" && { implementationStatus: statusFilter as ImplementationStatus }),
+          ...(frameworkFilter !== "all" && { framework: frameworkFilter as ControlFramework }),
           ...(activeOnly && { activeOnly: true }),
         }),
         getControlStats(),
@@ -188,17 +189,17 @@ export default function ControlsLibraryPage() {
   ] : [];
 
   const handleExport = (format: "excel" | "csv" | "pdf") => {
-    console.log(`Exporting ${controls.length} controls to ${format}`);
+    toast.info("Export is not yet available");
   };
 
   const handleBulkEnable = () => {
-    console.log(`Enabling controls:`, bulkSelection.selectedIds);
+    toast.info("Bulk enable is not yet available");
     // TODO: Call API to bulk enable
     bulkSelection.clearSelection();
   };
 
   const handleBulkDisable = () => {
-    console.log(`Disabling controls:`, bulkSelection.selectedIds);
+    toast.info("Bulk disable is not yet available");
     // TODO: Call API to bulk disable
     bulkSelection.clearSelection();
   };

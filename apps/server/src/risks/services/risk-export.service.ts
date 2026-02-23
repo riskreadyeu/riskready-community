@@ -177,7 +177,7 @@ export class RiskExportService {
    * Export treatment plan summary
    */
   async exportTreatmentSummary(organisationId?: string): Promise<{
-    data: any[];
+    data: Record<string, unknown>[];
     summary: {
       total: number;
       byStatus: Record<string, number>;
@@ -253,7 +253,7 @@ export class RiskExportService {
    * Export KRI dashboard data
    */
   async exportKRIDashboard(organisationId?: string): Promise<{
-    kris: any[];
+    kris: Record<string, unknown>[];
     summary: {
       total: number;
       byStatus: Record<string, number>;

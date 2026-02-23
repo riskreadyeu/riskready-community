@@ -1,18 +1,20 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
     'get_nc_aging_report',
     'Get an aging report for open nonconformities. Calculates days open from dateRaised and groups by severity into aging buckets (0-30, 31-60, 61-90, 90+ days).',
     {},
-    async () => {
+    withErrorHandling('get_nc_aging_report', async () => {
       const now = new Date();
 
       const openNCs = await prisma.nonconformity.findMany({
         where: {
           status: { in: ['DRAFT', 'OPEN', 'IN_PROGRESS', 'AWAITING_VERIFICATION'] },
         },
+        take: 1000,
         select: {
           id: true,
           ncId: true,
@@ -85,18 +87,19 @@ export function registerAnalysisTools(server: McpServer) {
           text: JSON.stringify(response, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_cap_status_report',
     'Get a CAP pipeline breakdown for nonconformities that require corrective action. Shows counts by CAP status: NOT_DEFINED, DRAFT, PENDING_APPROVAL, APPROVED, REJECTED.',
     {},
-    async () => {
+    withErrorHandling('get_cap_status_report', async () => {
       const ncs = await prisma.nonconformity.findMany({
         where: {
           capStatus: { not: 'NOT_REQUIRED' },
         },
+        take: 1000,
         select: {
           id: true,
           ncId: true,
@@ -151,18 +154,19 @@ export function registerAnalysisTools(server: McpServer) {
           text: JSON.stringify(response, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_nc_by_control',
     'Group nonconformities by control, showing count per control. Includes control name and ID.',
     {},
-    async () => {
+    withErrorHandling('get_nc_by_control', async () => {
       const ncs = await prisma.nonconformity.findMany({
         where: {
           controlId: { not: null },
         },
+        take: 1000,
         select: {
           id: true,
           ncId: true,
@@ -220,6 +224,6 @@ export function registerAnalysisTools(server: McpServer) {
           text: JSON.stringify(response, null, 2),
         }],
       };
-    },
+    }),
   );
 }

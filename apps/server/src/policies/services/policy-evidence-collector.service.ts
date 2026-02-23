@@ -24,7 +24,7 @@ interface CollectedEvidence {
   sourceId: string;
   layerId: string;
   policyId?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 @Injectable()
@@ -119,7 +119,7 @@ export class PolicyEvidenceCollectorService {
   /**
    * Map layers to their functional purpose
    */
-  private mapLayers(layers: any[]): Record<string, string> {
+  private mapLayers(layers: { layer: string; id: string }[]): Record<string, string> {
     const map: Record<string, string> = {};
 
     for (const layer of layers) {

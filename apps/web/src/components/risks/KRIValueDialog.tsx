@@ -50,9 +50,9 @@ export function KRIValueDialog({
       onOpenChange(false);
       setValue("");
       setNotes("");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error recording value:", err);
-      setError(err.message || "Failed to record value");
+      setError(err instanceof Error ? err.message : "Failed to record value");
     } finally {
       setSaving(false);
     }

@@ -1,12 +1,13 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
     'get_review_calendar',
     'Get upcoming policy review calendar — documents due for review in the next 90 days plus overdue reviews.',
     {},
-    async () => {
+    withErrorHandling('get_review_calendar', async () => {
       const now = new Date();
       const ninetyDaysFromNow = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
@@ -16,6 +17,7 @@ export function registerAnalysisTools(server: McpServer) {
             nextReviewDate: { lt: now },
             status: { in: ['APPROVED', 'PUBLISHED'] },
           },
+          take: 1000,
           select: {
             id: true,
             documentId: true,
@@ -33,6 +35,7 @@ export function registerAnalysisTools(server: McpServer) {
             nextReviewDate: { gte: now, lte: ninetyDaysFromNow },
             status: { in: ['APPROVED', 'PUBLISHED'] },
           },
+          take: 1000,
           select: {
             id: true,
             documentId: true,
@@ -58,16 +61,17 @@ export function registerAnalysisTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_policy_compliance_matrix',
     'Get a compliance matrix showing policy coverage across controls — identifies gaps where controls lack policy coverage.',
     {},
-    async () => {
+    withErrorHandling('get_policy_compliance_matrix', async () => {
       const controls = await prisma.control.findMany({
         where: { applicable: true },
+        take: 1000,
         select: {
           id: true,
           controlId: true,
@@ -129,14 +133,14 @@ export function registerAnalysisTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_exception_report',
     'Get a report on policy exceptions — active, expiring soon, and overdue for review.',
     {},
-    async () => {
+    withErrorHandling('get_exception_report', async () => {
       const now = new Date();
       const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
@@ -149,6 +153,7 @@ export function registerAnalysisTools(server: McpServer) {
             status: { in: ['APPROVED', 'ACTIVE'] },
             expiryDate: { gte: now, lte: thirtyDaysFromNow },
           },
+          take: 1000,
           select: {
             id: true,
             exceptionId: true,
@@ -165,6 +170,7 @@ export function registerAnalysisTools(server: McpServer) {
             status: { in: ['APPROVED', 'ACTIVE'] },
             expiryDate: { lt: now },
           },
+          take: 1000,
           select: {
             id: true,
             exceptionId: true,
@@ -196,6 +202,6 @@ export function registerAnalysisTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

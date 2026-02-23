@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
@@ -18,6 +18,7 @@ type AuthResult = {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -25,16 +26,33 @@ export class AuthService {
 
   async login(email: string, password: string, ctx: LoginContext): Promise<AuthResult> {
     try {
-      // Ensure bootstrap admin exists (completely non-blocking - run in background)
-      this.ensureBootstrapAdmin().catch((error) => {
-        console.error('Error ensuring bootstrap admin (non-blocking):', error);
-      });
-
       const user = await this.prisma.user.findUnique({ where: { email } });
       if (!user || !user.isActive) throw new UnauthorizedException('Invalid credentials');
 
+      // Check account lockout
+      if (user.lockedUntil && user.lockedUntil > new Date()) {
+        throw new UnauthorizedException('Account temporarily locked. Try again later.');
+      }
+
       const ok = await bcrypt.compare(password, user.passwordHash);
-      if (!ok) throw new UnauthorizedException('Invalid credentials');
+      if (!ok) {
+        // Increment failed login attempts and lock account if threshold reached
+        const attempts = user.failedLoginAttempts + 1;
+        const updateData: { failedLoginAttempts: number; lockedUntil?: Date } = { failedLoginAttempts: attempts };
+        if (attempts >= 5) {
+          updateData.lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+        }
+        await this.prisma.user.update({ where: { id: user.id }, data: updateData });
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      // Reset failed login attempts on successful login
+      if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { failedLoginAttempts: 0, lockedUntil: null },
+        });
+      }
 
       const refreshSessionId = randomUUID();
       const ttlDays = Number(process.env['REFRESH_SESSION_TTL_DAYS'] ?? 14);
@@ -64,7 +82,7 @@ export class AuthService {
           },
         });
       } catch (auditError) {
-        console.error('Error creating login audit event:', auditError);
+        this.logger.error('Error creating login audit event', auditError instanceof Error ? auditError.stack : String(auditError));
         // Continue even if audit event creation fails
       }
 
@@ -74,11 +92,7 @@ export class AuthService {
         refreshSessionId,
       };
     } catch (error) {
-      console.error('Login error details:', {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        email,
-      });
+      this.logger.error('Login error', error instanceof Error ? error.stack : String(error));
       throw error;
     }
   }
@@ -93,12 +107,33 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { id: session.userId } });
     if (!user || !user.isActive) throw new UnauthorizedException('Invalid user');
 
+    // Revoke the old session to prevent refresh-token reuse attacks
+    await this.prisma.refreshSession.update({
+      where: { id: session.id },
+      data: { revokedAt: new Date() },
+    });
+
+    // Create a new session with a fresh refresh token
+    const newRefreshSessionId = randomUUID();
+    const ttlDays = Number(process.env['REFRESH_SESSION_TTL_DAYS'] ?? 14);
+    const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
+
+    await this.prisma.refreshSession.create({
+      data: {
+        id: newRefreshSessionId,
+        userId: user.id,
+        expiresAt,
+        ip: session.ip,
+        userAgent: session.userAgent,
+      },
+    });
+
     const accessToken = await this.jwtService.signAsync({ sub: user.id, email: user.email });
 
     return {
       user: { id: user.id, email: user.email },
       accessToken,
-      refreshSessionId: session.id,
+      refreshSessionId: newRefreshSessionId,
     };
   }
 
@@ -112,7 +147,7 @@ export class AuthService {
   }
 
   getRefreshSessionIdFromRequest(req: Request): string | undefined {
-    const cookies = (req as any).cookies as Record<string, string> | undefined;
+    const cookies = (req as Request & { cookies?: Record<string, string> }).cookies;
     return cookies?.['refresh_session'];
   }
 
@@ -121,10 +156,10 @@ export class AuthService {
       const cookieDomain = process.env['COOKIE_DOMAIN'];
       const isProduction = process.env['NODE_ENV'] === 'production';
 
-      const cookieOptions: any = {
+      const cookieOptions: { httpOnly: boolean; secure: boolean; sameSite: 'lax'; path: string; domain?: string } = {
         httpOnly: true,
         secure: process.env['COOKIE_SECURE'] === 'true' || (isProduction && process.env['COOKIE_SECURE'] !== 'false'),
-        sameSite: 'lax' as const,
+        sameSite: 'lax',
         path: '/',
       };
 
@@ -143,7 +178,7 @@ export class AuthService {
         maxAge: Number(process.env['REFRESH_SESSION_TTL_DAYS'] ?? 14) * 24 * 60 * 60 * 1000,
       });
     } catch (error) {
-      console.error('Error setting auth cookies:', error);
+      this.logger.error('Error setting auth cookies', error instanceof Error ? error.stack : String(error));
       // Don't throw - cookies are optional, login should still succeed
     }
   }
@@ -190,11 +225,11 @@ export class AuthService {
           },
         });
       } catch (auditError) {
-        console.error('Error creating bootstrap admin audit event:', auditError);
+        this.logger.error('Error creating bootstrap admin audit event', auditError instanceof Error ? auditError.stack : String(auditError));
         // Continue even if audit event creation fails
       }
     } catch (error) {
-      console.error('Error in ensureBootstrapAdmin:', error);
+      this.logger.error('Error in ensureBootstrapAdmin', error instanceof Error ? error.stack : String(error));
       throw error;
     }
   }

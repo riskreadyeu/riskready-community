@@ -6,11 +6,11 @@ import { format } from "date-fns";
 /**
  * Column mapping interface for exports
  */
-export interface ExportColumn<T = any> {
+export interface ExportColumn<T = object> {
   key: string;
   label?: string;
   header?: string;
-  format?: (value: any, row: T) => string;
+  format?: (value: unknown, row: T) => string | number;
   width?: number;
 }
 
@@ -26,9 +26,9 @@ export interface ExportOptions {
 /**
  * Convert data to CSV format
  */
-export function toCSV<T extends Record<string, any>>(
+export function toCSV<T extends object>(
   data: T[],
-  columns: { key: keyof T | string; header: string; format?: (value: any, row: T) => string }[]
+  columns: { key: keyof T | string; header: string; format?: (value: unknown, row: T) => string | number }[]
 ): string {
   if (data.length === 0) return "";
 
@@ -40,10 +40,10 @@ export function toCSV<T extends Record<string, any>>(
     columns
       .map((col) => {
         const value = typeof col.key === "string" && col.key.includes(".")
-          ? col.key.split(".").reduce((obj, key) => obj?.[key], row as any)
-          : row[col.key as keyof T];
-        
-        const formatted = col.format ? col.format(value, row) : String(value ?? "");
+          ? getNestedValue(row as Record<string, unknown>, col.key)
+          : (row as Record<string, unknown>)[col.key as string];
+
+        const formatted = col.format ? String(col.format(value, row)) : String(value ?? "");
         // Escape quotes and wrap in quotes
         return `"${formatted.replace(/"/g, '""')}"`;
       })
@@ -60,11 +60,11 @@ export function downloadCSV(csvContent: string, filename: string): void {
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
-  
+
   link.setAttribute("href", url);
   link.setAttribute("download", `${filename}_${format(new Date(), "yyyy-MM-dd")}.csv`);
   link.style.visibility = "hidden";
-  
+
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -84,14 +84,14 @@ export function exportRiskRegister(risks: Risk[]): void {
     { key: "framework", header: "Framework" },
     { key: "likelihood", header: "Likelihood" },
     { key: "impact", header: "Impact" },
-    { key: "inherentScore", header: "Inherent Score", format: (v: number) => v?.toString() || "" },
-    { key: "residualScore", header: "Residual Score", format: (v: number) => v?.toString() || "" },
+    { key: "inherentScore", header: "Inherent Score", format: (v: unknown) => (v as number)?.toString() || "" },
+    { key: "residualScore", header: "Residual Score", format: (v: unknown) => (v as number)?.toString() || "" },
     { key: "riskOwner", header: "Risk Owner" },
     { key: "treatmentPlan", header: "Treatment Plan" },
-    { key: "_count.scenarios", header: "Scenarios", format: (_: any, row: Risk) => row._count?.scenarios?.toString() || "0" },
-    { key: "_count.kris", header: "KRIs", format: (_: any, row: Risk) => row._count?.kris?.toString() || "0" },
-    { key: "createdAt", header: "Created Date", format: (v: string) => v ? format(new Date(v), "yyyy-MM-dd") : "" },
-    { key: "updatedAt", header: "Last Updated", format: (v: string) => v ? format(new Date(v), "yyyy-MM-dd") : "" },
+    { key: "_count.scenarios", header: "Scenarios", format: (_: unknown, row: Risk) => row._count?.scenarios?.toString() || "0" },
+    { key: "_count.kris", header: "KRIs", format: (_: unknown, row: Risk) => row._count?.kris?.toString() || "0" },
+    { key: "createdAt", header: "Created Date", format: (v: unknown) => (v as string) ? format(new Date(v as string), "yyyy-MM-dd") : "" },
+    { key: "updatedAt", header: "Last Updated", format: (v: unknown) => (v as string) ? format(new Date(v as string), "yyyy-MM-dd") : "" },
   ];
 
   const csv = toCSV(risks, columns);
@@ -118,11 +118,11 @@ export function exportKRIReport(kris: KeyRiskIndicator[]): void {
     { key: "thresholdRed", header: "Red Threshold" },
     { key: "formula", header: "Formula" },
     { key: "dataSource", header: "Data Source" },
-    { key: "automated", header: "Automated", format: (v: boolean) => v ? "Yes" : "No" },
-    { key: "risk.riskId", header: "Parent Risk ID", format: (_: any, row: KeyRiskIndicator) => row.risk?.riskId || "" },
-    { key: "risk.title", header: "Parent Risk Title", format: (_: any, row: KeyRiskIndicator) => row.risk?.title || "" },
-    { key: "lastMeasured", header: "Last Measured", format: (v: string) => v ? format(new Date(v), "yyyy-MM-dd HH:mm") : "" },
-    { key: "createdAt", header: "Created Date", format: (v: string) => v ? format(new Date(v), "yyyy-MM-dd") : "" },
+    { key: "automated", header: "Automated", format: (v: unknown) => (v as boolean) ? "Yes" : "No" },
+    { key: "risk.riskId", header: "Parent Risk ID", format: (_: unknown, row: KeyRiskIndicator) => row.risk?.riskId || "" },
+    { key: "risk.title", header: "Parent Risk Title", format: (_: unknown, row: KeyRiskIndicator) => row.risk?.title || "" },
+    { key: "lastMeasured", header: "Last Measured", format: (v: unknown) => (v as string) ? format(new Date(v as string), "yyyy-MM-dd HH:mm") : "" },
+    { key: "createdAt", header: "Created Date", format: (v: unknown) => (v as string) ? format(new Date(v as string), "yyyy-MM-dd") : "" },
   ];
 
   const csv = toCSV(kris, columns);
@@ -142,17 +142,17 @@ export function exportRiskScenarios(scenarios: RiskScenario[]): void {
     { key: "framework", header: "Framework" },
     { key: "likelihood", header: "Likelihood" },
     { key: "impact", header: "Impact" },
-    { key: "inherentScore", header: "Inherent Score", format: (v: number) => v?.toString() || "" },
-    { key: "residualScore", header: "Residual Score", format: (v: number) => v?.toString() || "" },
-    { key: "sleLow", header: "SLE (Low)", format: (v: number) => v?.toString() || "" },
-    { key: "sleLikely", header: "SLE (Likely)", format: (v: number) => v?.toString() || "" },
-    { key: "sleHigh", header: "SLE (High)", format: (v: number) => v?.toString() || "" },
-    { key: "aro", header: "ARO", format: (v: number) => v?.toString() || "" },
-    { key: "ale", header: "ALE", format: (v: number) => v?.toString() || "" },
+    { key: "inherentScore", header: "Inherent Score", format: (v: unknown) => (v as number)?.toString() || "" },
+    { key: "residualScore", header: "Residual Score", format: (v: unknown) => (v as number)?.toString() || "" },
+    { key: "sleLow", header: "SLE (Low)", format: (v: unknown) => (v as number)?.toString() || "" },
+    { key: "sleLikely", header: "SLE (Likely)", format: (v: unknown) => (v as number)?.toString() || "" },
+    { key: "sleHigh", header: "SLE (High)", format: (v: unknown) => (v as number)?.toString() || "" },
+    { key: "aro", header: "ARO", format: (v: unknown) => (v as number)?.toString() || "" },
+    { key: "ale", header: "ALE", format: (v: unknown) => (v as number)?.toString() || "" },
     { key: "controlIds", header: "Control IDs" },
-    { key: "risk.riskId", header: "Parent Risk ID", format: (_: any, row: RiskScenario) => row.risk?.riskId || "" },
-    { key: "risk.title", header: "Parent Risk Title", format: (_: any, row: RiskScenario) => row.risk?.title || "" },
-    { key: "createdAt", header: "Created Date", format: (v: string) => v ? format(new Date(v), "yyyy-MM-dd") : "" },
+    { key: "risk.riskId", header: "Parent Risk ID", format: (_: unknown, row: RiskScenario) => row.risk?.riskId || "" },
+    { key: "risk.title", header: "Parent Risk Title", format: (_: unknown, row: RiskScenario) => row.risk?.title || "" },
+    { key: "createdAt", header: "Created Date", format: (v: unknown) => (v as string) ? format(new Date(v as string), "yyyy-MM-dd") : "" },
   ];
 
   const csv = toCSV(scenarios, columns);
@@ -175,7 +175,7 @@ export function exportRiskAssessmentSummary(risks: Risk[]): void {
   const columns = [
     { key: "level" as const, header: "Risk Level" },
     { key: "range" as const, header: "Score Range" },
-    { key: "count" as const, header: "Count", format: (v: number) => v.toString() },
+    { key: "count" as const, header: "Count", format: (v: unknown) => String(v) },
   ];
 
   const csv = toCSV(summary, columns);
@@ -187,7 +187,7 @@ export function exportRiskAssessmentSummary(risks: Risk[]): void {
  * Note: Falls back to CSV since xlsx package is optional.
  * To enable Excel export, install: npm install xlsx
  */
-export function exportToExcel<T extends Record<string, any>>(
+export function exportToExcel<T extends object>(
   data: T[],
   columns: ExportColumn<T>[],
   options: ExportOptions
@@ -203,7 +203,7 @@ export function exportToExcel<T extends Record<string, any>>(
  * Note: Falls back to CSV since jspdf package is optional.
  * To enable PDF export, install: npm install jspdf jspdf-autotable
  */
-export function exportToPDF<T extends Record<string, any>>(
+export function exportToPDF<T extends object>(
   data: T[],
   columns: ExportColumn<T>[],
   options: ExportOptions
@@ -217,7 +217,7 @@ export function exportToPDF<T extends Record<string, any>>(
 /**
  * Generic export to CSV (updated to use new column interface)
  */
-export function exportToCSV<T extends Record<string, any>>(
+export function exportToCSV<T extends object>(
   data: T[],
   columns: ExportColumn<T>[],
   options: ExportOptions
@@ -238,9 +238,14 @@ export function exportToCSV<T extends Record<string, any>>(
 /**
  * Helper function to get nested values from objects
  */
-function getNestedValue(obj: any, path: string): any {
+function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
   if (!path.includes(".")) {
     return obj[path];
   }
-  return path.split(".").reduce((current, key) => current?.[key], obj);
+  return path.split(".").reduce<unknown>((current, key) => {
+    if (current && typeof current === "object" && key in (current as Record<string, unknown>)) {
+      return (current as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }, obj);
 }

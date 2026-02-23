@@ -1,12 +1,13 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
     'get_itsm_stats',
     'Get aggregate ITSM statistics: asset counts by type, status, and criticality; change counts by status and type; capacity plan counts by status.',
     {},
-    async () => {
+    withErrorHandling('get_itsm_stats', async () => {
       const [
         totalAssets,
         byAssetType,
@@ -32,32 +33,32 @@ export function registerAnalysisTools(server: McpServer) {
       const stats = {
         assets: {
           total: totalAssets,
-          byType: Object.fromEntries(byAssetType.map((t: any) => [t.assetType, t._count])),
-          byStatus: Object.fromEntries(byAssetStatus.map((s: any) => [s.status, s._count])),
-          byCriticality: Object.fromEntries(byBusinessCriticality.map((c: any) => [c.businessCriticality, c._count])),
+          byType: Object.fromEntries(byAssetType.map((t: Record<string, unknown>) => [t.assetType, t._count])),
+          byStatus: Object.fromEntries(byAssetStatus.map((s: Record<string, unknown>) => [s.status, s._count])),
+          byCriticality: Object.fromEntries(byBusinessCriticality.map((c: Record<string, unknown>) => [c.businessCriticality, c._count])),
         },
         changes: {
           total: totalChanges,
-          byStatus: Object.fromEntries(byChangeStatus.map((s: any) => [s.status, s._count])),
-          byType: Object.fromEntries(byChangeType.map((t: any) => [t.changeType, t._count])),
+          byStatus: Object.fromEntries(byChangeStatus.map((s: Record<string, unknown>) => [s.status, s._count])),
+          byType: Object.fromEntries(byChangeType.map((t: Record<string, unknown>) => [t.changeType, t._count])),
         },
         capacityPlans: {
           total: totalCapacityPlans,
-          byStatus: Object.fromEntries(byCapacityPlanStatus.map((s: any) => [s.status, s._count])),
+          byStatus: Object.fromEntries(byCapacityPlanStatus.map((s: Record<string, unknown>) => [s.status, s._count])),
         },
       };
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(stats, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_itsm_dashboard',
     'Comprehensive ITSM dashboard: asset counts, change counts, capacity alerts, and security posture summary (avg risk score, assets with critical vulns, encryption rates).',
     {},
-    async () => {
+    withErrorHandling('get_itsm_dashboard', async () => {
       const [
         totalAssets,
         activeAssets,
@@ -109,13 +110,13 @@ export function registerAnalysisTools(server: McpServer) {
         assets: {
           total: totalAssets,
           active: activeAssets,
-          topTypesByCount: byAssetType.map((t: any) => ({ type: t.assetType, count: t._count })),
-          byCriticality: Object.fromEntries(byCriticality.map((c: any) => [c.businessCriticality, c._count])),
+          topTypesByCount: byAssetType.map((t: Record<string, unknown>) => ({ type: t.assetType, count: t._count })),
+          byCriticality: Object.fromEntries(byCriticality.map((c: Record<string, unknown>) => [c.businessCriticality, c._count])),
         },
         changes: {
           total: totalChanges,
           open: openChanges,
-          byStatus: Object.fromEntries(byChangeStatus.map((s: any) => [s.status, s._count])),
+          byStatus: Object.fromEntries(byChangeStatus.map((s: Record<string, unknown>) => [s.status, s._count])),
         },
         capacityAlerts: {
           warning: capacityWarning,
@@ -137,14 +138,14 @@ export function registerAnalysisTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(dashboard, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_asset_risk_summary',
     'For each business criticality level, count assets and calculate average risk score. Useful for risk-based prioritization.',
     {},
-    async () => {
+    withErrorHandling('get_asset_risk_summary', async () => {
       const criticalities = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const;
 
       const summaries = await Promise.all(
@@ -166,7 +167,7 @@ export function registerAnalysisTools(server: McpServer) {
         }),
       );
 
-      const response: any = { summaries };
+      const response: Record<string, unknown> = { summaries };
       const totalActive = summaries.reduce((sum, s) => sum + s.totalActive, 0);
       if (totalActive === 0) {
         response.note = 'No active assets found in the system.';
@@ -175,6 +176,6 @@ export function registerAnalysisTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 }

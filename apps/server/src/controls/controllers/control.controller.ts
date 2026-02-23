@@ -1,8 +1,10 @@
 import { Controller, Get, Post, Put, Param, Query, Body, Req } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ControlService } from '../services/control.service';
 import { ControlReportingService } from '../services/control-reporting.service';
 import { GapAnalysisService } from '../services/gap-analysis.service';
 import { CreateControlDto, UpdateControlDto } from '../dto/control.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('controls')
 export class ControlController {
@@ -25,11 +27,11 @@ export class ControlController {
     @Query('organisationId') organisationId?: string,
     @Query('search') search?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.ControlWhereInput = {};
 
-    if (theme) where.theme = theme;
-    if (framework) where.framework = framework;
-    if (implementationStatus) where.implementationStatus = implementationStatus;
+    if (theme) where.theme = theme as Prisma.ControlWhereInput['theme'];
+    if (framework) where.framework = framework as Prisma.ControlWhereInput['framework'];
+    if (implementationStatus) where.implementationStatus = implementationStatus as Prisma.ControlWhereInput['implementationStatus'];
     if (applicable !== undefined) where.applicable = applicable === 'true';
     if (enabled !== undefined) where.enabled = enabled === 'true';
     // activeOnly = applicable AND enabled (effective "Active" status)
@@ -68,7 +70,7 @@ export class ControlController {
   }
 
   @Post()
-  async create(@Body() data: CreateControlDto, @Req() req: any) {
+  async create(@Body() data: CreateControlDto, @Req() req: AuthenticatedRequest) {
     return this.service.create({
       ...data,
       createdById: req.user?.id,
@@ -103,7 +105,7 @@ export class ControlController {
   async disableControl(
     @Param('id') id: string,
     @Body() data: { reason: string },
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.service.disableControl(id, data.reason, req.user.id);
   }
@@ -115,7 +117,7 @@ export class ControlController {
   @Post(':id/enable')
   async enableControl(
     @Param('id') id: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.service.enableControl(id, req.user.id);
   }

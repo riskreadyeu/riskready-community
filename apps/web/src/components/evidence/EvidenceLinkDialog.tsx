@@ -22,6 +22,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, Search } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { linkEvidenceToEntity, type LinkEntityType } from "@/lib/evidence-api";
+import { getControls } from "@/lib/controls-api";
+import { getIncidents } from "@/lib/incidents-api";
+import { getRisks } from "@/lib/risks-api";
+import { getAssets, getChanges } from "@/lib/itsm-api";
+import { getPolicies } from "@/lib/policies-api";
 
 // Link type options for each entity type
 const linkTypeOptions: Record<LinkEntityType, string[]> = {
@@ -75,62 +80,75 @@ interface EvidenceLinkDialogProps {
   onSuccess?: () => void;
 }
 
-// Mock function to search entities - in real implementation, this would call the API
+// Search entities using real API endpoints where available
 async function searchEntities(
   entityType: LinkEntityType,
   searchTerm: string
 ): Promise<Entity[]> {
-  // TODO: Replace with actual API calls
-  // This is a mock implementation
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  
-  // Mock data based on entity type
-  const mockEntities: Record<LinkEntityType, Entity[]> = {
-    control: [
-      { id: "ctrl-1", name: "Access Control Policy", reference: "AC-1" },
-      { id: "ctrl-2", name: "Account Management", reference: "AC-2" },
-      { id: "ctrl-3", name: "Least Privilege", reference: "AC-3" },
-    ],
-    incident: [
-      { id: "inc-1", name: "Phishing Attack", reference: "INC-2024-001" },
-      { id: "inc-2", name: "Data Breach", reference: "INC-2024-002" },
-    ],
-    risk: [
-      { id: "risk-1", name: "Cloud Security Risk", reference: "RISK-001" },
-      { id: "risk-2", name: "Third-Party Risk", reference: "RISK-002" },
-    ],
-    vendor: [
-      { id: "vendor-1", name: "Cloud Provider Inc", reference: "VND-001" },
-      { id: "vendor-2", name: "Security Services Ltd", reference: "VND-002" },
-    ],
-    asset: [
-      { id: "asset-1", name: "Production Server", reference: "AST-001" },
-      { id: "asset-2", name: "Database Cluster", reference: "AST-002" },
-    ],
-    policy: [
-      { id: "policy-1", name: "Information Security Policy", reference: "POL-001" },
-      { id: "policy-2", name: "Data Protection Policy", reference: "POL-002" },
-    ],
-    capability: [],
-    test: [],
-    nonconformity: [],
-    treatment: [],
-    assessment: [],
-    contract: [],
-    change: [],
-    application: [],
-    isra: [],
-  };
+  const searchParams = { take: 20, search: searchTerm || undefined };
 
-  const entities = mockEntities[entityType] || [];
-  if (!searchTerm) return entities.slice(0, 10);
-  
-  const term = searchTerm.toLowerCase();
-  return entities.filter(
-    (e) =>
-      e.name.toLowerCase().includes(term) ||
-      e.reference?.toLowerCase().includes(term)
-  );
+  switch (entityType) {
+    case "control": {
+      const data = await getControls(searchParams);
+      return data.results.map((c) => ({
+        id: c.id,
+        name: c.name,
+        reference: c.controlId,
+      }));
+    }
+    case "incident": {
+      const data = await getIncidents(searchParams);
+      return data.results.map((i) => ({
+        id: i.id,
+        name: i.title,
+        reference: i.referenceNumber,
+      }));
+    }
+    case "risk": {
+      const data = await getRisks(searchParams);
+      return data.results.map((r) => ({
+        id: r.id,
+        name: r.title,
+        reference: r.riskId,
+      }));
+    }
+    case "asset": {
+      const data = await getAssets(searchParams);
+      return data.results.map((a) => ({
+        id: a.id,
+        name: a.name,
+        reference: a.assetTag,
+      }));
+    }
+    case "change": {
+      const data = await getChanges(searchParams);
+      return data.results.map((ch) => ({
+        id: ch.id,
+        name: ch.title,
+        reference: ch.changeRef,
+      }));
+    }
+    case "policy": {
+      const data = await getPolicies(searchParams);
+      return data.results.map((p) => ({
+        id: p.id,
+        name: p.title,
+        reference: p.documentId,
+      }));
+    }
+    // TODO: Add API integration for remaining entity types when endpoints are available
+    case "capability":
+    case "test":
+    case "nonconformity":
+    case "treatment":
+    case "vendor":
+    case "assessment":
+    case "contract":
+    case "application":
+    case "isra":
+    default:
+      return [];
+  }
 }
 
 export function EvidenceLinkDialog({

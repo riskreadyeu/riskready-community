@@ -1,47 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-
-async function getDefaultOrganisationId(): Promise<string> {
-  const org = await prisma.organisationProfile.findFirst({ select: { id: true } });
-  if (!org) throw new Error('No organisation found in the database. Please create one first.');
-  return org.id;
-}
-
-async function createPendingAction(params: {
-  actionType: string;
-  summary: string;
-  reason?: string;
-  payload: any;
-  mcpSessionId?: string;
-  mcpToolName: string;
-  organisationId?: string;
-}) {
-  const orgId = params.organisationId || await getDefaultOrganisationId();
-  const action = await prisma.mcpPendingAction.create({
-    data: {
-      actionType: params.actionType as any,
-      summary: params.summary,
-      reason: params.reason,
-      payload: params.payload,
-      mcpSessionId: params.mcpSessionId,
-      mcpToolName: params.mcpToolName,
-      organisationId: orgId,
-    },
-  });
-  return {
-    content: [{
-      type: 'text' as const,
-      text: JSON.stringify({
-        message: 'Action proposed successfully. Awaiting human approval.',
-        actionId: action.id,
-        actionType: action.actionType,
-        status: action.status,
-        summary: action.summary,
-      }, null, 2),
-    }],
-  };
-}
+import { createPendingAction, withErrorHandling } from '#mcp-shared';
 
 // ---------------------------------------------------------------------------
 // Profile mutations
@@ -75,16 +35,16 @@ function registerProfileMutations(server: McpServer) {
       naceCode: z.string().optional().describe('NACE economic activity code'),
       // ISMS
       ismsPolicy: z.string().optional().describe('ISMS policy reference'),
-      ismsObjectives: z.any().optional().describe('ISMS objectives (JSON)'),
+      ismsObjectives: z.array(z.string()).optional().describe('ISMS objectives (JSON array of objective strings)'),
       scopeExclusions: z.string().optional().describe('ISMS scope exclusions'),
       exclusionJustification: z.string().optional().describe('Justification for scope exclusions'),
       // Certification
       isoCertificationStatus: z.string().optional().describe('ISO certification status'),
       certificationBody: z.string().optional().describe('Certification body name'),
-      certificationDate: z.string().optional().describe('Certification date (ISO 8601)'),
-      certificationExpiry: z.string().optional().describe('Certification expiry date (ISO 8601)'),
+      certificationDate: z.string().datetime().optional().describe('Certification date (ISO 8601)'),
+      certificationExpiry: z.string().datetime().optional().describe('Certification expiry date (ISO 8601)'),
       certificateNumber: z.string().optional().describe('Certificate number'),
-      nextAuditDate: z.string().optional().describe('Next audit date (ISO 8601)'),
+      nextAuditDate: z.string().datetime().optional().describe('Next audit date (ISO 8601)'),
       // Regulatory
       isDoraApplicable: z.boolean().optional().describe('Whether DORA applies'),
       doraEntityType: z.string().optional().describe('DORA entity type'),
@@ -94,13 +54,13 @@ function registerProfileMutations(server: McpServer) {
       nis2Sector: z.string().optional().describe('NIS2 sector'),
       nis2AnnexType: z.string().optional().describe('NIS2 annex type'),
       // Risk
-      riskTolerance: z.any().optional().describe('Risk tolerance (JSON)'),
+      riskTolerance: z.record(z.string(), z.unknown()).optional().describe('Risk tolerance (JSON object)'),
       riskAcceptanceThreshold: z.string().optional().describe('Risk acceptance threshold'),
       maxTolerableDowntime: z.string().optional().describe('Maximum tolerable downtime'),
       reason: z.string().optional().describe('Reason for update'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_org_profile', async (params) => {
       const org = params.organisationId
         ? await prisma.organisationProfile.findUnique({ where: { id: params.organisationId }, select: { id: true, name: true } })
         : await prisma.organisationProfile.findFirst({ select: { id: true, name: true } });
@@ -118,7 +78,7 @@ function registerProfileMutations(server: McpServer) {
         mcpToolName: 'propose_update_org_profile',
         organisationId: org.id,
       });
-    },
+    }),
   );
 }
 
@@ -145,11 +105,11 @@ function registerStructureMutations(server: McpServer) {
       contactPhone: z.string().optional().describe('Contact phone'),
       handlesPersonalData: z.boolean().optional().describe('Whether department handles personal data'),
       handlesFinancialData: z.boolean().optional().describe('Whether department handles financial data'),
-      establishedDate: z.string().optional().describe('Established date (ISO 8601)'),
+      establishedDate: z.string().datetime().optional().describe('Established date (ISO 8601)'),
       reason: z.string().optional().describe('Reason for creation'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_department', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_DEPARTMENT',
         summary: `Create department "${params.name}" (${params.departmentCode})`,
@@ -158,7 +118,7 @@ function registerStructureMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_create_department',
       });
-    },
+    }),
   );
 
   server.tool(
@@ -182,7 +142,7 @@ function registerStructureMutations(server: McpServer) {
       reason: z.string().optional().describe('Reason for update'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_department', async (params) => {
       const dept = await prisma.department.findUnique({
         where: { id: params.departmentId },
         select: { id: true, name: true, departmentCode: true },
@@ -199,7 +159,7 @@ function registerStructureMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_update_department',
       });
-    },
+    }),
   );
 
   server.tool(
@@ -229,7 +189,7 @@ function registerStructureMutations(server: McpServer) {
       reason: z.string().optional().describe('Reason for creation'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_location', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_LOCATION',
         summary: `Create location "${params.name}"${params.locationCode ? ` (${params.locationCode})` : ''}`,
@@ -238,7 +198,7 @@ function registerStructureMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_create_location',
       });
-    },
+    }),
   );
 
   server.tool(
@@ -264,7 +224,7 @@ function registerStructureMutations(server: McpServer) {
       reason: z.string().optional().describe('Reason for update'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_location', async (params) => {
       const loc = await prisma.location.findUnique({
         where: { id: params.locationId },
         select: { id: true, name: true, locationCode: true },
@@ -281,7 +241,7 @@ function registerStructureMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_update_location',
       });
-    },
+    }),
   );
 }
 
@@ -314,7 +274,7 @@ function registerProcessMutations(server: McpServer) {
       reason: z.string().optional().describe('Reason for creation'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_business_process', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_BUSINESS_PROCESS',
         summary: `Create business process "${params.name}" (${params.processCode})`,
@@ -323,7 +283,7 @@ function registerProcessMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_create_business_process',
       });
-    },
+    }),
   );
 
   server.tool(
@@ -347,7 +307,7 @@ function registerProcessMutations(server: McpServer) {
       reason: z.string().optional().describe('Reason for update'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_business_process', async (params) => {
       const process = await prisma.businessProcess.findUnique({
         where: { id: params.processId },
         select: { id: true, name: true, processCode: true },
@@ -364,7 +324,7 @@ function registerProcessMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_update_business_process',
       });
-    },
+    }),
   );
 
   server.tool(
@@ -375,8 +335,8 @@ function registerProcessMutations(server: McpServer) {
       dependencyType: z.string().describe('Dependency type'),
       description: z.string().describe('Description'),
       criticalityLevel: z.string().describe('Criticality level'),
-      contractStart: z.string().describe('Contract start date (ISO 8601)'),
-      contractEnd: z.string().describe('Contract end date (ISO 8601)'),
+      contractStart: z.string().datetime().describe('Contract start date (ISO 8601)'),
+      contractEnd: z.string().datetime().describe('Contract end date (ISO 8601)'),
       contactEmail: z.string().describe('Contact email'),
       singlePointOfFailure: z.boolean().optional().describe('Is single point of failure'),
       vendorWebsite: z.string().optional().describe('Vendor website URL'),
@@ -390,7 +350,7 @@ function registerProcessMutations(server: McpServer) {
       reason: z.string().optional().describe('Reason for creation'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_external_dependency', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_EXTERNAL_DEPENDENCY',
         summary: `Create ${params.criticalityLevel} external dependency "${params.name}" (${params.dependencyType})`,
@@ -399,7 +359,7 @@ function registerProcessMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_create_external_dependency',
       });
-    },
+    }),
   );
 
   server.tool(
@@ -411,7 +371,7 @@ function registerProcessMutations(server: McpServer) {
       description: z.string().optional().describe('New description'),
       criticalityLevel: z.string().optional().describe('New criticality level'),
       dependencyType: z.string().optional().describe('New dependency type'),
-      contractEnd: z.string().optional().describe('New contract end date (ISO 8601)'),
+      contractEnd: z.string().datetime().optional().describe('New contract end date (ISO 8601)'),
       contractReference: z.string().optional().describe('Contract reference'),
       annualCost: z.number().optional().describe('Annual cost'),
       dataLocation: z.string().optional().describe('Data location/jurisdiction'),
@@ -420,7 +380,7 @@ function registerProcessMutations(server: McpServer) {
       reason: z.string().optional().describe('Reason for update'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_external_dependency', async (params) => {
       const dep = await prisma.externalDependency.findUnique({
         where: { id: params.dependencyId },
         select: { id: true, name: true },
@@ -437,7 +397,7 @@ function registerProcessMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_update_external_dependency',
       });
-    },
+    }),
   );
 }
 
@@ -453,14 +413,14 @@ function registerGovernanceMutations(server: McpServer) {
       committeeType: z.string().describe('Committee type'),
       description: z.string().optional().describe('Committee description'),
       meetingFrequency: z.string().describe('Meeting frequency (e.g. "monthly", "quarterly")'),
-      establishedDate: z.string().describe('Established date (ISO 8601)'),
+      establishedDate: z.string().datetime().describe('Established date (ISO 8601)'),
       chairId: z.string().optional().describe('Chair user UUID'),
       authorityLevel: z.string().optional().describe('Authority level'),
       isActive: z.boolean().optional().describe('Whether the committee is active'),
       reason: z.string().optional().describe('Reason for creation'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_committee', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_COMMITTEE',
         summary: `Create ${params.committeeType} committee "${params.name}"`,
@@ -469,7 +429,7 @@ function registerGovernanceMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_create_committee',
       });
-    },
+    }),
   );
 
   server.tool(
@@ -487,7 +447,7 @@ function registerGovernanceMutations(server: McpServer) {
       reason: z.string().optional().describe('Reason for update'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_committee', async (params) => {
       const committee = await prisma.securityCommittee.findUnique({
         where: { id: params.committeeId },
         select: { id: true, name: true },
@@ -504,7 +464,7 @@ function registerGovernanceMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_update_committee',
       });
-    },
+    }),
   );
 
   server.tool(
@@ -513,7 +473,7 @@ function registerGovernanceMutations(server: McpServer) {
     {
       committeeId: z.string().describe('SecurityCommittee UUID'),
       title: z.string().describe('Meeting title'),
-      meetingDate: z.string().describe('Meeting date (ISO 8601)'),
+      meetingDate: z.string().datetime().describe('Meeting date (ISO 8601)'),
       startTime: z.string().describe('Start time (HH:MM)'),
       endTime: z.string().optional().describe('End time (HH:MM)'),
       locationType: z.string().optional().describe('Location type (virtual, physical, hybrid)'),
@@ -527,7 +487,7 @@ function registerGovernanceMutations(server: McpServer) {
       reason: z.string().optional().describe('Reason for scheduling'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_meeting', async (params) => {
       const committee = await prisma.securityCommittee.findUnique({
         where: { id: params.committeeId },
         select: { id: true, name: true },
@@ -544,7 +504,7 @@ function registerGovernanceMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_create_meeting',
       });
-    },
+    }),
   );
 }
 

@@ -1,47 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-
-async function getDefaultOrganisationId(): Promise<string> {
-  const org = await prisma.organisationProfile.findFirst({ select: { id: true } });
-  if (!org) throw new Error('No organisation found in the database. Please create one first.');
-  return org.id;
-}
-
-async function createPendingAction(params: {
-  actionType: string;
-  summary: string;
-  reason?: string;
-  payload: any;
-  mcpSessionId?: string;
-  mcpToolName: string;
-  organisationId?: string;
-}) {
-  const orgId = params.organisationId || await getDefaultOrganisationId();
-  const action = await prisma.mcpPendingAction.create({
-    data: {
-      actionType: params.actionType as any,
-      summary: params.summary,
-      reason: params.reason,
-      payload: params.payload,
-      mcpSessionId: params.mcpSessionId,
-      mcpToolName: params.mcpToolName,
-      organisationId: orgId,
-    },
-  });
-  return {
-    content: [{
-      type: 'text' as const,
-      text: JSON.stringify({
-        message: `Action proposed successfully. Awaiting human approval.`,
-        actionId: action.id,
-        actionType: action.actionType,
-        status: action.status,
-        summary: action.summary,
-      }, null, 2),
-    }],
-  };
-}
+import { createPendingAction, getDefaultOrganisationId, withErrorHandling } from '#mcp-shared';
 
 // ========================================
 // ASSESSMENT MUTATIONS
@@ -58,20 +18,20 @@ function registerAssessmentMutations(server: McpServer) {
       description: z.string().optional().describe('Assessment description'),
       leadTesterId: z.string().optional().describe('Lead tester user ID'),
       reviewerId: z.string().optional().describe('Reviewer user ID'),
-      plannedStartDate: z.string().optional().describe('Planned start date (ISO 8601)'),
-      plannedEndDate: z.string().optional().describe('Planned end date (ISO 8601)'),
-      dueDate: z.string().optional().describe('Due date (ISO 8601)'),
-      periodStart: z.string().optional().describe('Period under test start date (ISO 8601)'),
-      periodEnd: z.string().optional().describe('Period under test end date (ISO 8601)'),
-      actualStartDate: z.string().optional().describe('Actual start date (ISO 8601)'),
-      actualEndDate: z.string().optional().describe('Actual end date (ISO 8601)'),
+      plannedStartDate: z.string().datetime().optional().describe('Planned start date (ISO 8601)'),
+      plannedEndDate: z.string().datetime().optional().describe('Planned end date (ISO 8601)'),
+      dueDate: z.string().datetime().optional().describe('Due date (ISO 8601)'),
+      periodStart: z.string().datetime().optional().describe('Period under test start date (ISO 8601)'),
+      periodEnd: z.string().datetime().optional().describe('Period under test end date (ISO 8601)'),
+      actualStartDate: z.string().datetime().optional().describe('Actual start date (ISO 8601)'),
+      actualEndDate: z.string().datetime().optional().describe('Actual end date (ISO 8601)'),
       controlIds: z.array(z.string()).optional().describe('Control UUIDs to include in scope'),
       scopeItemIds: z.array(z.string()).optional().describe('Scope item UUIDs to include'),
       status: z.string().optional().describe('Initial assessment status'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_assessment', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_ASSESSMENT',
         summary: `Create assessment "${params.title}" (${params.assessmentRef})`,
@@ -81,7 +41,7 @@ function registerAssessmentMutations(server: McpServer) {
         mcpToolName: 'propose_assessment',
         organisationId: params.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -93,18 +53,18 @@ function registerAssessmentMutations(server: McpServer) {
       description: z.string().optional().describe('New description'),
       leadTesterId: z.string().optional().describe('New lead tester user ID'),
       reviewerId: z.string().optional().describe('New reviewer user ID'),
-      plannedStartDate: z.string().optional().describe('New planned start date (ISO 8601)'),
-      plannedEndDate: z.string().optional().describe('New planned end date (ISO 8601)'),
-      dueDate: z.string().optional().describe('New due date (ISO 8601)'),
-      periodStart: z.string().optional().describe('New period start date (ISO 8601)'),
-      periodEnd: z.string().optional().describe('New period end date (ISO 8601)'),
-      actualStartDate: z.string().optional().describe('Actual start date (ISO 8601)'),
-      actualEndDate: z.string().optional().describe('Actual end date (ISO 8601)'),
+      plannedStartDate: z.string().datetime().optional().describe('New planned start date (ISO 8601)'),
+      plannedEndDate: z.string().datetime().optional().describe('New planned end date (ISO 8601)'),
+      dueDate: z.string().datetime().optional().describe('New due date (ISO 8601)'),
+      periodStart: z.string().datetime().optional().describe('New period start date (ISO 8601)'),
+      periodEnd: z.string().datetime().optional().describe('New period end date (ISO 8601)'),
+      actualStartDate: z.string().datetime().optional().describe('Actual start date (ISO 8601)'),
+      actualEndDate: z.string().datetime().optional().describe('Actual end date (ISO 8601)'),
       status: z.string().optional().describe('New assessment status'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_assessment', async (params) => {
       const assessment = await prisma.assessment.findUnique({
         where: { id: params.assessmentId },
         select: { id: true, assessmentRef: true, title: true, organisationId: true },
@@ -122,7 +82,7 @@ function registerAssessmentMutations(server: McpServer) {
         mcpToolName: 'propose_update_assessment',
         organisationId: assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -133,7 +93,7 @@ function registerAssessmentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_delete_assessment', async (params) => {
       const assessment = await prisma.assessment.findUnique({
         where: { id: params.assessmentId },
         select: { id: true, assessmentRef: true, title: true, status: true, organisationId: true },
@@ -154,7 +114,7 @@ function registerAssessmentMutations(server: McpServer) {
         mcpToolName: 'propose_delete_assessment',
         organisationId: assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -165,7 +125,7 @@ function registerAssessmentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_start_assessment', async (params) => {
       const assessment = await prisma.assessment.findUnique({
         where: { id: params.assessmentId },
         select: { id: true, assessmentRef: true, title: true, status: true, organisationId: true },
@@ -186,7 +146,7 @@ function registerAssessmentMutations(server: McpServer) {
         mcpToolName: 'propose_start_assessment',
         organisationId: assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -197,7 +157,7 @@ function registerAssessmentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_submit_assessment_review', async (params) => {
       const assessment = await prisma.assessment.findUnique({
         where: { id: params.assessmentId },
         select: { id: true, assessmentRef: true, title: true, status: true, organisationId: true },
@@ -218,7 +178,7 @@ function registerAssessmentMutations(server: McpServer) {
         mcpToolName: 'propose_submit_assessment_review',
         organisationId: assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -230,7 +190,7 @@ function registerAssessmentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_complete_assessment', async (params) => {
       const assessment = await prisma.assessment.findUnique({
         where: { id: params.assessmentId },
         select: { id: true, assessmentRef: true, title: true, status: true, organisationId: true },
@@ -251,7 +211,7 @@ function registerAssessmentMutations(server: McpServer) {
         mcpToolName: 'propose_complete_assessment',
         organisationId: assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -263,7 +223,7 @@ function registerAssessmentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_cancel_assessment', async (params) => {
       const assessment = await prisma.assessment.findUnique({
         where: { id: params.assessmentId },
         select: { id: true, assessmentRef: true, title: true, status: true, organisationId: true },
@@ -284,7 +244,7 @@ function registerAssessmentMutations(server: McpServer) {
         mcpToolName: 'propose_cancel_assessment',
         organisationId: assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -296,7 +256,7 @@ function registerAssessmentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_add_assessment_controls', async (params) => {
       const assessment = await prisma.assessment.findUnique({
         where: { id: params.assessmentId },
         select: { id: true, assessmentRef: true, title: true, organisationId: true },
@@ -314,7 +274,7 @@ function registerAssessmentMutations(server: McpServer) {
         mcpToolName: 'propose_add_assessment_controls',
         organisationId: assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -326,7 +286,7 @@ function registerAssessmentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_remove_assessment_control', async (params) => {
       const assessment = await prisma.assessment.findUnique({
         where: { id: params.assessmentId },
         select: { id: true, assessmentRef: true, title: true, organisationId: true },
@@ -344,7 +304,7 @@ function registerAssessmentMutations(server: McpServer) {
         mcpToolName: 'propose_remove_assessment_control',
         organisationId: assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -356,7 +316,7 @@ function registerAssessmentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_add_assessment_scope_items', async (params) => {
       const assessment = await prisma.assessment.findUnique({
         where: { id: params.assessmentId },
         select: { id: true, assessmentRef: true, title: true, organisationId: true },
@@ -374,7 +334,7 @@ function registerAssessmentMutations(server: McpServer) {
         mcpToolName: 'propose_add_assessment_scope_items',
         organisationId: assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -386,7 +346,7 @@ function registerAssessmentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_remove_assessment_scope_item', async (params) => {
       const assessment = await prisma.assessment.findUnique({
         where: { id: params.assessmentId },
         select: { id: true, assessmentRef: true, title: true, organisationId: true },
@@ -404,7 +364,7 @@ function registerAssessmentMutations(server: McpServer) {
         mcpToolName: 'propose_remove_assessment_scope_item',
         organisationId: assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -415,7 +375,7 @@ function registerAssessmentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_populate_tests', async (params) => {
       const assessment = await prisma.assessment.findUnique({
         where: { id: params.assessmentId },
         include: { controls: true },
@@ -436,7 +396,7 @@ function registerAssessmentMutations(server: McpServer) {
         mcpToolName: 'propose_populate_tests',
         organisationId: assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -451,7 +411,7 @@ function registerAssessmentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_bulk_assign_tests', async (params) => {
       // Get org from first test
       const firstTest = await prisma.assessmentTest.findFirst({
         where: { id: { in: params.testIds } },
@@ -470,7 +430,7 @@ function registerAssessmentMutations(server: McpServer) {
         mcpToolName: 'propose_bulk_assign_tests',
         organisationId: firstTest.assessment.organisationId,
       });
-    },
+    }),
   );
 }
 
@@ -494,7 +454,7 @@ function registerSoaMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_soa_entry_update', async (params) => {
       // Validate SOA entry exists
       const entry = await prisma.sOAEntry.findUnique({
         where: { id: params.soaEntryId },
@@ -516,7 +476,7 @@ function registerSoaMutations(server: McpServer) {
         mcpToolName: 'propose_soa_entry_update',
         organisationId: entry.soa.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -530,7 +490,7 @@ function registerSoaMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_soa', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_SOA',
         summary: `Create SOA version ${params.version}${params.name ? ` (${params.name})` : ''}`,
@@ -540,7 +500,7 @@ function registerSoaMutations(server: McpServer) {
         mcpToolName: 'propose_create_soa',
         organisationId: params.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -553,7 +513,7 @@ function registerSoaMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_soa_from_controls', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_SOA_FROM_CONTROLS',
         summary: `Create SOA version ${params.version} from current control library`,
@@ -563,7 +523,7 @@ function registerSoaMutations(server: McpServer) {
         mcpToolName: 'propose_create_soa_from_controls',
         organisationId: params.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -577,7 +537,7 @@ function registerSoaMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_soa_version', async (params) => {
       const sourceSoa = await prisma.statementOfApplicability.findUnique({
         where: { id: params.sourceSoaId },
         select: { id: true, version: true, organisationId: true },
@@ -595,7 +555,7 @@ function registerSoaMutations(server: McpServer) {
         mcpToolName: 'propose_create_soa_version',
         organisationId: sourceSoa.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -608,7 +568,7 @@ function registerSoaMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_soa', async (params) => {
       const soa = await prisma.statementOfApplicability.findUnique({
         where: { id: params.soaId },
         select: { id: true, version: true, status: true, organisationId: true },
@@ -629,7 +589,7 @@ function registerSoaMutations(server: McpServer) {
         mcpToolName: 'propose_update_soa',
         organisationId: soa.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -640,7 +600,7 @@ function registerSoaMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_submit_soa_review', async (params) => {
       const soa = await prisma.statementOfApplicability.findUnique({
         where: { id: params.soaId },
         select: { id: true, version: true, status: true, organisationId: true },
@@ -661,7 +621,7 @@ function registerSoaMutations(server: McpServer) {
         mcpToolName: 'propose_submit_soa_review',
         organisationId: soa.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -672,7 +632,7 @@ function registerSoaMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_approve_soa', async (params) => {
       const soa = await prisma.statementOfApplicability.findUnique({
         where: { id: params.soaId },
         select: { id: true, version: true, status: true, organisationId: true },
@@ -693,7 +653,7 @@ function registerSoaMutations(server: McpServer) {
         mcpToolName: 'propose_approve_soa',
         organisationId: soa.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -704,7 +664,7 @@ function registerSoaMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_delete_soa', async (params) => {
       const soa = await prisma.statementOfApplicability.findUnique({
         where: { id: params.soaId },
         select: { id: true, version: true, status: true, organisationId: true },
@@ -725,7 +685,7 @@ function registerSoaMutations(server: McpServer) {
         mcpToolName: 'propose_delete_soa',
         organisationId: soa.organisationId,
       });
-    },
+    }),
   );
 }
 
@@ -748,7 +708,7 @@ function registerScopeMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_scope_item', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_SCOPE_ITEM',
         summary: `Create scope item ${params.code} (${params.name}) — ${params.scopeType}, ${params.criticality} criticality`,
@@ -758,7 +718,7 @@ function registerScopeMutations(server: McpServer) {
         mcpToolName: 'propose_scope_item',
         organisationId: params.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -773,7 +733,7 @@ function registerScopeMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_scope_item', async (params) => {
       const item = await prisma.scopeItem.findUnique({
         where: { id: params.scopeItemId },
         select: { id: true, code: true, name: true, organisationId: true },
@@ -791,7 +751,7 @@ function registerScopeMutations(server: McpServer) {
         mcpToolName: 'propose_update_scope_item',
         organisationId: item.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -802,7 +762,7 @@ function registerScopeMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_delete_scope_item', async (params) => {
       const item = await prisma.scopeItem.findUnique({
         where: { id: params.scopeItemId },
         select: { id: true, code: true, name: true, organisationId: true },
@@ -820,7 +780,7 @@ function registerScopeMutations(server: McpServer) {
         mcpToolName: 'propose_delete_scope_item',
         organisationId: item.organisationId,
       });
-    },
+    }),
   );
 }
 
@@ -847,7 +807,7 @@ function registerTestMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_test_result', async (params) => {
       const test = await prisma.assessmentTest.findUnique({
         where: { id: params.assessmentTestId },
         include: { assessment: { select: { organisationId: true, assessmentRef: true } } },
@@ -865,7 +825,7 @@ function registerTestMutations(server: McpServer) {
         mcpToolName: 'propose_test_result',
         organisationId: test.assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -880,7 +840,7 @@ function registerTestMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_remediation', async (params) => {
       const test = await prisma.assessmentTest.findUnique({
         where: { id: params.assessmentTestId },
         include: { assessment: { select: { organisationId: true, assessmentRef: true } } },
@@ -898,7 +858,7 @@ function registerTestMutations(server: McpServer) {
         mcpToolName: 'propose_remediation',
         organisationId: test.assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -915,7 +875,7 @@ function registerTestMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_test', async (params) => {
       const test = await prisma.assessmentTest.findUnique({
         where: { id: params.assessmentTestId },
         include: { assessment: { select: { organisationId: true, assessmentRef: true } } },
@@ -933,7 +893,7 @@ function registerTestMutations(server: McpServer) {
         mcpToolName: 'propose_update_test',
         organisationId: test.assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -945,7 +905,7 @@ function registerTestMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_assign_tester', async (params) => {
       const test = await prisma.assessmentTest.findUnique({
         where: { id: params.assessmentTestId },
         include: { assessment: { select: { organisationId: true, assessmentRef: true } } },
@@ -963,7 +923,7 @@ function registerTestMutations(server: McpServer) {
         mcpToolName: 'propose_assign_tester',
         organisationId: test.assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -979,7 +939,7 @@ function registerTestMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_root_cause', async (params) => {
       const test = await prisma.assessmentTest.findUnique({
         where: { id: params.assessmentTestId },
         include: { assessment: { select: { organisationId: true, assessmentRef: true } } },
@@ -1000,7 +960,7 @@ function registerTestMutations(server: McpServer) {
         mcpToolName: 'propose_update_root_cause',
         organisationId: test.assessment.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -1012,7 +972,7 @@ function registerTestMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_skip_test', async (params) => {
       const test = await prisma.assessmentTest.findUnique({
         where: { id: params.assessmentTestId },
         include: { assessment: { select: { organisationId: true, assessmentRef: true } } },
@@ -1033,7 +993,7 @@ function registerTestMutations(server: McpServer) {
         mcpToolName: 'propose_skip_test',
         organisationId: test.assessment.organisationId,
       });
-    },
+    }),
   );
 }
 
@@ -1054,7 +1014,7 @@ function registerControlMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_control_status', async (params) => {
       const control = await prisma.control.findUnique({
         where: { id: params.controlId },
         select: { id: true, controlId: true, name: true, organisationId: true, implementationStatus: true, applicable: true },
@@ -1077,7 +1037,7 @@ function registerControlMutations(server: McpServer) {
         mcpToolName: 'propose_control_status',
         organisationId: control.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -1100,7 +1060,7 @@ function registerControlMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_control', async (params) => {
       // Check no duplicate controlId for org
       const orgId = params.organisationId || await getDefaultOrganisationId();
       const existing = await prisma.control.findFirst({
@@ -1119,7 +1079,7 @@ function registerControlMutations(server: McpServer) {
         mcpToolName: 'propose_create_control',
         organisationId: orgId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -1141,7 +1101,7 @@ function registerControlMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_control', async (params) => {
       const control = await prisma.control.findUnique({
         where: { id: params.controlId },
         select: { id: true, controlId: true, name: true, organisationId: true },
@@ -1159,7 +1119,7 @@ function registerControlMutations(server: McpServer) {
         mcpToolName: 'propose_update_control',
         organisationId: control.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -1171,7 +1131,7 @@ function registerControlMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_disable_control', async (params) => {
       const control = await prisma.control.findUnique({
         where: { id: params.controlId },
         select: { id: true, controlId: true, name: true, organisationId: true, enabled: true },
@@ -1192,7 +1152,7 @@ function registerControlMutations(server: McpServer) {
         mcpToolName: 'propose_disable_control',
         organisationId: control.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -1203,7 +1163,7 @@ function registerControlMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_enable_control', async (params) => {
       const control = await prisma.control.findUnique({
         where: { id: params.controlId },
         select: { id: true, controlId: true, name: true, organisationId: true, enabled: true, applicable: true },
@@ -1227,7 +1187,7 @@ function registerControlMutations(server: McpServer) {
         mcpToolName: 'propose_enable_control',
         organisationId: control.organisationId,
       });
-    },
+    }),
   );
 }
 
@@ -1247,7 +1207,7 @@ function registerMetricMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_metric_value', async (params) => {
       const metric = await prisma.controlMetric.findUnique({
         where: { id: params.metricId },
         include: { control: { select: { organisationId: true, controlId: true } } },
@@ -1265,7 +1225,7 @@ function registerMetricMutations(server: McpServer) {
         mcpToolName: 'propose_metric_value',
         organisationId: metric.control.organisationId,
       });
-    },
+    }),
   );
 }
 

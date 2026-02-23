@@ -12,7 +12,7 @@ import {
   Max,
   IsUUID,
 } from 'class-validator';
-import { ToleranceLevel, RTSStatus, ControlFramework, ImpactCategory } from '@prisma/client';
+import { ToleranceLevel, RTSStatus, ControlFramework, ImpactCategory, Prisma } from '@prisma/client';
 
 export class CreateRTSDto {
   @IsString()
@@ -45,7 +45,7 @@ export class CreateRTSDto {
   proposedRTS!: string;
 
   @IsOptional()
-  conditions?: any;
+  conditions?: Prisma.InputJsonValue;
 
   @IsString()
   @IsOptional()
@@ -140,7 +140,7 @@ export class UpdateRTSDto {
   proposedRTS?: string;
 
   @IsOptional()
-  conditions?: any;
+  conditions?: Prisma.InputJsonValue;
 
   @IsString()
   @IsOptional()

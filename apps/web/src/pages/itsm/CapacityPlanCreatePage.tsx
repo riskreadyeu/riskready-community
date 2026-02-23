@@ -18,6 +18,7 @@ import {
   createCapacityPlan,
   getAssets,
   type Asset,
+  type CapacityPlan,
 } from '@/lib/itsm-api';
 
 export default function CapacityPlanCreatePage() {
@@ -54,7 +55,7 @@ export default function CapacityPlanCreatePage() {
     }
   }
 
-  function updateField(field: string, value: any) {
+  function updateField(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }));
   }
 
@@ -68,7 +69,7 @@ export default function CapacityPlanCreatePage() {
 
     setSaving(true);
     try {
-      const data: any = {
+      const data: Partial<CapacityPlan> = {
         title: form.title,
         currentCapacity: form.currentCapacity,
       };

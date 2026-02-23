@@ -149,17 +149,6 @@ export interface SmartSelectProps {
 }
 
 // =============================================================================
-// PermissionGate Types
-// =============================================================================
-
-export interface PermissionGateProps {
-  permission: string | string[];
-  fallback?: ReactNode;
-  disabled?: boolean;
-  children: ReactNode;
-}
-
-// =============================================================================
 // BulkActionBar Types
 // =============================================================================
 

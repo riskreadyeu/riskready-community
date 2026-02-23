@@ -28,7 +28,7 @@ export interface McpPendingAction {
   status: McpActionStatus;
   summary: string;
   reason: string | null;
-  payload: any;
+  payload: Record<string, unknown>;
   mcpSessionId: string | null;
   mcpToolName: string | null;
   reviewedById: string | null;
@@ -36,7 +36,7 @@ export interface McpPendingAction {
   reviewedAt: string | null;
   reviewNotes: string | null;
   executedAt: string | null;
-  resultData: any | null;
+  resultData: Record<string, unknown> | null;
   errorMessage: string | null;
   organisationId: string;
   organisation: { id: string; name: string } | null;

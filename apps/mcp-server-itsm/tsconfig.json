@@ -4,8 +4,12 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "#src/*": ["./src/*"]
+      "#src/*": ["./src/*"],
+      "#mcp-shared": ["../../packages/mcp-shared/src/index.ts"]
     }
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../../packages/mcp-shared" }
+  ]
 }

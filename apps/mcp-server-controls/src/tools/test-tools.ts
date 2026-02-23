@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerTestTools(server: McpServer) {
   server.tool(
@@ -9,7 +10,7 @@ export function registerTestTools(server: McpServer) {
     {
       id: z.string().describe('AssessmentTest UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_test', async ({ id }) => {
       const test = await prisma.assessmentTest.findUnique({
         where: { id },
         include: {
@@ -51,7 +52,7 @@ export function registerTestTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(test, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -60,7 +61,7 @@ export function registerTestTools(server: McpServer) {
     {
       assessmentTestId: z.string().describe('AssessmentTest UUID'),
     },
-    async ({ assessmentTestId }) => {
+    withErrorHandling('get_test_executions', async ({ assessmentTestId }) => {
       const executions = await prisma.assessmentExecution.findMany({
         where: { assessmentTestId },
         orderBy: { executionDate: 'desc' },
@@ -82,7 +83,7 @@ export function registerTestTools(server: McpServer) {
         },
       });
 
-      const response: any = { executions, count: executions.length };
+      const response: Record<string, unknown> = { executions, count: executions.length };
       if (executions.length === 0) {
         response.note = 'No execution history found for this test.';
       }
@@ -90,7 +91,7 @@ export function registerTestTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -101,7 +102,7 @@ export function registerTestTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ layer, skip, take }) => {
+    withErrorHandling('list_test_templates', async ({ layer, skip, take }) => {
       // In community edition, there are no LayerTest templates.
       // Instead, return distinct testCode/testName combinations from AssessmentTest as "templates".
       const prefixMap: Record<string, string> = {
@@ -111,7 +112,7 @@ export function registerTestTools(server: McpServer) {
         OVERSIGHT: 'OVS-',
       };
 
-      const where: any = {};
+      const where: Record<string, unknown> = {};
       if (layer && prefixMap[layer]) {
         where.testCode = { startsWith: prefixMap[layer] };
       }
@@ -128,7 +129,7 @@ export function registerTestTools(server: McpServer) {
         orderBy: { testCode: 'asc' },
       });
 
-      const response: any = {
+      const response: Record<string, unknown> = {
         templates: templates.map(t => ({
           testCode: t.testCode,
           testName: t.testName,
@@ -148,6 +149,6 @@ export function registerTestTools(server: McpServer) {
           text: JSON.stringify(response, null, 2),
         }],
       };
-    },
+    }),
   );
 }

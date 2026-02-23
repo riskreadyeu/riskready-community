@@ -1,4 +1,5 @@
 import { BadRequestException, Body, Controller, Get, Post, Req, Res, Logger } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { AuthService } from './auth.service';
@@ -39,6 +40,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   async login(@Body() body: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     try {
@@ -60,7 +62,7 @@ export class AuthController {
 
       return { user: result.user };
     } catch (error) {
-      console.error('Login error:', error);
+      this.logger.error('Login error', error instanceof Error ? error.stack : String(error));
       throw error;
     }
   }

@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerIncidentTools(server: McpServer) {
   server.tool(
@@ -13,8 +14,8 @@ export function registerIncidentTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_incidents', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.status) where.status = params.status;
       if (params.severity) where.severity = params.severity;
       if (params.category) where.category = params.category;
@@ -54,7 +55,7 @@ export function registerIncidentTools(server: McpServer) {
           text: JSON.stringify({ incidents, total, skip: params.skip || 0, take: params.take || 50 }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -63,7 +64,7 @@ export function registerIncidentTools(server: McpServer) {
     {
       id: z.string().describe('Incident UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_incident', async ({ id }) => {
       const incident = await prisma.incident.findUnique({
         where: { id },
         include: {
@@ -95,16 +96,16 @@ export function registerIncidentTools(server: McpServer) {
           text: JSON.stringify(incident, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'search_incidents',
     'Search incidents by reference number, title, or description.',
     {
-      query: z.string().describe('Search term (matches against referenceNumber, title, description)'),
+      query: z.string().max(200).describe('Search term (matches against referenceNumber, title, description)'),
     },
-    async ({ query }) => {
+    withErrorHandling('search_incidents', async ({ query }) => {
       const incidents = await prisma.incident.findMany({
         where: {
           OR: [
@@ -132,14 +133,14 @@ export function registerIncidentTools(server: McpServer) {
           text: JSON.stringify({ incidents, count: incidents.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_incident_stats',
     'Get aggregate incident statistics: total count, by status, by severity, by category, open incidents, and CIA breach counts.',
     {},
-    async () => {
+    withErrorHandling('get_incident_stats', async () => {
       const [
         total,
         byStatus,
@@ -180,6 +181,6 @@ export function registerIncidentTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

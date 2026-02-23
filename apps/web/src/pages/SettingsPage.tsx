@@ -56,8 +56,8 @@ function AIAssistantCard() {
         setGatewayUrl(data.gatewayUrl);
         setMaxAgentTurns(data.maxAgentTurns);
       }
-    } catch {
-      // Config not found — use defaults
+    } catch (error) {
+      console.error("Failed to load gateway config:", error);
     } finally {
       setLoading(false);
     }
@@ -88,8 +88,8 @@ function AIAssistantCard() {
         setApiKeyInput("");
         toast.success("AI Assistant settings saved");
       }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save settings");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to save settings");
     } finally {
       setSaving(false);
     }
@@ -112,8 +112,8 @@ function AIAssistantCard() {
         setApiKeyInput("");
         toast.success("API key removed");
       }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to clear API key");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to clear API key");
     } finally {
       setSaving(false);
     }

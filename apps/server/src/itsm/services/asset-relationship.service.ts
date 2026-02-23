@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, RelationshipType } from '@prisma/client';
 
 @Injectable()
 export class AssetRelationshipService {
@@ -65,7 +65,7 @@ export class AssetRelationshipService {
       where: {
         fromAssetId: data.fromAssetId,
         toAssetId: data.toAssetId,
-        relationshipType: data.relationshipType as any,
+        relationshipType: data.relationshipType as RelationshipType,
       },
     });
 
@@ -77,7 +77,7 @@ export class AssetRelationshipService {
       data: {
         fromAsset: { connect: { id: data.fromAssetId } },
         toAsset: { connect: { id: data.toAssetId } },
-        relationshipType: data.relationshipType as any,
+        relationshipType: data.relationshipType as RelationshipType,
         description: data.description,
         isCritical: data.isCritical || false,
         notes: data.notes,
@@ -108,7 +108,7 @@ export class AssetRelationshipService {
   async getDependencyChain(assetId: string, depth: number = 3) {
     // Get transitive dependencies up to specified depth
     const visited = new Set<string>();
-    const chain: any[] = [];
+    const chain: Record<string, unknown>[] = [];
 
     const traverse = async (currentId: string, currentDepth: number) => {
       if (currentDepth > depth || visited.has(currentId)) return;

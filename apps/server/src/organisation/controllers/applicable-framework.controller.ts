@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ApplicableFrameworkService } from '../services/applicable-framework.service';
 
 @Controller('organisation/applicable-frameworks')
@@ -13,7 +14,7 @@ export class ApplicableFrameworkController {
     @Query('frameworkType') frameworkType?: string,
     @Query('complianceStatus') complianceStatus?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.ApplicableFrameworkWhereInput = {};
     if (isApplicable !== undefined) where.isApplicable = isApplicable === 'true';
     if (frameworkType) where.frameworkType = frameworkType;
     if (complianceStatus) where.complianceStatus = complianceStatus;
@@ -46,12 +47,12 @@ export class ApplicableFrameworkController {
   }
 
   @Post()
-  async create(@Body() data: any) {
+  async create(@Body() data: Prisma.ApplicableFrameworkCreateInput) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Prisma.ApplicableFrameworkUpdateInput) {
     return this.service.update(id, data);
   }
 

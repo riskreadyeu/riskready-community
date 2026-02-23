@@ -14,7 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { createRisk } from "@/lib/risks-api";
+import { createRisk, type RiskTier } from "@/lib/risks-api";
+import { type ControlFramework } from "@/lib/controls-api";
 import { PageHeader } from "@/components/common";
 
 export default function RiskCreatePage() {
@@ -53,8 +54,8 @@ export default function RiskCreatePage() {
         riskId: formData.riskId,
         title: formData.title,
         description: formData.description || undefined,
-        tier: formData.tier as any,
-        framework: formData.framework as any,
+        tier: formData.tier as RiskTier,
+        framework: formData.framework as ControlFramework,
         riskOwner: formData.riskOwner || undefined,
         applicable: formData.applicable,
         justificationIfNa: !formData.applicable ? formData.justificationIfNa || undefined : undefined,

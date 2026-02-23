@@ -1,6 +1,18 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { CreateChangeDto, UpdateChangeDto } from '../dto/change.dto';
+
+interface AssetLink {
+  assetId: string;
+  impactType?: string;
+  notes?: string;
+}
+
+interface ProcessLink {
+  type?: string;
+  [key: string]: unknown;
+}
 
 @Injectable()
 export class ChangeService {
@@ -76,11 +88,11 @@ export class ChangeService {
     return change;
   }
 
-  async create(data: any, userId: string) {
+  async create(data: CreateChangeDto & { impactedProcesses?: ProcessLink[] }, userId: string) {
     const changeRef = await this.generateChangeRef();
 
     // Prepare asset links if provided
-    const assetLinks = data.impactedAssets?.map((a: any) => ({
+    const assetLinks = (data.impactedAssets as unknown as AssetLink[] | undefined)?.map((a: AssetLink) => ({
       assetId: a.assetId,
       impactType: a.impactType || 'DIRECT',
       notes: a.notes,
@@ -100,9 +112,9 @@ export class ChangeService {
         department: data.departmentId ? { connect: { id: data.departmentId } } : undefined,
         businessJustification: data.businessJustification,
         impactAssessment: data.impactAssessment,
-        affectedServices: data.impactedProcesses 
-          ? [...(data.affectedServices || []), ...data.impactedProcesses.map((p: any) => ({ type: 'process', ...p }))]
-          : data.affectedServices,
+        affectedServices: data.impactedProcesses
+          ? [...(data.affectedServices || []), ...data.impactedProcesses.map((p: ProcessLink) => ({ type: 'process', ...p }))] as Prisma.InputJsonValue
+          : data.affectedServices as Prisma.InputJsonValue | undefined,
         userImpact: data.userImpact,
         riskLevel: data.riskLevel || 'medium',
         riskAssessment: data.riskAssessment,
@@ -128,7 +140,7 @@ export class ChangeService {
     });
   }
 
-  async update(id: string, data: any, userId: string) {
+  async update(id: string, data: UpdateChangeDto & { impactedAssets?: AssetLink[]; impactedProcesses?: ProcessLink[] }, userId: string) {
     const change = await this.prisma.change.findUnique({ where: { id } });
     if (!change) {
       throw new NotFoundException(`Change with ID ${id} not found`);
@@ -136,14 +148,16 @@ export class ChangeService {
 
     // Record history for significant field changes
     const fieldsToTrack = ['status', 'priority', 'securityImpact', 'plannedStart', 'plannedEnd'];
-    const historyEntries: any[] = [];
+    const historyEntries: { field: string; oldValue: string; newValue: string; action: string; changedById: string }[] = [];
 
     for (const field of fieldsToTrack) {
-      if (data[field] !== undefined && data[field] !== (change as any)[field]) {
+      const dataRecord = data as Record<string, unknown>;
+      const changeRecord = change as unknown as Record<string, unknown>;
+      if (dataRecord[field] !== undefined && dataRecord[field] !== changeRecord[field]) {
         historyEntries.push({
           field,
-          oldValue: String((change as any)[field] || ''),
-          newValue: String(data[field]),
+          oldValue: String(changeRecord[field] || ''),
+          newValue: String(dataRecord[field]),
           action: 'updated',
           changedById: userId,
         });
@@ -157,7 +171,7 @@ export class ChangeService {
       
       if (data.impactedAssets.length > 0) {
         await this.prisma.changeAsset.createMany({
-          data: data.impactedAssets.map((a: any) => ({
+          data: data.impactedAssets.map((a: AssetLink) => ({
             changeId: id,
             assetId: a.assetId,
             impactType: a.impactType || 'DIRECT',
@@ -174,14 +188,14 @@ export class ChangeService {
       where: { id },
       data: {
         ...updateData,
-        affectedServices: impactedProcesses 
-          ? [...((change as any).affectedServices || []), ...impactedProcesses.map((p: any) => ({ type: 'process', ...p }))]
+        affectedServices: impactedProcesses
+          ? [...((change as unknown as Record<string, unknown>)['affectedServices'] as Prisma.InputJsonValue[] || []), ...impactedProcesses.map((p: ProcessLink) => ({ type: 'process', ...p }))] as Prisma.InputJsonValue
           : undefined,
         plannedStart: updateData.plannedStart ? new Date(updateData.plannedStart) : undefined,
         plannedEnd: updateData.plannedEnd ? new Date(updateData.plannedEnd) : undefined,
-        updatedBy: { connect: { id: userId } },
+        updatedById: userId,
         history: historyEntries.length > 0 ? { create: historyEntries } : undefined,
-      },
+      } as Prisma.ChangeUncheckedUpdateInput,
       include: {
         requester: { select: { id: true, email: true, firstName: true, lastName: true } },
         department: { select: { id: true, name: true, departmentCode: true } },

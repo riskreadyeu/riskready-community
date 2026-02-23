@@ -19,6 +19,7 @@ import {
   createChangeTemplate,
   generateTemplateCode,
   type ChangeCategory,
+  type ChangeTemplate,
   type SecurityImpact,
 } from '@/lib/itsm-api';
 
@@ -64,7 +65,7 @@ export default function ChangeTemplateCreatePage() {
     maxDuration: '',
   });
 
-  function updateField(field: string, value: any) {
+  function updateField(field: string, value: string | boolean) {
     setForm(prev => ({ ...prev, [field]: value }));
   }
 
@@ -81,11 +82,11 @@ export default function ChangeTemplateCreatePage() {
       // Auto-generate template code
       const { templateCode } = await generateTemplateCode(form.category);
 
-      const data: any = {
+      const data: Partial<ChangeTemplate> = {
         templateCode,
         name: form.name,
         description: form.description,
-        category: form.category,
+        category: form.category as ChangeCategory,
         securityImpact: form.securityImpact,
         riskLevel: form.riskLevel,
         instructions: form.instructions,

@@ -129,9 +129,9 @@ export function RiskScenarioDialog({
       onSuccess?.();
       onOpenChange(false);
       if (!isEditing) resetForm();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error saving scenario:", err);
-      setError(err.message || "Failed to save scenario");
+      setError(err instanceof Error ? err.message : "Failed to save scenario");
     } finally {
       setSaving(false);
     }

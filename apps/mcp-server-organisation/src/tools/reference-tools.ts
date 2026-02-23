@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerReferenceTools(server: McpServer) {
   server.tool(
@@ -11,8 +12,8 @@ export function registerReferenceTools(server: McpServer) {
       regulatorType: z.string().optional().describe('Filter by regulator type'),
       jurisdiction: z.string().optional().describe('Filter by jurisdiction'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_regulators', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.isActive !== undefined) where.isActive = params.isActive;
       if (params.regulatorType) where.regulatorType = params.regulatorType;
       if (params.jurisdiction) where.jurisdiction = params.jurisdiction;
@@ -41,7 +42,7 @@ export function registerReferenceTools(server: McpServer) {
           text: JSON.stringify({ regulators, count: regulators.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -52,8 +53,8 @@ export function registerReferenceTools(server: McpServer) {
       frameworkType: z.string().optional().describe('Filter by framework type'),
       complianceStatus: z.string().optional().describe('Filter by compliance status'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_applicable_frameworks', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.isApplicable !== undefined) where.isApplicable = params.isApplicable;
       if (params.frameworkType) where.frameworkType = params.frameworkType;
       if (params.complianceStatus) where.complianceStatus = params.complianceStatus;
@@ -83,7 +84,7 @@ export function registerReferenceTools(server: McpServer) {
           text: JSON.stringify({ frameworks, count: frameworks.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -94,8 +95,8 @@ export function registerReferenceTools(server: McpServer) {
       category: z.string().optional().describe('Filter by category'),
       status: z.string().optional().describe('Filter by status'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_context_issues', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.issueType) where.issueType = params.issueType;
       if (params.category) where.category = params.category;
       if (params.status) where.status = params.status;
@@ -128,7 +129,7 @@ export function registerReferenceTools(server: McpServer) {
           text: JSON.stringify({ issues, count: issues.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -138,8 +139,8 @@ export function registerReferenceTools(server: McpServer) {
       partyType: z.string().optional().describe('Filter by party type'),
       isActive: z.boolean().optional().describe('Filter by active status'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_interested_parties', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.partyType) where.partyType = params.partyType;
       if (params.isActive !== undefined) where.isActive = params.isActive;
 
@@ -168,6 +169,6 @@ export function registerReferenceTools(server: McpServer) {
           text: JSON.stringify({ parties, count: parties.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

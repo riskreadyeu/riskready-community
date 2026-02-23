@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerStructureTools(server: McpServer) {
   server.tool(
@@ -11,8 +12,8 @@ export function registerStructureTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_departments', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.isActive !== undefined) where.isActive = params.isActive;
 
       const [departments, total] = await Promise.all([
@@ -43,7 +44,7 @@ export function registerStructureTools(server: McpServer) {
           text: JSON.stringify({ departments, total, skip: params.skip || 0, take: params.take || 50 }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -52,7 +53,7 @@ export function registerStructureTools(server: McpServer) {
     {
       id: z.string().describe('Department UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_department', async ({ id }) => {
       const dept = await prisma.department.findUnique({
         where: { id },
         include: {
@@ -82,7 +83,7 @@ export function registerStructureTools(server: McpServer) {
           text: JSON.stringify(dept, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -94,8 +95,8 @@ export function registerStructureTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_locations', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.isActive !== undefined) where.isActive = params.isActive;
       if (params.country) where.country = params.country;
 
@@ -127,7 +128,7 @@ export function registerStructureTools(server: McpServer) {
           text: JSON.stringify({ locations, total, skip: params.skip || 0, take: params.take || 50 }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -136,7 +137,7 @@ export function registerStructureTools(server: McpServer) {
     {
       id: z.string().describe('Location UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_location', async ({ id }) => {
       const location = await prisma.location.findUnique({
         where: { id },
         include: {
@@ -154,7 +155,7 @@ export function registerStructureTools(server: McpServer) {
           text: JSON.stringify(location, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -164,8 +165,8 @@ export function registerStructureTools(server: McpServer) {
       isActive: z.boolean().optional().describe('Filter by active status'),
       ismsRole: z.string().optional().describe('Filter by ISMS role'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_key_personnel', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.isActive !== undefined) where.isActive = params.isActive;
       if (params.ismsRole) where.ismsRole = params.ismsRole;
 
@@ -194,6 +195,6 @@ export function registerStructureTools(server: McpServer) {
           text: JSON.stringify({ personnel, count: personnel.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

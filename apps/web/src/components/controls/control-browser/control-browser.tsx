@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Shield, ChevronDown, ChevronUp, ExpandIcon, ShrinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,7 +79,7 @@ export function ControlBrowser({
         ...control,
         layers: control.layers || [],
         effectivenessScore: control.effectiveness?.score,
-        effectivenessRating: control.effectiveness?.rating as any,
+        effectivenessRating: control.effectiveness?.rating as ControlWithLayers['effectivenessRating'],
       }));
 
       setControls(controlsWithStatus as ControlWithLayers[]);
@@ -242,13 +243,10 @@ export function ControlBrowser({
     }
   }, [navigate, onLayerSelect]);
 
-  const handleBulkAction = useCallback((action: string) => {
-    console.log('Bulk action:', action, {
-      controls: Array.from(browserState.selectedControls),
-      layers: Array.from(browserState.selectedLayers),
-    });
+  const handleBulkAction = useCallback((_action: string) => {
+    toast.info("Bulk actions are not yet available");
     // TODO: Implement bulk actions
-  }, [browserState.selectedControls, browserState.selectedLayers]);
+  }, []);
 
   // Loading state
   if (loading) {

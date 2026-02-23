@@ -138,10 +138,8 @@ export default function CommitteeMeetingsPage() {
     try {
       setIsSubmitting(true);
       // TODO: Implement API call when backend is ready
-      console.log(formMode === "create" ? "Creating meeting:" : "Updating meeting:", formData);
-      toast.success(formMode === "create" ? "Meeting scheduled successfully" : "Meeting updated successfully");
+      toast.info("Save functionality not yet available");
       setFormOpen(false);
-      await loadData();
     } catch (err) {
       console.error("Error saving meeting:", err);
       toast.error("Failed to save meeting");
@@ -160,11 +158,9 @@ export default function CommitteeMeetingsPage() {
     try {
       setIsDeleting(true);
       // TODO: Implement API call when backend is ready
-      console.log("Deleting meeting:", deletingMeeting.id);
-      toast.success("Meeting deleted successfully");
+      toast.info("Delete functionality not yet available");
       setDeleteOpen(false);
       setDeletingMeeting(null);
-      await loadData();
     } catch (err) {
       console.error("Error deleting meeting:", err);
       toast.error("Failed to delete meeting");

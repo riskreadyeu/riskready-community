@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Param, Query, Body, NotFoundException, BadRequestException } from '@nestjs/common';
 import { SOAService } from '../services/soa.service';
 import { SOAEntryService } from '../services/soa-entry.service';
+import { Prisma } from '@prisma/client';
 import {
   CreateSOADto,
   CreateSOAFromControlsDto,
@@ -26,10 +27,10 @@ export class SOAController {
     @Query('organisationId') organisationId?: string,
     @Query('status') status?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.StatementOfApplicabilityWhereInput = {};
     
     if (organisationId) where.organisationId = organisationId;
-    if (status) where.status = status;
+    if (status) where.status = status as Prisma.StatementOfApplicabilityWhereInput['status'];
 
     return this.service.findAll({
       skip: skip ? parseInt(skip) : undefined,
@@ -70,8 +71,8 @@ export class SOAController {
   async createFromControls(@Body() data: CreateSOAFromControlsDto) {
     try {
       return await this.service.createFromControls(data);
-    } catch (error: any) {
-      if (error.code === 'P2002') {
+    } catch (error: unknown) {
+      if (error instanceof Error && 'code' in error && (error as Record<string, unknown>)['code'] === 'P2002') {
         throw new BadRequestException(`SOA version ${data.version} already exists for this organisation`);
       }
       throw error;

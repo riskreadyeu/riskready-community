@@ -7,7 +7,10 @@ import { SOAService } from '../controls/services/soa.service';
 import { SOAEntryService } from '../controls/services/soa-entry.service';
 import { ScopeItemService } from '../controls/services/scope-item.service';
 
-type Executor = (payload: any, reviewedById: string) => Promise<any>;
+// Payload is dynamically typed from MCP action requests - use `any` to allow property access
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ExecutorPayload = any;
+type Executor = (payload: ExecutorPayload, reviewedById: string) => Promise<unknown>;
 
 @Injectable()
 export class McpApprovalExecutorService {
@@ -33,7 +36,7 @@ export class McpApprovalExecutorService {
     return this.executors.has(actionType);
   }
 
-  async execute(actionType: McpActionType, payload: any, reviewedById: string): Promise<any> {
+  async execute(actionType: McpActionType, payload: ExecutorPayload, reviewedById: string): Promise<unknown> {
     const executor = this.executors.get(actionType);
     if (!executor) {
       this.logger.warn(`No executor registered for action type: ${actionType}`);

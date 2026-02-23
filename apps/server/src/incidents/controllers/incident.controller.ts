@@ -20,6 +20,7 @@ import {
   IncidentCategory,
   IncidentSource,
 } from '@prisma/client';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('incidents')
 export class IncidentController {
@@ -85,7 +86,7 @@ export class IncidentController {
 
   @Post()
   async create(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() data: CreateIncidentDto,
   ) {
     return this.service.create(
@@ -101,7 +102,7 @@ export class IncidentController {
   @Put(':id')
   async update(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() data: UpdateIncidentDto,
   ) {
     return this.service.update(id, data, req.user.id);
@@ -119,7 +120,7 @@ export class IncidentController {
   @Put(':id/status')
   async updateStatus(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() data: { status: IncidentStatus; notes?: string },
   ) {
     return this.service.updateStatus(id, data.status, req.user.id, data.notes);
@@ -130,7 +131,7 @@ export class IncidentController {
   // ============================================
 
   @Post(':id/classify')
-  async autoClassify(@Param('id') id: string, @Request() req: any) {
+  async autoClassify(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.classificationService.autoClassifyIncident(id, req.user.id);
   }
 
@@ -142,7 +143,7 @@ export class IncidentController {
   @Post(':id/nis2-assessment')
   async assessNIS2(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body()
     data: {
       entityType?: string;
@@ -162,13 +163,13 @@ export class IncidentController {
       affectedServiceIds?: string[];
     },
   ) {
-    return this.classificationService.assessNIS2(id, data as any, req.user.id);
+    return this.classificationService.assessNIS2(id, data as Record<string, unknown>, req.user.id);
   }
 
   @Post(':id/dora-assessment')
   async assessDORA(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body()
     data: {
       financialEntityType?: string;
@@ -202,13 +203,13 @@ export class IncidentController {
       transactionsAffectedPercent?: number;
     },
   ) {
-    return this.classificationService.assessDORA(id, data as any, req.user.id);
+    return this.classificationService.assessDORA(id, data as Record<string, unknown>, req.user.id);
   }
 
   @Put(':id/nis2-override')
   async overrideNIS2(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() data: { isSignificant: boolean; justification: string },
   ) {
     return this.classificationService.overrideNIS2Classification(
@@ -222,7 +223,7 @@ export class IncidentController {
   @Put(':id/dora-override')
   async overrideDORA(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() data: { isMajor: boolean; justification: string },
   ) {
     return this.classificationService.overrideDORAClassification(
@@ -272,7 +273,7 @@ export class IncidentController {
   // ============================================
 
   @Post(':id/create-notifications')
-  async createNotifications(@Param('id') id: string, @Request() req: any) {
+  async createNotifications(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.notificationService.createRequiredNotifications(id, req.user.id);
   }
 }

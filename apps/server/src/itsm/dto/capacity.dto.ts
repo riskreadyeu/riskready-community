@@ -11,7 +11,7 @@ import {
     Min,
     Max,
 } from 'class-validator';
-import { CapacityPlanStatus } from '@prisma/client';
+import { CapacityPlanStatus, Prisma } from '@prisma/client';
 
 /**
  * DTO for recording a capacity measurement
@@ -46,7 +46,7 @@ export class RecordCapacityDto {
 
     @IsOptional()
     @IsObject()
-    customMetrics?: Record<string, unknown>;
+    customMetrics?: Prisma.InputJsonValue;
 
     @IsOptional()
     @IsString()

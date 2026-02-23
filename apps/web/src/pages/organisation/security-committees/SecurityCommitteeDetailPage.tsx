@@ -315,7 +315,7 @@ export default function SecurityCommitteeDetailPage() {
             <CardContent>
               {committee.memberships && committee.memberships.length > 0 ? (
                 <div className="space-y-2">
-                  {committee.memberships.map((membership: any) => (
+                  {committee.memberships.map((membership) => (
                     <div key={membership.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">

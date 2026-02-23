@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Users, Plus, Shield, Eye, Edit3, Trash2, UserCheck, GraduationCap } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -201,12 +202,12 @@ export default function KeyPersonnelPage() {
     {
       label: "Edit",
       icon: <Edit3 className="w-4 h-4" />,
-      onClick: (person) => console.log("Edit", person.id),
+      onClick: () => toast.info("Edit functionality not yet available"),
     },
     {
       label: "Delete",
       icon: <Trash2 className="w-4 h-4" />,
-      onClick: (person) => console.log("Delete", person.id),
+      onClick: () => toast.info("Delete functionality not yet available"),
       variant: "destructive",
       separator: true,
     },

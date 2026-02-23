@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { PolicyDocumentService } from '../services/policy-document.service';
 import { CreatePolicyDocumentDto, UpdatePolicyDocumentDto } from '../dto/policy.dto';
-import { DocumentType, DocumentStatus } from '@prisma/client';
+import { DocumentType, DocumentStatus, Prisma } from '@prisma/client';
 
 @Controller('policies')
 export class PolicyDocumentController {
@@ -17,7 +17,7 @@ export class PolicyDocumentController {
     @Query('search') search?: string,
     @Query('parentDocumentId') parentDocumentId?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.PolicyDocumentWhereInput = {};
     
     if (documentType) where.documentType = documentType;
     if (status) where.status = status;

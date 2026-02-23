@@ -12,7 +12,8 @@
     "test": "vitest run"
   },
   "imports": {
-    "#src/*": "./src/*"
+    "#src/*": "./src/*",
+    "#mcp-shared": "../../packages/mcp-shared/src/index.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.12.1",

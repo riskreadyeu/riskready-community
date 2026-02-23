@@ -1,8 +1,9 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule, OnApplicationBootstrap, Logger } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AuthModule } from './auth/auth.module';
+import { AuthService } from './auth/auth.service';
 import { HealthModule } from './health/health.module';
 import { OrganisationModule } from './organisation/organisation.module';
 import { ControlsModule } from './controls/controls.module';
@@ -53,8 +54,20 @@ import { RequestContextMiddleware } from './shared/middleware/request-context.mi
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
-export class AppModule implements NestModule {
+export class AppModule implements NestModule, OnApplicationBootstrap {
+  private readonly logger = new Logger(AppModule.name);
+
+  constructor(private readonly authService: AuthService) {}
+
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(RequestContextMiddleware).forRoutes('*');
+  }
+
+  async onApplicationBootstrap() {
+    try {
+      await this.authService.ensureBootstrapAdmin();
+    } catch (error) {
+      this.logger.error('Error ensuring bootstrap admin:', error);
+    }
   }
 }

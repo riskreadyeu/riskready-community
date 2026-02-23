@@ -1,47 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-
-async function getDefaultOrganisationId(): Promise<string> {
-  const org = await prisma.organisationProfile.findFirst({ select: { id: true } });
-  if (!org) throw new Error('No organisation found in the database. Please create one first.');
-  return org.id;
-}
-
-async function createPendingAction(params: {
-  actionType: string;
-  summary: string;
-  reason?: string;
-  payload: any;
-  mcpSessionId?: string;
-  mcpToolName: string;
-  organisationId?: string;
-}) {
-  const orgId = params.organisationId || await getDefaultOrganisationId();
-  const action = await prisma.mcpPendingAction.create({
-    data: {
-      actionType: params.actionType as any,
-      summary: params.summary,
-      reason: params.reason,
-      payload: params.payload,
-      mcpSessionId: params.mcpSessionId,
-      mcpToolName: params.mcpToolName,
-      organisationId: orgId,
-    },
-  });
-  return {
-    content: [{
-      type: 'text' as const,
-      text: JSON.stringify({
-        message: 'Action proposed successfully. Awaiting human approval.',
-        actionId: action.id,
-        actionType: action.actionType,
-        status: action.status,
-        summary: action.summary,
-      }, null, 2),
-    }],
-  };
-}
+import { createPendingAction, withErrorHandling } from '#mcp-shared';
 
 function registerDocumentMutations(server: McpServer) {
   server.tool(
@@ -63,17 +23,17 @@ function registerDocumentMutations(server: McpServer) {
       summary: z.string().optional().describe('Document summary'),
       parentDocumentId: z.string().optional().describe('Parent document UUID'),
       version: z.string().optional().describe('Document version'),
-      effectiveDate: z.string().optional().describe('Effective date (ISO 8601)'),
-      expiryDate: z.string().optional().describe('Expiry date (ISO 8601)'),
-      nextReviewDate: z.string().optional().describe('Next review date (ISO 8601)'),
+      effectiveDate: z.string().datetime().optional().describe('Effective date (ISO 8601)'),
+      expiryDate: z.string().datetime().optional().describe('Expiry date (ISO 8601)'),
+      nextReviewDate: z.string().datetime().optional().describe('Next review date (ISO 8601)'),
       requiresAcknowledgment: z.boolean().optional().describe('Whether acknowledgment is required'),
-      acknowledgmentDeadline: z.string().optional().describe('Acknowledgment deadline (ISO 8601)'),
-      tags: z.any().optional().describe('Tags (JSON array)'),
+      acknowledgmentDeadline: z.string().datetime().optional().describe('Acknowledgment deadline (ISO 8601)'),
+      tags: z.array(z.string()).optional().describe('Tags (JSON array)'),
       organisationId: z.string().optional().describe('Organisation UUID'),
       reason: z.string().optional().describe('Reason for creating this policy'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_policy', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_POLICY',
         summary: `Create ${params.documentType.toLowerCase()} "${params.title}" (${params.documentId})`,
@@ -105,7 +65,7 @@ function registerDocumentMutations(server: McpServer) {
         mcpToolName: 'propose_create_policy',
         organisationId: params.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -124,14 +84,14 @@ function registerDocumentMutations(server: McpServer) {
       summary: z.string().optional().describe('New summary'),
       effectiveDate: z.string().optional().describe('New effective date (ISO 8601)'),
       expiryDate: z.string().optional().describe('New expiry date (ISO 8601)'),
-      nextReviewDate: z.string().optional().describe('New next review date (ISO 8601)'),
+      nextReviewDate: z.string().datetime().optional().describe('New next review date (ISO 8601)'),
       requiresAcknowledgment: z.boolean().optional().describe('Whether acknowledgment is required'),
-      tags: z.any().optional().describe('Tags (JSON array)'),
+      tags: z.array(z.string()).optional().describe('Tags (JSON array)'),
       parentDocumentId: z.string().optional().describe('Parent document UUID'),
       reason: z.string().optional().describe('Reason for update'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_policy', async (params) => {
       const doc = await prisma.policyDocument.findUnique({
         where: { id: params.documentId },
         select: { id: true, documentId: true, title: true, organisationId: true },
@@ -166,7 +126,7 @@ function registerDocumentMutations(server: McpServer) {
         mcpToolName: 'propose_update_policy',
         organisationId: doc.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -177,11 +137,11 @@ function registerDocumentMutations(server: McpServer) {
       reviewType: z.enum(['SCHEDULED', 'TRIGGERED', 'AUDIT_FINDING', 'INCIDENT_RESPONSE', 'REGULATORY_CHANGE', 'REQUEST']).describe('Type of review'),
       findings: z.string().optional().describe('Review findings'),
       recommendations: z.string().optional().describe('Review recommendations'),
-      nextReviewDate: z.string().optional().describe('Recommended next review date (ISO 8601)'),
+      nextReviewDate: z.string().datetime().optional().describe('Recommended next review date (ISO 8601)'),
       reason: z.string().optional().describe('Reason for review'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_submit_review', async (params) => {
       const doc = await prisma.policyDocument.findUnique({
         where: { id: params.documentId },
         select: { id: true, documentId: true, title: true, organisationId: true },
@@ -205,7 +165,7 @@ function registerDocumentMutations(server: McpServer) {
         mcpToolName: 'propose_submit_review',
         organisationId: doc.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -217,7 +177,7 @@ function registerDocumentMutations(server: McpServer) {
       reason: z.string().optional().describe('Reason for approval'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_approve_policy', async (params) => {
       const doc = await prisma.policyDocument.findUnique({
         where: { id: params.documentId },
         select: { id: true, documentId: true, title: true, status: true, organisationId: true },
@@ -239,7 +199,7 @@ function registerDocumentMutations(server: McpServer) {
         mcpToolName: 'propose_approve_policy',
         organisationId: doc.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -247,11 +207,11 @@ function registerDocumentMutations(server: McpServer) {
     'Propose publishing an approved policy document. Requires human approval.',
     {
       documentId: z.string().describe('PolicyDocument UUID'),
-      effectiveDate: z.string().optional().describe('Effective date (ISO 8601)'),
+      effectiveDate: z.string().datetime().optional().describe('Effective date (ISO 8601)'),
       reason: z.string().optional().describe('Reason for publishing'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_publish_policy', async (params) => {
       const doc = await prisma.policyDocument.findUnique({
         where: { id: params.documentId },
         select: { id: true, documentId: true, title: true, status: true, organisationId: true },
@@ -273,7 +233,7 @@ function registerDocumentMutations(server: McpServer) {
         mcpToolName: 'propose_publish_policy',
         organisationId: doc.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -286,7 +246,7 @@ function registerDocumentMutations(server: McpServer) {
       reason: z.string().optional().describe('Reason for the proposal'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_retire_policy', async (params) => {
       const doc = await prisma.policyDocument.findUnique({
         where: { id: params.documentId },
         select: { id: true, documentId: true, title: true, status: true, organisationId: true },
@@ -309,7 +269,7 @@ function registerDocumentMutations(server: McpServer) {
         mcpToolName: 'propose_retire_policy',
         organisationId: doc.organisationId,
       });
-    },
+    }),
   );
 }
 
@@ -327,15 +287,15 @@ function registerExceptionMutations(server: McpServer) {
       riskAssessment: z.string().describe('Risk assessment'),
       residualRisk: z.string().describe('Residual risk level'),
       approvalLevel: z.enum(['BOARD', 'EXECUTIVE', 'SENIOR_MANAGEMENT', 'MANAGEMENT', 'TEAM_LEAD', 'PROCESS_OWNER']).describe('Required approval level'),
-      startDate: z.string().optional().describe('Start date (ISO 8601)'),
-      expiryDate: z.string().optional().describe('Expiry date (ISO 8601)'),
+      startDate: z.string().datetime().optional().describe('Start date (ISO 8601)'),
+      expiryDate: z.string().datetime().optional().describe('Expiry date (ISO 8601)'),
       compensatingControls: z.string().optional().describe('Compensating controls'),
       reviewFrequency: z.enum(['MONTHLY', 'QUARTERLY', 'SEMI_ANNUAL', 'ANNUAL', 'BIENNIAL', 'TRIENNIAL', 'ON_CHANGE', 'AS_NEEDED']).optional().describe('Exception review frequency'),
       organisationId: z.string().optional().describe('Organisation UUID'),
       reason: z.string().optional().describe('Reason for this proposal'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_exception', async (params) => {
       const doc = await prisma.policyDocument.findUnique({
         where: { id: params.documentId },
         select: { id: true, documentId: true, title: true, organisationId: true },
@@ -367,7 +327,7 @@ function registerExceptionMutations(server: McpServer) {
         mcpToolName: 'propose_create_exception',
         organisationId: params.organisationId || doc.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -379,7 +339,7 @@ function registerExceptionMutations(server: McpServer) {
       reason: z.string().optional().describe('Reason for approval'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_approve_exception', async (params) => {
       const exception = await prisma.documentException.findUnique({
         where: { id: params.exceptionId },
         select: {
@@ -408,7 +368,7 @@ function registerExceptionMutations(server: McpServer) {
         mcpToolName: 'propose_approve_exception',
         organisationId: exception.organisationId,
       });
-    },
+    }),
   );
 }
 
@@ -424,7 +384,7 @@ function registerChangeRequestMutations(server: McpServer) {
       justification: z.string().describe('Justification for the change'),
       changeType: z.enum(['INITIAL', 'MINOR_UPDATE', 'CLARIFICATION', 'ENHANCEMENT', 'CORRECTION', 'REGULATORY_UPDATE', 'MAJOR_REVISION', 'RESTRUCTURE']).describe('Type of change'),
       priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).describe('Priority level'),
-      targetDate: z.string().optional().describe('Target completion date (ISO 8601)'),
+      targetDate: z.string().datetime().optional().describe('Target completion date (ISO 8601)'),
       impactAssessment: z.string().optional().describe('Impact assessment'),
       affectedDocuments: z.string().optional().describe('Affected documents'),
       affectedProcesses: z.string().optional().describe('Affected processes'),
@@ -432,7 +392,7 @@ function registerChangeRequestMutations(server: McpServer) {
       reason: z.string().optional().describe('Reason for this proposal'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_change_request', async (params) => {
       const doc = await prisma.policyDocument.findUnique({
         where: { id: params.documentId },
         select: { id: true, documentId: true, title: true, organisationId: true },
@@ -462,7 +422,7 @@ function registerChangeRequestMutations(server: McpServer) {
         mcpToolName: 'propose_create_change_request',
         organisationId: params.organisationId || doc.organisationId,
       });
-    },
+    }),
   );
 }
 

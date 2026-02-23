@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { LocationService } from '../services/location.service';
 import { CreateLocationDto, UpdateLocationDto } from '../dto/location.dto';
 
@@ -12,7 +13,7 @@ export class LocationController {
     @Query('take') take?: string,
     @Query('country') country?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.LocationWhereInput = {};
     if (country) where.country = country;
 
     return this.service.findAll({

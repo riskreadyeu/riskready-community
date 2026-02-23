@@ -191,9 +191,9 @@ export function TreatmentPlanDialog({
       onSuccess?.();
       onOpenChange(false);
       if (!isEditing) resetForm();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error saving treatment plan:", err);
-      setError(err.message || "Failed to save Treatment Plan");
+      setError(err instanceof Error ? err.message : "Failed to save Treatment Plan");
     } finally {
       setSaving(false);
     }

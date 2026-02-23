@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { TechnologyPlatformService } from '../services/technology-platform.service';
 
 @Controller('organisation/technology-platforms')
@@ -13,7 +14,7 @@ export class TechnologyPlatformController {
     @Query('platformType') platformType?: string,
     @Query('criticalityLevel') criticalityLevel?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.TechnologyPlatformWhereInput = {};
     if (isActive !== undefined) where.isActive = isActive === 'true';
     if (platformType) where.platformType = platformType;
     if (criticalityLevel) where.criticalityLevel = criticalityLevel;
@@ -36,12 +37,12 @@ export class TechnologyPlatformController {
   }
 
   @Post()
-  async create(@Body() data: any) {
+  async create(@Body() data: Prisma.TechnologyPlatformCreateInput) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Prisma.TechnologyPlatformUpdateInput) {
     return this.service.update(id, data);
   }
 

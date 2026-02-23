@@ -50,10 +50,10 @@ export function ChangePlanningTab({ change }: ChangePlanningTabProps) {
           ) : (
             <p className="text-muted-foreground">No test plan provided</p>
           )}
-          {(change as any).testResults && (
+          {change.testResults && (
             <div className="mt-3 border-t pt-3">
               <h4 className="text-sm font-medium mb-2">Test Results</h4>
-              <p className="text-sm whitespace-pre-wrap text-muted-foreground">{(change as any).testResults}</p>
+              <p className="text-sm whitespace-pre-wrap text-muted-foreground">{change.testResults}</p>
             </div>
           )}
         </CardContent>
@@ -69,24 +69,24 @@ export function ChangePlanningTab({ change }: ChangePlanningTabProps) {
           ) : (
             <p className="text-muted-foreground">No backout plan provided</p>
           )}
-          {(change as any).rollbackTime != null && (
+          {change.rollbackTime != null && (
             <div className="flex items-center gap-2 text-sm mt-2 border-t pt-3">
               <span className="text-muted-foreground">Estimated Rollback Time:</span>
-              <Badge variant="outline">{(change as any).rollbackTime} min</Badge>
+              <Badge variant="outline">{change.rollbackTime} min</Badge>
             </div>
           )}
         </CardContent>
       </Card>
 
       {/* Affected Services */}
-      {(change as any).affectedServices?.length > 0 && (
+      {change.affectedServices && change.affectedServices.length > 0 && (
         <Card className="glass-card md:col-span-2">
           <CardHeader>
             <CardTitle>Affected Services</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {(change as any).affectedServices.map((service: string, i: number) => (
+              {change.affectedServices.map((service, i) => (
                 <Badge key={i} variant="secondary">{service}</Badge>
               ))}
             </div>

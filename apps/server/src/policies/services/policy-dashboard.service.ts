@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { DocumentType } from '@prisma/client';
 
 @Injectable()
 export class PolicyDashboardService {
@@ -242,12 +243,12 @@ export class PolicyDashboardService {
 
   private async getMandatoryDocumentStatus(organisationId: string) {
     // ISO 27001 mandatory documents
-    const mandatoryTypes = ['POLICY', 'STANDARD', 'PROCEDURE'];
-    
+    const mandatoryTypes: DocumentType[] = ['POLICY', 'STANDARD', 'PROCEDURE'];
+
     const documents = await this.prisma.policyDocument.findMany({
       where: {
         organisationId,
-        documentType: { in: mandatoryTypes as any },
+        documentType: { in: mandatoryTypes },
         status: 'PUBLISHED',
       },
       select: {

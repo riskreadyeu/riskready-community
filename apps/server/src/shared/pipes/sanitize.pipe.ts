@@ -3,14 +3,14 @@ import xss from 'xss';
 
 @Injectable()
 export class SanitizePipe implements PipeTransform {
-  transform(value: any, metadata: ArgumentMetadata) {
+  transform(value: unknown, metadata: ArgumentMetadata) {
     if (metadata.type !== 'body') {
       return value;
     }
     return this.sanitize(value);
   }
 
-  private sanitize(value: any): any {
+  private sanitize(value: unknown): unknown {
     if (typeof value === 'string') {
       return xss(value);
     }
@@ -18,9 +18,9 @@ export class SanitizePipe implements PipeTransform {
       return value.map((item) => this.sanitize(item));
     }
     if (value !== null && typeof value === 'object') {
-      const sanitized: Record<string, any> = {};
+      const sanitized: Record<string, unknown> = {};
       for (const key of Object.keys(value)) {
-        sanitized[key] = this.sanitize(value[key]);
+        sanitized[key] = this.sanitize((value as Record<string, unknown>)[key]);
       }
       return sanitized;
     }

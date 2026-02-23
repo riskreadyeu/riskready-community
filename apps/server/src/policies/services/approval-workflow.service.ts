@@ -521,7 +521,7 @@ export class ApprovalWorkflowService {
         firstName: membership.user.firstName || '',
         lastName: membership.user.lastName || '',
         email: membership.user.email,
-        role: (membership as any).role || 'Member',
+        role: (membership as Record<string, unknown>)['role'] as string || 'Member',
       });
     }
 
@@ -626,7 +626,7 @@ export class ApprovalWorkflowService {
     }
 
     // All document types have defaults
-    const config = await this.getDefaultWorkflowByDocumentType(document.documentType as any);
+    const config = await this.getDefaultWorkflowByDocumentType(document.documentType as 'POLICY' | 'STANDARD' | 'PROCEDURE' | 'GUIDELINE' | 'WORK_INSTRUCTION');
 
     return {
       valid: true,

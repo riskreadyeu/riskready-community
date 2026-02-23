@@ -4,14 +4,14 @@ export interface ScenarioInputs {
   assetCount?: number;
   vendorCount?: number;
   applicationCount?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 @Injectable()
 export class ScenarioEntityResolverService {
   private readonly logger = new Logger(ScenarioEntityResolverService.name);
 
-  async getScenarioEntities(params: any): Promise<ScenarioInputs> {
+  async getScenarioEntities(params: Record<string, unknown>): Promise<ScenarioInputs> {
     this.logger.debug('getScenarioEntities (stub)');
     return {};
   }

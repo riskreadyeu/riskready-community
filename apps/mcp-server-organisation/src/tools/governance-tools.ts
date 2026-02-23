@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerGovernanceTools(server: McpServer) {
   server.tool(
@@ -10,8 +11,8 @@ export function registerGovernanceTools(server: McpServer) {
       isActive: z.boolean().optional().describe('Filter by active status'),
       committeeType: z.string().optional().describe('Filter by committee type'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_committees', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.isActive !== undefined) where.isActive = params.isActive;
       if (params.committeeType) where.committeeType = params.committeeType;
 
@@ -38,7 +39,7 @@ export function registerGovernanceTools(server: McpServer) {
           text: JSON.stringify({ committees, count: committees.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -47,7 +48,7 @@ export function registerGovernanceTools(server: McpServer) {
     {
       id: z.string().describe('SecurityCommittee UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_committee', async ({ id }) => {
       const committee = await prisma.securityCommittee.findUnique({
         where: { id },
         include: {
@@ -75,7 +76,7 @@ export function registerGovernanceTools(server: McpServer) {
           text: JSON.stringify(committee, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -87,8 +88,8 @@ export function registerGovernanceTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(50).default(20).optional().describe('Page size (max 50)'),
     },
-    async (params) => {
-      const where: any = { committeeId: params.committeeId };
+    withErrorHandling('list_committee_meetings', async (params) => {
+      const where: Record<string, unknown> = { committeeId: params.committeeId };
       if (params.status) where.status = params.status;
 
       const [meetings, total] = await Promise.all([
@@ -122,7 +123,7 @@ export function registerGovernanceTools(server: McpServer) {
           text: JSON.stringify({ meetings, total, skip: params.skip || 0, take: params.take || 20 }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -131,7 +132,7 @@ export function registerGovernanceTools(server: McpServer) {
     {
       id: z.string().describe('CommitteeMeeting UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_committee_meeting', async ({ id }) => {
       const meeting = await prisma.committeeMeeting.findUnique({
         where: { id },
         include: {
@@ -180,7 +181,7 @@ export function registerGovernanceTools(server: McpServer) {
           text: JSON.stringify(meeting, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -192,8 +193,8 @@ export function registerGovernanceTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_meeting_action_items', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.status) where.status = params.status;
       if (params.assignedToId) where.assignedToId = params.assignedToId;
 
@@ -231,6 +232,6 @@ export function registerGovernanceTools(server: McpServer) {
           text: JSON.stringify({ actionItems: items, total, skip: params.skip || 0, take: params.take || 50 }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerPolicyLifecycleTools(server: McpServer) {
   server.tool(
@@ -9,7 +10,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
     {
       documentId: z.string().describe('PolicyDocument UUID'),
     },
-    async ({ documentId }) => {
+    withErrorHandling('list_document_versions', async ({ documentId }) => {
       const doc = await prisma.policyDocument.findUnique({
         where: { id: documentId },
         select: { id: true, documentId: true, title: true },
@@ -20,6 +21,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
 
       const versions = await prisma.documentVersion.findMany({
         where: { documentId },
+        take: 1000,
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
@@ -42,7 +44,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
           text: JSON.stringify({ document: doc, versions, count: versions.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -51,7 +53,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
     {
       documentId: z.string().describe('PolicyDocument UUID'),
     },
-    async ({ documentId }) => {
+    withErrorHandling('list_document_reviews', async ({ documentId }) => {
       const doc = await prisma.policyDocument.findUnique({
         where: { id: documentId },
         select: { id: true, documentId: true, title: true },
@@ -62,6 +64,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
 
       const reviews = await prisma.documentReview.findMany({
         where: { documentId },
+        take: 1000,
         orderBy: { reviewDate: 'desc' },
         select: {
           id: true,
@@ -82,7 +85,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
           text: JSON.stringify({ document: doc, reviews, count: reviews.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -92,7 +95,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
       documentId: z.string().describe('PolicyDocument UUID'),
       status: z.enum(['REQUESTED', 'UNDER_REVIEW', 'APPROVED', 'ACTIVE', 'EXPIRED', 'REVOKED', 'CLOSED']).optional().describe('Filter by status'),
     },
-    async ({ documentId, status }) => {
+    withErrorHandling('list_document_exceptions', async ({ documentId, status }) => {
       const doc = await prisma.policyDocument.findUnique({
         where: { id: documentId },
         select: { id: true, documentId: true, title: true },
@@ -101,11 +104,12 @@ export function registerPolicyLifecycleTools(server: McpServer) {
         return { content: [{ type: 'text' as const, text: `Policy document ${documentId} not found` }], isError: true };
       }
 
-      const where: any = { documentId };
+      const where: Record<string, unknown> = { documentId };
       if (status) where.status = status;
 
       const exceptions = await prisma.documentException.findMany({
         where,
+        take: 1000,
         orderBy: { requestedAt: 'desc' },
         select: {
           id: true,
@@ -127,7 +131,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
           text: JSON.stringify({ document: doc, exceptions, count: exceptions.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -136,7 +140,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
     {
       documentId: z.string().describe('PolicyDocument UUID'),
     },
-    async ({ documentId }) => {
+    withErrorHandling('get_acknowledgment_status', async ({ documentId }) => {
       const doc = await prisma.policyDocument.findUnique({
         where: { id: documentId },
         select: { id: true, documentId: true, title: true, requiresAcknowledgment: true, version: true },
@@ -147,6 +151,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
 
       const acknowledgments = await prisma.documentAcknowledgment.findMany({
         where: { documentId, documentVersion: doc.version },
+        take: 1000,
         select: {
           id: true,
           isAcknowledged: true,
@@ -180,6 +185,6 @@ export function registerPolicyLifecycleTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

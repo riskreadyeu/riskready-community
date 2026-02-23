@@ -63,7 +63,8 @@ export class ExecutivePositionService {
       orderBy: { executiveLevel: 'asc' },
     });
 
-    const buildTree = (reportsToId: string | null): any[] => {
+    interface PositionTreeNode extends Record<string, unknown> { subordinates: PositionTreeNode[] }
+    const buildTree = (reportsToId: string | null): PositionTreeNode[] => {
       return positions
         .filter(p => p.reportsToId === reportsToId)
         .map(p => ({

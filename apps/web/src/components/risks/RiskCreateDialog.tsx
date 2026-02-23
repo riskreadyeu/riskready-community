@@ -63,9 +63,9 @@ export function RiskCreateDialog({ open, onOpenChange, onSuccess }: RiskCreateDi
       onSuccess?.();
       onOpenChange(false);
       resetForm();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error creating risk:", err);
-      setError(err.message || "Failed to create risk");
+      setError(err instanceof Error ? err.message : "Failed to create risk");
     } finally {
       setSaving(false);
     }

@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerEvidenceTools(server: McpServer) {
   server.tool(
@@ -14,8 +15,8 @@ export function registerEvidenceTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_evidence', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.status) where.status = params.status;
       if (params.evidenceType) where.evidenceType = params.evidenceType;
       if (params.classification) where.classification = params.classification;
@@ -61,7 +62,7 @@ export function registerEvidenceTools(server: McpServer) {
           text: JSON.stringify({ evidence, total, skip: params.skip || 0, take: params.take || 50 }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -70,7 +71,7 @@ export function registerEvidenceTools(server: McpServer) {
     {
       id: z.string().describe('Evidence UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_evidence', async ({ id }) => {
       const evidence = await prisma.evidence.findUnique({
         where: { id },
         include: {
@@ -104,16 +105,16 @@ export function registerEvidenceTools(server: McpServer) {
           text: JSON.stringify(evidence, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'search_evidence',
     'Search evidence by reference, title, or description.',
     {
-      query: z.string().describe('Search term (matches against evidenceRef, title, description)'),
+      query: z.string().max(200).describe('Search term (matches against evidenceRef, title, description)'),
     },
-    async ({ query }) => {
+    withErrorHandling('search_evidence', async ({ query }) => {
       const evidence = await prisma.evidence.findMany({
         where: {
           OR: [
@@ -141,14 +142,14 @@ export function registerEvidenceTools(server: McpServer) {
           text: JSON.stringify({ evidence, count: evidence.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_evidence_stats',
     'Get aggregate evidence statistics: total count, by status, by type, by classification, expiring soon.',
     {},
-    async () => {
+    withErrorHandling('get_evidence_stats', async () => {
       const thirtyDaysFromNow = new Date();
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
@@ -177,6 +178,6 @@ export function registerEvidenceTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

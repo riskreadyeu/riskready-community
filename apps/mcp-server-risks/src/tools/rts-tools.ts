@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerRTSTools(server: McpServer) {
   server.tool(
@@ -12,8 +13,8 @@ export function registerRTSTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ status, organisationId, skip, take }) => {
-      const where: any = {};
+    withErrorHandling('list_rts', async ({ status, organisationId, skip, take }) => {
+      const where: Record<string, unknown> = {};
       if (status) where.status = status;
       if (organisationId) where.organisationId = organisationId;
 
@@ -42,7 +43,7 @@ export function registerRTSTools(server: McpServer) {
         prisma.riskToleranceStatement.count({ where }),
       ]);
 
-      const response: any = { results, total: count, skip, take };
+      const response: Record<string, unknown> = { results, total: count, skip, take };
       if (count === 0) {
         response.note = 'No Risk Tolerance Statements found matching the specified filters.';
       }
@@ -50,7 +51,7 @@ export function registerRTSTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -59,7 +60,7 @@ export function registerRTSTools(server: McpServer) {
     {
       id: z.string().describe('RiskToleranceStatement UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_rts', async ({ id }) => {
       const rts = await prisma.riskToleranceStatement.findUnique({
         where: { id },
         include: {
@@ -89,7 +90,7 @@ export function registerRTSTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(rts, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -98,8 +99,8 @@ export function registerRTSTools(server: McpServer) {
     {
       organisationId: z.string().optional().describe('Organisation UUID'),
     },
-    async ({ organisationId }) => {
-      const where: any = {};
+    withErrorHandling('get_rts_stats', async ({ organisationId }) => {
+      const where: Record<string, unknown> = {};
       if (organisationId) where.organisationId = organisationId;
 
       const [total, byStatus, byLevel] = await Promise.all([
@@ -113,11 +114,11 @@ export function registerRTSTools(server: McpServer) {
           type: 'text' as const,
           text: JSON.stringify({
             total,
-            byStatus: Object.fromEntries(byStatus.map((s: any) => [s.status, s._count])),
-            byToleranceLevel: Object.fromEntries(byLevel.map((l: any) => [l.proposedToleranceLevel, l._count])),
+            byStatus: Object.fromEntries(byStatus.map((s: Record<string, unknown>) => [s.status, s._count])),
+            byToleranceLevel: Object.fromEntries(byLevel.map((l: Record<string, unknown>) => [l.proposedToleranceLevel, l._count])),
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

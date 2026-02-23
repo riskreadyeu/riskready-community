@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, ChangeCategory } from '@prisma/client';
 
 @Injectable()
 export class ChangeTemplateService {
@@ -18,7 +18,7 @@ export class ChangeTemplateService {
     const where: Prisma.ChangeTemplateWhereInput = {};
     
     if (isActive !== undefined) where.isActive = isActive;
-    if (category) where.category = category as any;
+    if (category) where.category = category as ChangeCategory;
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },

@@ -148,8 +148,71 @@ export class RiskCalculationService {
       throw new Error(`Scenario not found: ${scenarioId}`);
     }
 
-    // Read stored factor scores (manual 1-5 inputs, default to 3)
-    const factors: FactorScores = {
+    // Extract stored scores
+    const factors = this.extractFactorScores(scenario);
+    const impacts = this.extractImpactScores(scenario);
+
+    // Compute inherent scores
+    const likelihood = this.calculateLikelihood(factors);
+    const rawImpact = this.calculateImpact(impacts);
+    const impact = scenario.weightedImpact ?? rawImpact;
+    const inherentScore = Math.round(likelihood * impact);
+
+    // Compute residual scores via control effectiveness
+    const controlEffectiveness = await this.calculateControlEffectiveness(scenario);
+    const residualLikelihood = this.applyControlReduction(likelihood, controlEffectiveness.likelihoodReduction);
+    const residualImpact = this.applyControlReduction(impact, controlEffectiveness.impactReduction);
+    const residualScore = Math.round(residualLikelihood * residualImpact * 10) / 10;
+    const zone = this.determineZone(residualScore);
+
+    // Build trace and change tracking
+    const calculationTrace = this.buildCalculationTrace(
+      scenario, factors, impacts, likelihood, impact,
+      residualLikelihood, residualImpact, controlEffectiveness,
+    );
+    const previousResidualScore = scenario.residualScore;
+    const scoreChange = previousResidualScore !== null ? residualScore - previousResidualScore : null;
+
+    // Persist results atomically
+    await this.persistCalculationResults(scenarioId, {
+      factors, impacts, likelihood, impact, inherentScore,
+      residualScore, previousResidualScore, scoreChange,
+      calculationTrace, trigger, triggerEntityId, userId,
+    });
+
+    // Emit events
+    await this.eventBus.emitScenarioCalculated(
+      scenario.riskId, scenarioId,
+      { residualScore, zone, scoreChange },
+      trigger, userId,
+    );
+    if (scoreChange && scoreChange >= 4) {
+      await this.createScoreIncreaseAlert(scenario.riskId, scenario.title, previousResidualScore!, residualScore);
+    }
+
+    const result: CalculationResult = {
+      scenarioId, factors, impacts, likelihood, impact, inherentScore,
+      residualLikelihood, residualImpact, residualScore,
+      previousResidualScore, scoreChange, zone,
+      controlEffectiveness, calculationTrace,
+      calculatedAt: new Date(),
+    };
+
+    this.logger.log(
+      `Calculated scenario ${scenarioId}: ` +
+      `Inherent(L=${likelihood}, I=${impact}, S=${inherentScore}) -> ` +
+      `Residual(L=${residualLikelihood}, I=${residualImpact}, S=${residualScore}) ` +
+      `[${controlEffectiveness.controlCount} controls, ${controlEffectiveness.overallStrength}] Zone=${zone}`,
+    );
+
+    return result;
+  }
+
+  /**
+   * Extract and clamp F1-F6 factor scores from a scenario record
+   */
+  private extractFactorScores(scenario: ScenarioWithLinks): FactorScores {
+    return {
       f1ThreatFrequency: this.clampFactor(scenario.f1ThreatFrequency ?? 3),
       f2ControlEffectiveness: this.clampFactor(scenario.f2ControlEffectiveness ?? 3),
       f3GapVulnerability: this.clampFactor(scenario.f3GapVulnerability ?? 3),
@@ -157,62 +220,48 @@ export class RiskCalculationService {
       f5AttackSurface: this.clampFactor(scenario.f5AttackSurface ?? 3),
       f6Environmental: this.clampFactor(scenario.f6Environmental ?? 3),
     };
+  }
 
-    // Read stored impact scores (manual 1-5 inputs, default to 1)
-    const impacts: ImpactScores = {
+  /**
+   * Extract I1-I5 impact scores from a scenario record
+   */
+  private extractImpactScores(scenario: ScenarioWithLinks): ImpactScores {
+    return {
       i1Financial: scenario.i1Financial ?? 1,
       i2Operational: scenario.i2Operational ?? 1,
       i3Regulatory: scenario.i3Regulatory ?? 1,
       i4Reputational: scenario.i4Reputational ?? 1,
       i5Strategic: scenario.i5Strategic ?? 1,
     };
+  }
 
-    // Likelihood = average(F1, F2, F3) rounded to 1 decimal place
-    const likelihood = this.calculateLikelihood(factors);
+  /**
+   * Persist scenario update and calculation history in a single transaction
+   */
+  private async persistCalculationResults(
+    scenarioId: string,
+    params: {
+      factors: FactorScores;
+      impacts: ImpactScores;
+      likelihood: number;
+      impact: number;
+      inherentScore: number;
+      residualScore: number;
+      previousResidualScore: number | null;
+      scoreChange: number | null;
+      calculationTrace: CalculationTrace;
+      trigger: CalculationTrigger;
+      triggerEntityId?: string;
+      userId?: string;
+    },
+  ): Promise<void> {
+    const {
+      factors, impacts, likelihood, impact, inherentScore, residualScore,
+      previousResidualScore, scoreChange, calculationTrace, trigger, triggerEntityId, userId,
+    } = params;
 
-    // Impact = max of all BIRT categories, or use stored weightedImpact from BIRT
-    const rawImpact = this.calculateImpact(impacts);
-    const impact = scenario.weightedImpact ?? rawImpact;
-
-    // Inherent score = likelihood × impact
-    const inherentScore = Math.round(likelihood * impact);
-
-    // Calculate control effectiveness from linked controls
-    const controlEffectiveness = await this.calculateControlEffectiveness(scenario);
-
-    // Apply control effectiveness to calculate residual scores
-    const residualLikelihood = this.applyControlReduction(
-      likelihood,
-      controlEffectiveness.likelihoodReduction,
-    );
-    const residualImpact = this.applyControlReduction(
-      impact,
-      controlEffectiveness.impactReduction,
-    );
-    const residualScore = Math.round(residualLikelihood * residualImpact * 10) / 10;
-
-    // Determine zone based on residual score
-    const zone = this.determineZone(residualScore);
-
-    // Build calculation trace
-    const calculationTrace = this.buildCalculationTrace(
-      scenario,
-      factors,
-      impacts,
-      likelihood,
-      impact,
-      residualLikelihood,
-      residualImpact,
-      controlEffectiveness,
-    );
-
-    // Get previous score for change tracking
-    const previousResidualScore = scenario.residualScore;
-    const scoreChange = previousResidualScore !== null ? residualScore - previousResidualScore : null;
-
-    // Use transaction for atomic updates (scenario + history)
     await this.prisma.$transaction(async (tx) => {
-      console.log(`[RiskCalculation] Syncing Score ${likelihood} to Enum ${this.mapScoreToLikelihood(likelihood)}`);
+      this.logger.debug(`Syncing Score ${likelihood} to Enum ${this.mapScoreToLikelihood(likelihood)}`);
 
       await tx.riskScenario.update({
         where: { id: scenarioId },
@@ -223,10 +272,8 @@ export class RiskCalculationService {
           i3Regulatory: impacts.i3Regulatory,
           i4Reputational: impacts.i4Reputational,
           i5Strategic: impacts.i5Strategic,
-
           likelihood: this.mapScoreToLikelihood(likelihood),
           impact: this.mapScoreToImpact(impact),
-
           calculatedLikelihood: likelihood,
           calculatedImpact: impact,
           inherentScore,
@@ -257,45 +304,6 @@ export class RiskCalculationService {
         },
       });
     });
-
-    await this.eventBus.emitScenarioCalculated(
-      scenario.riskId,
-      scenarioId,
-      { residualScore, zone, scoreChange },
-      trigger,
-      userId,
-    );
-
-    if (scoreChange && scoreChange >= 4) {
-      await this.createScoreIncreaseAlert(scenario.riskId, scenario.title, previousResidualScore!, residualScore);
-    }
-
-    const result: CalculationResult = {
-      scenarioId,
-      factors,
-      impacts,
-      likelihood,
-      impact,
-      inherentScore,
-      residualLikelihood,
-      residualImpact,
-      residualScore,
-      previousResidualScore,
-      scoreChange,
-      zone,
-      controlEffectiveness,
-      calculationTrace,
-      calculatedAt: new Date(),
-    };
-
-    this.logger.log(
-      `Calculated scenario ${scenarioId}: ` +
-      `Inherent(L=${likelihood}, I=${impact}, S=${inherentScore}) -> ` +
-      `Residual(L=${residualLikelihood}, I=${residualImpact}, S=${residualScore}) ` +
-      `[${controlEffectiveness.controlCount} controls, ${controlEffectiveness.overallStrength}] Zone=${zone}`,
-    );
-
-    return result;
   }
 
   /**
@@ -457,9 +465,9 @@ export class RiskCalculationService {
     let validControls = 0;
 
     for (const link of controlLinks) {
-      const control = link.control as any;
+      const control = link.control;
 
-      const status = control.implementationStatus as string | undefined;
+      const status = control.implementationStatus;
       if (status === 'IMPLEMENTED') {
         totalScore += 100;
         validControls++;

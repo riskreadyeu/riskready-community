@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ResourceOwnerGuard, CheckResourceOwner } from '../../shared/guards/resource-owner.guard';
 import { AssetService } from '../services/asset.service';
 import { CreateAssetDto, UpdateAssetDto, ImportAssetsDto } from '../dto/asset.dto';
@@ -33,18 +34,18 @@ export class AssetController {
     @Query('capacityStatus') capacityStatus?: string,
     @Query('search') search?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.AssetWhereInput = {};
 
-    if (assetType) where.assetType = assetType;
-    if (status) where.status = status;
-    if (businessCriticality) where.businessCriticality = businessCriticality;
-    if (dataClassification) where.dataClassification = dataClassification;
+    if (assetType) where.assetType = assetType as Prisma.AssetWhereInput['assetType'];
+    if (status) where.status = status as Prisma.AssetWhereInput['status'];
+    if (businessCriticality) where.businessCriticality = businessCriticality as Prisma.AssetWhereInput['businessCriticality'];
+    if (dataClassification) where.dataClassification = dataClassification as Prisma.AssetWhereInput['dataClassification'];
     if (departmentId) where.departmentId = departmentId;
     if (locationId) where.locationId = locationId;
     if (ownerId) where.ownerId = ownerId;
-    if (cloudProvider) where.cloudProvider = cloudProvider;
+    if (cloudProvider) where.cloudProvider = cloudProvider as Prisma.AssetWhereInput['cloudProvider'];
     if (inIsmsScope !== undefined) where.inIsmsScope = inIsmsScope === 'true';
-    if (capacityStatus) where.capacityStatus = capacityStatus;
+    if (capacityStatus) where.capacityStatus = capacityStatus as Prisma.AssetWhereInput['capacityStatus'];
 
     if (search) {
       where.OR = [
@@ -113,13 +114,13 @@ export class AssetController {
   @Post()
   async create(@Body() data: CreateAssetDto) {
     // DTO validation ensures data integrity, cast to service input type
-    return this.service.create(data as any);
+    return this.service.create(data as unknown as Prisma.AssetCreateInput);
   }
 
   @Put(':id')
   async update(@Param('id') id: string, @Body() data: UpdateAssetDto) {
     // DTO validation ensures data integrity, cast to service input type
-    return this.service.update(id, data as any);
+    return this.service.update(id, data as unknown as Prisma.AssetUpdateInput);
   }
 
   @Delete(':id')

@@ -9,7 +9,7 @@ import {
   Body,
 } from '@nestjs/common';
 import { DocumentSectionService } from '../services/document-section.service';
-import { DocumentSectionType, DocumentType } from '@prisma/client';
+import { DocumentSectionType, DocumentType, Prisma } from '@prisma/client';
 
 @Controller('policies')
 export class DocumentSectionController {
@@ -38,7 +38,7 @@ export class DocumentSectionController {
       title: string;
       order?: number;
       content?: string;
-      structuredData?: any;
+      structuredData?: Prisma.InputJsonValue;
       templateId?: string;
       isVisible?: boolean;
       isCollapsed?: boolean;
@@ -56,7 +56,7 @@ export class DocumentSectionController {
       title?: string;
       order?: number;
       content?: string;
-      structuredData?: any;
+      structuredData?: Prisma.InputJsonValue;
       isVisible?: boolean;
       isCollapsed?: boolean;
     },
@@ -167,7 +167,7 @@ export class DocumentSectionController {
       inputs?: string[];
       outputs?: string[];
       isDecisionPoint?: boolean;
-      decisionOptions?: any;
+      decisionOptions?: Prisma.InputJsonValue;
     },
   ) {
     return this.service.createProcessStep({ documentId, ...data });
@@ -190,7 +190,7 @@ export class DocumentSectionController {
       inputs?: string[];
       outputs?: string[];
       isDecisionPoint?: boolean;
-      decisionOptions?: any;
+      decisionOptions?: Prisma.InputJsonValue;
     },
   ) {
     return this.service.updateProcessStep(id, data);
@@ -219,7 +219,7 @@ export class DocumentSectionController {
         inputs?: string[];
         outputs?: string[];
         isDecisionPoint?: boolean;
-        decisionOptions?: any;
+        decisionOptions?: Prisma.InputJsonValue;
       }>;
     },
   ) {
@@ -310,7 +310,7 @@ export class DocumentSectionController {
     data: {
       role: string;
       responsibilities?: string[];
-      raciMatrix?: any;
+      raciMatrix?: Prisma.InputJsonValue;
       order?: number;
     },
   ) {
@@ -324,7 +324,7 @@ export class DocumentSectionController {
     data: {
       role?: string;
       responsibilities?: string[];
-      raciMatrix?: any;
+      raciMatrix?: Prisma.InputJsonValue;
       order?: number;
     },
   ) {
@@ -344,7 +344,7 @@ export class DocumentSectionController {
       roles: Array<{
         role: string;
         responsibilities?: string[];
-        raciMatrix?: any;
+        raciMatrix?: Prisma.InputJsonValue;
         order?: number;
       }>;
     },
@@ -456,7 +456,7 @@ export class DocumentSectionController {
       defaultOrder?: number;
       defaultTitle?: string;
       defaultContent?: string;
-      schema?: any;
+      schema?: Prisma.InputJsonValue;
       description?: string;
       helpText?: string;
       organisationId?: string;
@@ -477,7 +477,7 @@ export class DocumentSectionController {
       defaultOrder?: number;
       defaultTitle?: string;
       defaultContent?: string;
-      schema?: any;
+      schema?: Prisma.InputJsonValue;
       description?: string;
       helpText?: string;
     },

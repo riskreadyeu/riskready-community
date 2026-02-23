@@ -1,9 +1,10 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, Request, BadRequestException } from '@nestjs/common';
 import { TreatmentPlanService } from '../services/treatment-plan.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { TreatmentType, TreatmentStatus, TreatmentPriority, ActionStatus } from '@prisma/client';
+import { TreatmentType, TreatmentStatus, TreatmentPriority, ActionStatus, Prisma } from '@prisma/client';
 import { CreateTreatmentPlanDto, UpdateTreatmentPlanDto, CreateTreatmentActionDto } from '../dto/risk.dto';
 import { UpdateProgressDto, UpdateTreatmentActionDto } from '../dto/treatment-plan.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('risks/treatment-plans')
 export class TreatmentPlanController {
@@ -22,7 +23,7 @@ export class TreatmentPlanController {
     @Query('riskId') riskId?: string,
     @Query('organisationId') organisationId?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.TreatmentPlanWhereInput = {};
     if (status) where.status = status;
     if (type) where.treatmentType = type;
     if (priority) where.priority = priority;
@@ -54,7 +55,7 @@ export class TreatmentPlanController {
 
   @Post()
   async create(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() data: CreateTreatmentPlanDto,
   ) {
     // Auto-fetch organisationId from the risk if not provided
@@ -82,7 +83,7 @@ export class TreatmentPlanController {
 
   @Put(':id')
   async update(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() data: UpdateTreatmentPlanDto,
   ) {
@@ -100,13 +101,13 @@ export class TreatmentPlanController {
   }
 
   @Put(':id/approve')
-  async approve(@Request() req: any, @Param('id') id: string) {
+  async approve(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.treatmentPlanService.approve(id, req.user.id);
   }
 
   @Put(':id/progress')
   async updateProgress(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() data: UpdateProgressDto,
   ) {
@@ -126,7 +127,7 @@ export class TreatmentPlanController {
   // Treatment Actions
   @Post(':id/actions')
   async createAction(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') treatmentPlanId: string,
     @Body() data: CreateTreatmentActionDto,
   ) {

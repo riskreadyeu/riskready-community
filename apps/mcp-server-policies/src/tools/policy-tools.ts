@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerPolicyTools(server: McpServer) {
   server.tool(
@@ -13,8 +14,8 @@ export function registerPolicyTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_policy_documents', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.status) where.status = params.status;
       if (params.documentType) where.documentType = params.documentType;
       if (params.classification) where.classification = params.classification;
@@ -60,7 +61,7 @@ export function registerPolicyTools(server: McpServer) {
           text: JSON.stringify({ documents, total, skip: params.skip || 0, take: params.take || 50 }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -69,7 +70,7 @@ export function registerPolicyTools(server: McpServer) {
     {
       id: z.string().describe('PolicyDocument UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_policy_document', async ({ id }) => {
       const doc = await prisma.policyDocument.findUnique({
         where: { id },
         include: {
@@ -103,16 +104,16 @@ export function registerPolicyTools(server: McpServer) {
           text: JSON.stringify(doc, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'search_policy_documents',
     'Search policy documents by document ID, title, or purpose.',
     {
-      query: z.string().describe('Search term'),
+      query: z.string().max(200).describe('Search term'),
     },
-    async ({ query }) => {
+    withErrorHandling('search_policy_documents', async ({ query }) => {
       const documents = await prisma.policyDocument.findMany({
         where: {
           OR: [
@@ -139,14 +140,14 @@ export function registerPolicyTools(server: McpServer) {
           text: JSON.stringify({ documents, count: documents.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_policy_stats',
     'Get aggregate policy statistics: total count, by status, by type, review status, exception counts.',
     {},
-    async () => {
+    withErrorHandling('get_policy_stats', async () => {
       const now = new Date();
 
       const [total, byStatus, byType, overdueReviews, activeExceptions] = await Promise.all([
@@ -176,14 +177,14 @@ export function registerPolicyTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_policy_hierarchy',
     'Get the policy document hierarchy showing parent-child relationships.',
     {},
-    async () => {
+    withErrorHandling('get_policy_hierarchy', async () => {
       const documents = await prisma.policyDocument.findMany({
         where: { parentDocumentId: null },
         select: {
@@ -220,6 +221,6 @@ export function registerPolicyTools(server: McpServer) {
           text: JSON.stringify({ hierarchy: documents, topLevelCount: documents.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

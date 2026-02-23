@@ -79,7 +79,7 @@ export function IssuesExceptions() {
         setNcs(ncData.results);
         setNcStats(ncStatsData);
         setExceptions(excData.results);
-        setExceptionStats(excStatsData as any);
+        setExceptionStats(excStatsData as { active: number } | null);
       } catch (err) {
         console.error("Failed to load issues & exceptions:", err);
       } finally {
@@ -95,7 +95,7 @@ export function IssuesExceptions() {
       (ncStats.byStatus?.['DRAFT'] ?? 0) +
       (ncStats.byStatus?.['AWAITING_VERIFICATION'] ?? 0)
     : 0;
-  const activeExceptions = (exceptionStats as any)?.active ?? 0;
+  const activeExceptions = exceptionStats?.active ?? 0;
 
   return (
     <Card>

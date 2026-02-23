@@ -17,4 +17,4 @@ export { RevisionHistory } from "./RevisionHistory";
 export { DocumentRenderer, type PolicyDocumentData } from "./DocumentRenderer";
 
 // Structured Editor
-export { DocumentEditor, type EditorSection } from "./DocumentEditor";
+export { DocumentEditor } from "./DocumentEditor";

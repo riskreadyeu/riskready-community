@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerOrgProfileTools(server: McpServer) {
   server.tool(
@@ -9,7 +10,7 @@ export function registerOrgProfileTools(server: McpServer) {
     {
       id: z.string().optional().describe('Organisation UUID (uses first org if omitted)'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_organisation_profile', async ({ id }) => {
       const org = id
         ? await prisma.organisationProfile.findUnique({ where: { id } })
         : await prisma.organisationProfile.findFirst();
@@ -24,7 +25,7 @@ export function registerOrgProfileTools(server: McpServer) {
           text: JSON.stringify(org, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -33,7 +34,7 @@ export function registerOrgProfileTools(server: McpServer) {
     {
       id: z.string().optional().describe('Organisation UUID (uses first org if omitted)'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_regulatory_profile', async ({ id }) => {
       const org = id
         ? await prisma.organisationProfile.findUnique({
             where: { id },
@@ -89,6 +90,6 @@ export function registerOrgProfileTools(server: McpServer) {
           text: JSON.stringify(org, null, 2),
         }],
       };
-    },
+    }),
   );
 }

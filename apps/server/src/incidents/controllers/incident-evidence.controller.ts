@@ -11,7 +11,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { IncidentEvidenceType } from '@prisma/client';
+import { IncidentEvidenceType, Prisma } from '@prisma/client';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('incidents/:incidentId/evidence')
 export class IncidentEvidenceController {
@@ -24,7 +25,7 @@ export class IncidentEvidenceController {
     @Query('skip') skip?: string,
     @Query('take') take?: string,
   ) {
-    const where: any = { incidentId };
+    const where: Prisma.IncidentEvidenceWhereInput = { incidentId };
     if (evidenceType) where.evidenceType = evidenceType;
 
     const [results, count] = await Promise.all([
@@ -64,7 +65,7 @@ export class IncidentEvidenceController {
   @Post()
   async create(
     @Param('incidentId') incidentId: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body()
     data: {
       evidenceType: IncidentEvidenceType;
@@ -209,7 +210,7 @@ export class IncidentEvidenceController {
   async updateChainOfCustody(
     @Param('incidentId') incidentId: string,
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body()
     data: {
       notes: string;
@@ -234,8 +235,7 @@ export class IncidentEvidenceController {
       where: { id },
       data: {
         chainOfCustodyNotes: updatedNotes,
-        chainOfCustodyMaintained: true,
-      } as any,
+      },
       include: {
         collectedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
       },

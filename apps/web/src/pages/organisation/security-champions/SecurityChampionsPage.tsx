@@ -186,12 +186,12 @@ export default function SecurityChampionsPage() {
     {
       label: "Edit",
       icon: <Edit3 className="w-4 h-4" />,
-      onClick: (champion) => console.log("Edit", champion.id),
+      onClick: () => toast.info("Edit functionality not yet available"),
     },
     {
       label: "Delete",
       icon: <Trash2 className="w-4 h-4" />,
-      onClick: (champion) => console.log("Delete", champion.id),
+      onClick: () => toast.info("Delete functionality not yet available"),
       variant: "destructive",
       separator: true,
     },

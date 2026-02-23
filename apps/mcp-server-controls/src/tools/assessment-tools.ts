@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerAssessmentTools(server: McpServer) {
   server.tool(
@@ -11,8 +12,8 @@ export function registerAssessmentTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ status, skip, take }) => {
-      const where: any = {};
+    withErrorHandling('list_assessments', async ({ status, skip, take }) => {
+      const where: Record<string, unknown> = {};
       if (status) where.status = status;
 
       const [results, count] = await Promise.all([
@@ -41,7 +42,7 @@ export function registerAssessmentTools(server: McpServer) {
         },
       }));
 
-      const response: any = { results: formatted, total: count, skip, take };
+      const response: Record<string, unknown> = { results: formatted, total: count, skip, take };
       if (count === 0) {
         response.note = 'No assessments found matching the specified filters.';
       }
@@ -49,7 +50,7 @@ export function registerAssessmentTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -58,7 +59,7 @@ export function registerAssessmentTools(server: McpServer) {
     {
       id: z.string().describe('Assessment UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_assessment', async ({ id }) => {
       const assessment = await prisma.assessment.findUnique({
         where: { id },
         include: {
@@ -85,7 +86,7 @@ export function registerAssessmentTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(assessment, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -96,13 +97,14 @@ export function registerAssessmentTools(server: McpServer) {
       status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'SKIPPED']).optional().describe('Filter by test status'),
       result: z.enum(['PASS', 'PARTIAL', 'FAIL', 'NOT_TESTED', 'NOT_APPLICABLE']).optional().describe('Filter by test result'),
     },
-    async ({ assessmentId, status, result }) => {
-      const where: any = { assessmentId };
+    withErrorHandling('get_assessment_tests', async ({ assessmentId, status, result }) => {
+      const where: Record<string, unknown> = { assessmentId };
       if (status) where.status = status;
       if (result) where.result = result;
 
       const tests = await prisma.assessmentTest.findMany({
         where,
+        take: 1000,
         select: {
           id: true,
           testCode: true,
@@ -129,7 +131,7 @@ export function registerAssessmentTools(server: McpServer) {
         orderBy: [{ testCode: 'asc' }],
       });
 
-      const response: any = { tests, count: tests.length };
+      const response: Record<string, unknown> = { tests, count: tests.length };
       if (tests.length === 0) {
         response.note = 'No tests found for this assessment with the specified filters.';
       }
@@ -137,18 +139,19 @@ export function registerAssessmentTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_assessment_stats',
     'Get aggregate assessment statistics: total assessments, by status, completion rates, and test result distribution.',
     {},
-    async () => {
+    withErrorHandling('get_assessment_stats', async () => {
       const [total, byStatus, assessments] = await Promise.all([
         prisma.assessment.count(),
         prisma.assessment.groupBy({ by: ['status'], _count: true }),
         prisma.assessment.findMany({
+          take: 1000,
           select: { totalTests: true, completedTests: true, passedTests: true, failedTests: true },
         }),
       ]);
@@ -174,7 +177,7 @@ export function registerAssessmentTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -184,8 +187,8 @@ export function registerAssessmentTools(server: McpServer) {
       testerId: z.string().describe('User UUID of the tester'),
       status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'SKIPPED']).optional().describe('Filter by test status'),
     },
-    async ({ testerId, status }) => {
-      const where: any = {
+    withErrorHandling('get_my_tests', async ({ testerId, status }) => {
+      const where: Record<string, unknown> = {
         OR: [
           { assignedTesterId: testerId },
           { ownerId: testerId },
@@ -197,6 +200,7 @@ export function registerAssessmentTools(server: McpServer) {
 
       const tests = await prisma.assessmentTest.findMany({
         where,
+        take: 1000,
         include: {
           assessment: { select: { id: true, assessmentRef: true, title: true, status: true } },
           scopeItem: { select: { id: true, code: true, name: true, criticality: true } },
@@ -207,7 +211,7 @@ export function registerAssessmentTools(server: McpServer) {
         orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
       });
 
-      const response: any = { tests, count: tests.length };
+      const response: Record<string, unknown> = { tests, count: tests.length };
       if (tests.length === 0) {
         response.note = 'No tests assigned to this tester in active assessments.';
       }
@@ -215,7 +219,7 @@ export function registerAssessmentTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -224,7 +228,7 @@ export function registerAssessmentTools(server: McpServer) {
     {
       testerId: z.string().describe('User UUID of the tester'),
     },
-    async ({ testerId }) => {
+    withErrorHandling('get_my_tests_count', async ({ testerId }) => {
       const counts = await prisma.assessmentTest.groupBy({
         by: ['status'],
         where: {
@@ -240,7 +244,7 @@ export function registerAssessmentTools(server: McpServer) {
 
       const total = counts.reduce((sum, c) => sum + c._count, 0);
 
-      const response: any = {
+      const response: Record<string, unknown> = {
         testerId,
         byStatus: Object.fromEntries(counts.map(c => [c.status, c._count])),
         total,
@@ -255,6 +259,6 @@ export function registerAssessmentTools(server: McpServer) {
           text: JSON.stringify(response, null, 2),
         }],
       };
-    },
+    }),
   );
 }

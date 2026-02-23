@@ -6,6 +6,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { ControlRiskIntegrationService } from '../services/control-risk-integration.service';
+import { AuthenticatedRequest } from '../../shared/types';
 
 /**
  * Control-Risk Integration Controller
@@ -21,7 +22,11 @@ export class ControlRiskIntegrationController {
 
   /**
    * Get control effectiveness summary for a risk
-   * 
+   *
+   * @deprecated Control linking is now at the scenario level.
+   * Use GET scenario/:scenarioId instead.
+   * This endpoint will be removed in a future version.
+   *
    * @param riskId - The risk ID
    * @returns Control effectiveness summary with strength ratings
    */
@@ -33,7 +38,11 @@ export class ControlRiskIntegrationController {
   /**
    * Get aggregated control effectiveness data for a risk
    * Returns detailed effectiveness data for all linked controls
-   * 
+   *
+   * @deprecated Control linking is now at the scenario level.
+   * Use GET scenario/:scenarioId instead.
+   * This endpoint will be removed in a future version.
+   *
    * @param riskId - The risk ID
    * @returns Aggregated control effectiveness
    */
@@ -69,7 +78,7 @@ export class ControlRiskIntegrationController {
    */
   @Post('scenario/:scenarioId/calculate-residual')
   async calculateResidualFromControls(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('scenarioId') scenarioId: string
   ) {
     return this.service.calculateResidualFromControls(scenarioId, req.user?.id);
@@ -77,15 +86,18 @@ export class ControlRiskIntegrationController {
 
   /**
    * Recalculate residual scores for all scenarios of a risk
-   * 
+   *
+   * @deprecated Uses deprecated risk-level control linking internally.
+   * Prefer POST scenario/:scenarioId/calculate-residual per scenario instead.
+   *
    * Useful when controls are updated and all scenarios need to be refreshed
-   * 
+   *
    * @param riskId - The risk ID
    * @returns Summary of updated scenarios and new risk scores
    */
   @Post('risk/:riskId/recalculate-all')
   async recalculateAllScenarioResiduals(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('riskId') riskId: string
   ) {
     return this.service.recalculateAllScenarioResiduals(riskId, req.user?.id);

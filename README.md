@@ -84,13 +84,13 @@ User --> AI Gateway (Fastify :3100) --> Claude Agent SDK --> Claude
 | Module | Capabilities |
 |--------|-------------|
 | **Risk Management** | Risk register, risk scenarios, key risk indicators, tolerance statements, treatment plans |
-| **Controls Framework** | Control library, four-layer assurance model, Statement of Applicability, gap analysis |
+| **Controls Framework** | Control library, control assessments, Statement of Applicability, gap analysis |
 | **Policy Management** | Document lifecycle, version control, change requests, reviews, exceptions |
 | **Incident Management** | Incident tracking, classification, response workflows, lessons learned |
 | **Audit Management** | Internal audit planning, nonconformity tracking, corrective actions |
 | **Evidence Management** | Evidence collection, file storage, linking to controls and risks |
 | **ITSM / Asset Management** | IT asset register, change management, capacity planning, business process mapping |
-| **Organisation Management** | Organisational structure, departments, locations, key personnel, compliance surveys |
+| **Organisation Management** | Organisational structure, departments, locations, key personnel |
 
 ---
 

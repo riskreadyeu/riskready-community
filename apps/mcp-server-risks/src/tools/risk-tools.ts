@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerRiskTools(server: McpServer) {
   server.tool(
@@ -14,8 +15,8 @@ export function registerRiskTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ status, tier, framework, organisationId, skip, take }) => {
-      const where: any = {};
+    withErrorHandling('list_risks', async ({ status, tier, framework, organisationId, skip, take }) => {
+      const where: Record<string, unknown> = {};
       if (status) where.status = status;
       if (tier) where.tier = tier;
       if (framework) where.framework = framework;
@@ -53,7 +54,7 @@ export function registerRiskTools(server: McpServer) {
         prisma.risk.count({ where }),
       ]);
 
-      const response: any = { results, total: count, skip, take };
+      const response: Record<string, unknown> = { results, total: count, skip, take };
       if (count === 0) {
         response.note = 'No risks found matching the specified filters.';
       }
@@ -61,7 +62,7 @@ export function registerRiskTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -70,7 +71,7 @@ export function registerRiskTools(server: McpServer) {
     {
       id: z.string().describe('Risk UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_risk', async ({ id }) => {
       const risk = await prisma.risk.findUnique({
         where: { id },
         include: {
@@ -137,16 +138,16 @@ export function registerRiskTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(risk, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'search_risks',
     'Search risks by title or riskId pattern. Returns matching risks with basic info.',
     {
-      query: z.string().describe('Search term (matches against title and riskId)'),
+      query: z.string().max(200).describe('Search term (matches against title and riskId)'),
     },
-    async ({ query }) => {
+    withErrorHandling('search_risks', async ({ query }) => {
       const results = await prisma.risk.findMany({
         where: {
           OR: [
@@ -170,7 +171,7 @@ export function registerRiskTools(server: McpServer) {
         },
       });
 
-      const response: any = { results, count: results.length };
+      const response: Record<string, unknown> = { results, count: results.length };
       if (results.length === 0) {
         response.note = `No risks matched the search query '${query}'.`;
       }
@@ -178,7 +179,7 @@ export function registerRiskTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -187,8 +188,8 @@ export function registerRiskTools(server: McpServer) {
     {
       organisationId: z.string().optional().describe('Organisation UUID (uses all orgs if omitted)'),
     },
-    async ({ organisationId }) => {
-      const where: any = {};
+    withErrorHandling('get_risk_stats', async ({ organisationId }) => {
+      const where: Record<string, unknown> = {};
       if (organisationId) where.organisationId = organisationId;
 
       const [total, byStatus, byTier, byFramework, scenarioCount, kriCount, treatmentCount] = await Promise.all([
@@ -209,12 +210,12 @@ export function registerRiskTools(server: McpServer) {
             scenarioCount,
             kriCount,
             treatmentCount,
-            byStatus: Object.fromEntries(byStatus.map((s: any) => [s.status, s._count])),
-            byTier: Object.fromEntries(byTier.map((t: any) => [t.tier, t._count])),
-            byFramework: Object.fromEntries(byFramework.map((f: any) => [f.framework, f._count])),
+            byStatus: Object.fromEntries(byStatus.map((s: Record<string, unknown>) => [s.status, s._count])),
+            byTier: Object.fromEntries(byTier.map((t: Record<string, unknown>) => [t.tier, t._count])),
+            byFramework: Object.fromEntries(byFramework.map((f: Record<string, unknown>) => [f.framework, f._count])),
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, ControlTheme, ControlFramework, ImplementationStatus } from '@prisma/client';
 import { CONTROLS_CONFIG } from '../../config';
 
 @Injectable()
@@ -79,16 +79,16 @@ export class ControlService {
     return this.prisma.control.create({
       data: {
         controlId: data.controlId,
-        theme: data.theme as any,
+        theme: data.theme as ControlTheme,
         name: data.name,
         description: data.description,
-        framework: (data.framework as any) || 'ISO',
+        framework: (data.framework as ControlFramework) || 'ISO',
         sourceStandard: data.sourceStandard,
         soc2Criteria: data.soc2Criteria,
         tscCategory: data.tscCategory,
         applicable: data.applicable ?? true,
         justificationIfNa: data.justificationIfNa,
-        implementationStatus: (data.implementationStatus as any) || 'NOT_STARTED',
+        implementationStatus: (data.implementationStatus as ImplementationStatus) || 'NOT_STARTED',
         implementationDesc: data.implementationDesc,
         organisationId: data.organisationId,
         createdById: data.createdById,

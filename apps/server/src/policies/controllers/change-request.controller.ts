@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Param, Query, Body } from '@nestjs/common';
 import { ChangeRequestService } from '../services/change-request.service';
-import { ChangeRequestStatus, ChangePriority, ChangeType } from '@prisma/client';
+import { ChangeRequestStatus, ChangePriority, ChangeType, Prisma } from '@prisma/client';
 
 @Controller('change-requests')
 export class ChangeRequestController {
@@ -56,7 +56,7 @@ export class ChangeRequestController {
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Prisma.DocumentChangeRequestUpdateInput) {
     return this.service.update(id, data);
   }
 

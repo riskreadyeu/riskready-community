@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FileCheck, Plus, Shield, Eye, Edit3, Trash2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -189,12 +190,12 @@ export default function ApplicableFrameworksPage() {
     {
       label: "Edit",
       icon: <Edit3 className="w-4 h-4" />,
-      onClick: (fw) => console.log("Edit", fw.id),
+      onClick: () => toast.info("Edit functionality not yet available"),
     },
     {
       label: "Delete",
       icon: <Trash2 className="w-4 h-4" />,
-      onClick: (fw) => console.log("Delete", fw.id),
+      onClick: () => toast.info("Delete functionality not yet available"),
       variant: "destructive",
       separator: true,
     },

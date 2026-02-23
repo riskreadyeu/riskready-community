@@ -142,9 +142,9 @@ export function RTSDialog({
       onSuccess?.();
       onOpenChange(false);
       if (!isEditing) resetForm();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error saving RTS:", err);
-      setError(err.message || "Failed to save Risk Tolerance Statement");
+      setError(err instanceof Error ? err.message : "Failed to save Risk Tolerance Statement");
     } finally {
       setSaving(false);
     }

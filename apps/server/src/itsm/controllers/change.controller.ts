@@ -10,8 +10,10 @@ import {
   Request,
   HttpCode,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ChangeService } from '../services/change.service';
 import { CreateChangeDto, UpdateChangeDto } from '../dto/change.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('itsm/changes')
 export class ChangeController {
@@ -30,13 +32,13 @@ export class ChangeController {
     @Query('departmentId') departmentId?: string,
     @Query('search') search?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.ChangeWhereInput = {};
 
-    if (status) where.status = status;
-    if (changeType) where.changeType = changeType;
-    if (category) where.category = category;
-    if (priority) where.priority = priority;
-    if (securityImpact) where.securityImpact = securityImpact;
+    if (status) where.status = status as Prisma.ChangeWhereInput['status'];
+    if (changeType) where.changeType = changeType as Prisma.ChangeWhereInput['changeType'];
+    if (category) where.category = category as Prisma.ChangeWhereInput['category'];
+    if (priority) where.priority = priority as Prisma.ChangeWhereInput['priority'];
+    if (securityImpact) where.securityImpact = securityImpact as Prisma.ChangeWhereInput['securityImpact'];
     if (requesterId) where.requesterId = requesterId;
     if (departmentId) where.departmentId = departmentId;
 
@@ -87,17 +89,17 @@ export class ChangeController {
   }
 
   @Post()
-  async create(@Body() data: CreateChangeDto, @Request() req: any) {
+  async create(@Body() data: CreateChangeDto, @Request() req: AuthenticatedRequest) {
     return this.service.create(data, req.user.id);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: UpdateChangeDto, @Request() req: any) {
+  async update(@Param('id') id: string, @Body() data: UpdateChangeDto, @Request() req: AuthenticatedRequest) {
     return this.service.update(id, data, req.user.id);
   }
 
   @Post(':id/submit')
-  async submit(@Param('id') id: string, @Request() req: any) {
+  async submit(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.service.submit(id, req.user.id);
   }
 

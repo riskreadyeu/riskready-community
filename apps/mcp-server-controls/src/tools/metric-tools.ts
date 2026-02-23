@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerMetricTools(server: McpServer) {
   server.tool(
@@ -9,7 +10,7 @@ export function registerMetricTools(server: McpServer) {
     {
       controlId: z.string().describe('Control UUID'),
     },
-    async ({ controlId }) => {
+    withErrorHandling('list_metrics', async ({ controlId }) => {
       const metrics = await prisma.controlMetric.findMany({
         where: { controlId },
         orderBy: { metricId: 'asc' },
@@ -34,7 +35,7 @@ export function registerMetricTools(server: McpServer) {
         },
       });
 
-      const response: any = { metrics, count: metrics.length };
+      const response: Record<string, unknown> = { metrics, count: metrics.length };
       if (metrics.length === 0) {
         response.note = 'No metrics found for this control.';
       }
@@ -42,7 +43,7 @@ export function registerMetricTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -51,7 +52,7 @@ export function registerMetricTools(server: McpServer) {
     {
       id: z.string().describe('ControlMetric UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_metric', async ({ id }) => {
       const metric = await prisma.controlMetric.findUnique({
         where: { id },
         include: {
@@ -72,19 +73,20 @@ export function registerMetricTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(metric, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_metric_dashboard',
     'Get an organisation-wide metric summary: total metrics, RAG distribution, trend breakdown, collection status.',
     {},
-    async () => {
+    withErrorHandling('get_metric_dashboard', async () => {
       const [total, byStatus, byTrend, metrics] = await Promise.all([
         prisma.controlMetric.count(),
         prisma.controlMetric.groupBy({ by: ['status'], _count: true }),
         prisma.controlMetric.groupBy({ by: ['trend'], _count: true }),
         prisma.controlMetric.findMany({
+          take: 1000,
           select: { lastMeasured: true, collectionFrequency: true },
         }),
       ]);
@@ -103,6 +105,6 @@ export function registerMetricTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

@@ -5,6 +5,7 @@ import {
   EvidenceStatus,
   EvidenceClassification,
   EvidenceSourceType,
+  Prisma,
 } from '@prisma/client';
 
 @Injectable()
@@ -28,7 +29,7 @@ export class EvidenceService {
     validUntilBefore?: Date;
     validUntilAfter?: Date;
   }) {
-    const where: any = {};
+    const where: Prisma.EvidenceWhereInput = {};
 
     if (params?.evidenceType) where.evidenceType = params.evidenceType;
     if (params?.status) where.status = params.status;
@@ -172,7 +173,7 @@ export class EvidenceService {
     retainUntil?: Date;
     renewalRequired?: boolean;
     renewalReminderDays?: number;
-    metadata?: any;
+    metadata?: Prisma.InputJsonValue;
     notes?: string;
     createdById: string;
   }) {
@@ -275,7 +276,7 @@ export class EvidenceService {
       retainUntil?: Date;
       renewalRequired?: boolean;
       renewalReminderDays?: number;
-      metadata?: any;
+      metadata?: Prisma.InputJsonValue;
       notes?: string;
       updatedById: string;
     },

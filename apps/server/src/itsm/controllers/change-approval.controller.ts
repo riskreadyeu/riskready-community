@@ -7,13 +7,14 @@ import {
   Request,
 } from '@nestjs/common';
 import { ChangeApprovalService } from '../services/change-approval.service';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('itsm/change-approvals')
 export class ChangeApprovalController {
   constructor(private readonly service: ChangeApprovalService) {}
 
   @Get('pending')
-  async findPendingByUser(@Request() req: any) {
+  async findPendingByUser(@Request() req: AuthenticatedRequest) {
     return this.service.findPendingByUser(req.user.id);
   }
 
@@ -33,7 +34,7 @@ export class ChangeApprovalController {
   @Post(':id/approve')
   async approve(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() data: { comments?: string; conditions?: string },
   ) {
     return this.service.approve(id, req.user.id, data.comments, data.conditions);
@@ -42,7 +43,7 @@ export class ChangeApprovalController {
   @Post(':id/reject')
   async reject(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() data: { comments: string },
   ) {
     return this.service.reject(id, req.user.id, data.comments);

@@ -127,9 +127,9 @@ export function TreatmentActionDialog({
       onSuccess?.();
       onOpenChange(false);
       if (!isEditing) resetForm();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error saving action:", err);
-      setError(err.message || "Failed to save action");
+      setError(err instanceof Error ? err.message : "Failed to save action");
     } finally {
       setSaving(false);
     }

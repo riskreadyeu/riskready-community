@@ -1,17 +1,19 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
     'get_incident_trending',
     'Get incident trending data: counts by month for the last 12 months, broken down by severity.',
     {},
-    async () => {
+    withErrorHandling('get_incident_trending', async () => {
       const twelveMonthsAgo = new Date();
       twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
       const incidents = await prisma.incident.findMany({
         where: { detectedAt: { gte: twelveMonthsAgo } },
+        take: 1000,
         select: {
           detectedAt: true,
           severity: true,
@@ -39,16 +41,17 @@ export function registerAnalysisTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_mttr_report',
     'Get Mean Time To Respond/Resolve report. Calculates average time from detection to containment and closure.',
     {},
-    async () => {
+    withErrorHandling('get_mttr_report', async () => {
       const closedIncidents = await prisma.incident.findMany({
         where: { status: 'CLOSED', closedAt: { not: null } },
+        take: 1000,
         select: {
           referenceNumber: true,
           severity: true,
@@ -96,18 +99,19 @@ export function registerAnalysisTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_incident_control_gaps',
     'Identify controls that were linked to incidents as failed or bypassed. Helps prioritize control improvements.',
     {},
-    async () => {
+    withErrorHandling('get_incident_control_gaps', async () => {
       const failedControls = await prisma.incidentControl.findMany({
         where: {
           linkType: { in: ['failed', 'bypassed'] },
         },
+        take: 1000,
         select: {
           linkType: true,
           control: {
@@ -169,6 +173,6 @@ export function registerAnalysisTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

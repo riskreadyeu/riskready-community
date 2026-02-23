@@ -28,8 +28,8 @@ export function useCollapsedState(
       if (stored !== null) {
         return stored === "true";
       }
-    } catch {
-      // localStorage not available
+    } catch (error) {
+      console.error("Failed to read from localStorage:", error);
     }
     return defaultCollapsed;
   });
@@ -40,8 +40,8 @@ export function useCollapsedState(
       setIsCollapsed(collapsed);
       try {
         localStorage.setItem(getStorageKey(sectionId), String(collapsed));
-      } catch {
-        // localStorage not available
+      } catch (error) {
+        console.error("Failed to write to localStorage:", error);
       }
     },
     [sectionId]

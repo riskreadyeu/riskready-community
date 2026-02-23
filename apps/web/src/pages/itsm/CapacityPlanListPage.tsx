@@ -49,7 +49,7 @@ export default function CapacityPlanListPage() {
   async function loadPlans() {
     setLoading(true);
     try {
-      const params: any = { skip: page * PAGE_SIZE, take: PAGE_SIZE };
+      const params: { skip: number; take: number; status?: string } = { skip: page * PAGE_SIZE, take: PAGE_SIZE };
       if (statusFilter !== 'all') params.status = statusFilter;
       const data = await getCapacityPlans(params);
       setPlans(data.results);

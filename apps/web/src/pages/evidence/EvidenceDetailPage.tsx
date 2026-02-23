@@ -4,25 +4,12 @@ import {
   AlertCircle,
   Archive,
   ArrowLeft,
-  Calendar,
   CheckCircle,
   Clock,
   Download,
-  Edit,
   ExternalLink,
-  File,
-  FileCheck,
-  FileText,
-  Hash,
-  History,
-  Link2,
-  Lock,
   RefreshCw,
   Send,
-  Shield,
-  Tag,
-  Trash2,
-  Upload,
   User,
   XCircle,
 } from "lucide-react";
@@ -53,6 +40,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { EvidenceLinkDialog } from "@/components/evidence/EvidenceLinkDialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { EvidenceOverviewTab } from "@/components/evidence/tabs/EvidenceOverviewTab";
+import { EvidenceLinksTab } from "@/components/evidence/tabs/EvidenceLinksTab";
+import { EvidenceHistoryTab } from "@/components/evidence/tabs/EvidenceHistoryTab";
+import { EvidenceIntegrityTab } from "@/components/evidence/tabs/EvidenceIntegrityTab";
 
 const statusColors: Record<EvidenceStatus, string> = {
   PENDING: "bg-amber-500/10 text-amber-500 border-amber-500/20",
@@ -170,7 +161,7 @@ export default function EvidenceDetailPage() {
   };
 
   const formatFileSize = (bytes?: number) => {
-    if (!bytes) return "—";
+    if (!bytes) return "\u2014";
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
@@ -205,7 +196,7 @@ export default function EvidenceDetailPage() {
     );
   }
 
-  const totalLinks = 
+  const totalLinks =
     (evidence.controlLinks?.length || 0) +
     (evidence.capabilityLinks?.length || 0) +
     (evidence.testLinks?.length || 0) +
@@ -242,9 +233,9 @@ export default function EvidenceDetailPage() {
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span className="font-mono">{evidence.evidenceRef}</span>
-              <span>•</span>
+              <span>&#8226;</span>
               <span>{evidence.evidenceType.replace(/_/g, " ")}</span>
-              <span>•</span>
+              <span>&#8226;</span>
               <Badge
                 variant="outline"
                 className={classificationColors[evidence.classification]}
@@ -342,576 +333,26 @@ export default function EvidenceDetailPage() {
             </TabsList>
 
             <TabsContent value="details" className="mt-4">
-              <Card className="glass-card">
-                <CardContent className="p-6 space-y-6">
-                  {/* File Info */}
-                  {evidence.fileName && (
-                    <div>
-                      <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                        <File className="h-4 w-4" />
-                        File Information
-                      </h3>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">File Name</p>
-                          <p className="text-sm font-medium">{evidence.originalFileName || evidence.fileName}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">File Size</p>
-                          <p className="text-sm font-medium">{formatFileSize(evidence.fileSizeBytes)}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">MIME Type</p>
-                          <p className="text-sm font-medium">{evidence.mimeType || "—"}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Storage</p>
-                          <p className="text-sm font-medium">{evidence.storageProvider || "Local"}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <Separator />
-
-                  {/* Source Info */}
-                  <div>
-                    <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                      <Upload className="h-4 w-4" />
-                      Source Information
-                    </h3>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Source Type</p>
-                        <p className="text-sm font-medium">{evidence.sourceType.replace(/_/g, " ")}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Collected At</p>
-                        <p className="text-sm font-medium">
-                          {new Date(evidence.collectedAt).toLocaleString()}
-                        </p>
-                      </div>
-                      {evidence.collectedBy && (
-                        <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Collected By</p>
-                          <p className="text-sm font-medium">
-                            {evidence.collectedBy.firstName} {evidence.collectedBy.lastName}
-                          </p>
-                        </div>
-                      )}
-                      {evidence.collectionMethod && (
-                        <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Collection Method</p>
-                          <p className="text-sm font-medium">{evidence.collectionMethod}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Validity */}
-                  <div>
-                    <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      Validity Period
-                    </h3>
-                    <div className="grid gap-4 md:grid-cols-3">
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Valid From</p>
-                        <p className="text-sm font-medium">
-                          {evidence.validFrom ? new Date(evidence.validFrom).toLocaleDateString() : "—"}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Valid Until</p>
-                        <p className="text-sm font-medium">
-                          {evidence.validUntil ? new Date(evidence.validUntil).toLocaleDateString() : "—"}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Retain Until</p>
-                        <p className="text-sm font-medium">
-                          {evidence.retainUntil ? new Date(evidence.retainUntil).toLocaleDateString() : "—"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tags */}
-                  {evidence.tags && evidence.tags.length > 0 && (
-                    <>
-                      <Separator />
-                      <div>
-                        <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                          <Tag className="h-4 w-4" />
-                          Tags
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {evidence.tags.map((tag) => (
-                            <Badge key={tag} variant="secondary">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Notes */}
-                  {evidence.notes && (
-                    <>
-                      <Separator />
-                      <div>
-                        <h3 className="text-sm font-medium mb-3">Notes</h3>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                          {evidence.notes}
-                        </p>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Chain of Custody & Forensics */}
-                  {((evidence as any).chainOfCustodyNotes || (evidence as any).isForensicallySound != null || (evidence as any).hashSha256 || (evidence as any).hashMd5 || (evidence as any).collectionMethod || (evidence as any).sourceSystem || (evidence as any).sourceReference) && (
-                    <>
-                      <Separator />
-                      <div>
-                        <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                          <Shield className="h-4 w-4" />
-                          Chain of Custody & Forensics
-                        </h3>
-                        <div className="grid gap-4 md:grid-cols-2">
-                          {(evidence as any).isForensicallySound != null && (
-                            <div className="space-y-1">
-                              <p className="text-xs text-muted-foreground">Forensically Sound</p>
-                              <Badge variant={(evidence as any).isForensicallySound ? "default" : "secondary"}>
-                                {(evidence as any).isForensicallySound ? "Yes" : "No"}
-                              </Badge>
-                            </div>
-                          )}
-                          {(evidence as any).collectionMethod && (
-                            <div className="space-y-1">
-                              <p className="text-xs text-muted-foreground">Collection Method</p>
-                              <p className="text-sm font-medium">{(evidence as any).collectionMethod}</p>
-                            </div>
-                          )}
-                          {(evidence as any).sourceSystem && (
-                            <div className="space-y-1">
-                              <p className="text-xs text-muted-foreground">Source System</p>
-                              <p className="text-sm font-medium">{(evidence as any).sourceSystem}</p>
-                            </div>
-                          )}
-                          {(evidence as any).sourceReference && (
-                            <div className="space-y-1">
-                              <p className="text-xs text-muted-foreground">Source Reference</p>
-                              <p className="text-sm font-medium">{(evidence as any).sourceReference}</p>
-                            </div>
-                          )}
-                          {(evidence as any).hashSha256 && (
-                            <div className="space-y-1 col-span-2">
-                              <p className="text-xs text-muted-foreground">SHA-256 Hash</p>
-                              <p className="text-sm font-mono break-all">{(evidence as any).hashSha256}</p>
-                            </div>
-                          )}
-                          {(evidence as any).hashMd5 && (
-                            <div className="space-y-1 col-span-2">
-                              <p className="text-xs text-muted-foreground">MD5 Hash</p>
-                              <p className="text-sm font-mono break-all">{(evidence as any).hashMd5}</p>
-                            </div>
-                          )}
-                        </div>
-                        {(evidence as any).chainOfCustodyNotes && (
-                          <div className="mt-4 space-y-1">
-                            <p className="text-xs text-muted-foreground">Chain of Custody Notes</p>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                              {(evidence as any).chainOfCustodyNotes}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+              <EvidenceOverviewTab
+                evidence={evidence}
+                formatFileSize={formatFileSize}
+              />
             </TabsContent>
 
             <TabsContent value="links" className="mt-4">
-              <Card className="glass-card">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-medium">Linked Entities</h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setLinkDialogOpen(true)}
-                    >
-                      <Link2 className="h-4 w-4 mr-2" />
-                      Link to Entity
-                    </Button>
-                  </div>
-                  {totalLinks === 0 ? (
-                    <div className="text-center py-8">
-                      <Link2 className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-                      <p className="text-sm text-muted-foreground">No linked entities</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {/* Controls */}
-                      {evidence.controlLinks && evidence.controlLinks.length > 0 && (
-                        <div>
-                          <h3 className="text-sm font-medium mb-3">Controls</h3>
-                          <div className="space-y-2">
-                            {evidence.controlLinks.map((link) => (
-                              <Link
-                                key={link.id}
-                                to={`/controls/${link.control.id}`}
-                                className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-background/40 hover:bg-secondary/50"
-                              >
-                                <div>
-                                  <p className="font-medium">{link.control.controlId}</p>
-                                  <p className="text-sm text-muted-foreground">{link.control.name}</p>
-                                </div>
-                                <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Incidents */}
-                      {evidence.incidentLinks && evidence.incidentLinks.length > 0 && (
-                        <div>
-                          <h3 className="text-sm font-medium mb-3">Incidents</h3>
-                          <div className="space-y-2">
-                            {evidence.incidentLinks.map((link) => (
-                              <Link
-                                key={link.id}
-                                to={`/incidents/${link.incident.id}`}
-                                className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-background/40 hover:bg-secondary/50"
-                              >
-                                <div>
-                                  <p className="font-medium">{link.incident.referenceNumber}</p>
-                                  <p className="text-sm text-muted-foreground">{link.incident.title}</p>
-                                </div>
-                                <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Risks */}
-                      {evidence.riskLinks && evidence.riskLinks.length > 0 && (
-                        <div>
-                          <h3 className="text-sm font-medium mb-3">Risks</h3>
-                          <div className="space-y-2">
-                            {evidence.riskLinks.map((link) => (
-                              <Link
-                                key={link.id}
-                                to={`/risks/${link.risk.id}`}
-                                className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-background/40 hover:bg-secondary/50"
-                              >
-                                <div>
-                                  <p className="font-medium">{link.risk.riskId}</p>
-                                  <p className="text-sm text-muted-foreground">{link.risk.title}</p>
-                                </div>
-                                <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Vendors */}
-                      {evidence.vendorLinks && evidence.vendorLinks.length > 0 && (
-                        <div>
-                          <h3 className="text-sm font-medium mb-3">Vendors</h3>
-                          <div className="space-y-2">
-                            {evidence.vendorLinks.map((link) => (
-                              <Link
-                                key={link.id}
-                                to={`/supply-chain/vendors/${link.vendor.id}`}
-                                className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-background/40 hover:bg-secondary/50"
-                              >
-                                <div>
-                                  <p className="font-medium">{link.vendor.vendorCode}</p>
-                                  <p className="text-sm text-muted-foreground">{link.vendor.name}</p>
-                                </div>
-                                <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Assets */}
-                      {evidence.assetLinks && evidence.assetLinks.length > 0 && (
-                        <div>
-                          <h3 className="text-sm font-medium mb-3">Assets</h3>
-                          <div className="space-y-2">
-                            {evidence.assetLinks.map((link) => (
-                              <Link
-                                key={link.id}
-                                to={`/itsm/assets/${link.asset.id}`}
-                                className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-background/40 hover:bg-secondary/50"
-                              >
-                                <div>
-                                  <p className="font-medium">{link.asset.assetTag}</p>
-                                  <p className="text-sm text-muted-foreground">{link.asset.name}</p>
-                                </div>
-                                <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <EvidenceLinksTab
+                evidence={evidence}
+                totalLinks={totalLinks}
+                onOpenLinkDialog={() => setLinkDialogOpen(true)}
+              />
             </TabsContent>
 
             <TabsContent value="history" className="mt-4">
-              <Card className="glass-card">
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {/* Version info */}
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30">
-                      <History className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Version {evidence.version}</p>
-                        <p className="text-xs text-muted-foreground">Current version</p>
-                      </div>
-                    </div>
-
-                    {/* Previous versions */}
-                    {evidence.previousVersion && (
-                      <div>
-                        <h3 className="text-sm font-medium mb-3">Previous Version</h3>
-                        <Link
-                          to={`/evidence/${evidence.previousVersion.id}`}
-                          className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-background/40 hover:bg-secondary/50"
-                        >
-                          <div>
-                            <p className="font-medium">{evidence.previousVersion.evidenceRef}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Version {evidence.previousVersion.version}
-                            </p>
-                          </div>
-                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                        </Link>
-                      </div>
-                    )}
-
-                    {/* Newer versions */}
-                    {evidence.newerVersions && evidence.newerVersions.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-medium mb-3">Newer Versions</h3>
-                        <div className="space-y-2">
-                          {evidence.newerVersions.map((version) => (
-                            <Link
-                              key={version.id}
-                              to={`/evidence/${version.id}`}
-                              className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-background/40 hover:bg-secondary/50"
-                            >
-                              <div>
-                                <p className="font-medium">{version.evidenceRef}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  Version {version.version}
-                                </p>
-                              </div>
-                              <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Audit trail */}
-                    <Separator />
-                    <div>
-                      <h3 className="text-sm font-medium mb-3">Audit Trail</h3>
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 shrink-0">
-                            <Upload className="h-4 w-4 text-primary" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Created</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(evidence.createdAt).toLocaleString()}
-                              {evidence.createdBy && ` by ${evidence.createdBy.firstName} ${evidence.createdBy.lastName}`}
-                            </p>
-                          </div>
-                        </div>
-
-                        {evidence.reviewedAt && (
-                          <div className="flex items-start gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 shrink-0">
-                              <RefreshCw className="h-4 w-4 text-blue-500" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">Reviewed</p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(evidence.reviewedAt).toLocaleString()}
-                                {evidence.reviewedBy && ` by ${evidence.reviewedBy.firstName} ${evidence.reviewedBy.lastName}`}
-                              </p>
-                              {evidence.reviewNotes && (
-                                <p className="text-sm text-muted-foreground mt-1">{evidence.reviewNotes}</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {evidence.approvedAt && (
-                          <div className="flex items-start gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500/10 shrink-0">
-                              <CheckCircle className="h-4 w-4 text-green-500" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">Approved</p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(evidence.approvedAt).toLocaleString()}
-                                {evidence.approvedBy && ` by ${evidence.approvedBy.firstName} ${evidence.approvedBy.lastName}`}
-                              </p>
-                              {evidence.approvalNotes && (
-                                <p className="text-sm text-muted-foreground mt-1">{evidence.approvalNotes}</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {evidence.rejectedAt && (
-                          <div className="flex items-start gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/10 shrink-0">
-                              <XCircle className="h-4 w-4 text-red-500" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">Rejected</p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(evidence.rejectedAt).toLocaleString()}
-                                {evidence.rejectedBy && ` by ${evidence.rejectedBy.firstName} ${evidence.rejectedBy.lastName}`}
-                              </p>
-                              {evidence.rejectionReason && (
-                                <p className="text-sm text-red-600 mt-1">{evidence.rejectionReason}</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <EvidenceHistoryTab evidence={evidence} />
             </TabsContent>
 
             <TabsContent value="integrity" className="mt-4">
-              <Card className="glass-card">
-                <CardContent className="p-6 space-y-6">
-                  {/* Hash values */}
-                  <div>
-                    <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                      <Hash className="h-4 w-4" />
-                      File Hashes
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="p-3 rounded-lg bg-secondary/30">
-                        <p className="text-xs text-muted-foreground mb-1">SHA-256</p>
-                        <p className="text-xs font-mono break-all">
-                          {evidence.hashSha256 || "Not computed"}
-                        </p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-secondary/30">
-                        <p className="text-xs text-muted-foreground mb-1">MD5</p>
-                        <p className="text-xs font-mono break-all">
-                          {evidence.hashMd5 || "Not computed"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Forensic status */}
-                  <div>
-                    <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                      <Shield className="h-4 w-4" />
-                      Forensic Status
-                    </h3>
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30">
-                      {evidence.isForensicallySound ? (
-                        <>
-                          <CheckCircle className="h-5 w-5 text-green-500" />
-                          <div>
-                            <p className="text-sm font-medium text-green-600">Forensically Sound</p>
-                            <p className="text-xs text-muted-foreground">
-                              Evidence has been collected and stored following forensic best practices
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="h-5 w-5 text-amber-500" />
-                          <div>
-                            <p className="text-sm font-medium text-amber-600">Not Verified</p>
-                            <p className="text-xs text-muted-foreground">
-                              Forensic integrity has not been verified
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Chain of custody */}
-                  {evidence.chainOfCustodyNotes && (
-                    <>
-                      <Separator />
-                      <div>
-                        <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                          <Lock className="h-4 w-4" />
-                          Chain of Custody
-                        </h3>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                          {evidence.chainOfCustodyNotes}
-                        </p>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Encryption */}
-                  <Separator />
-                  <div>
-                    <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                      <Lock className="h-4 w-4" />
-                      Encryption Status
-                    </h3>
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30">
-                      {evidence.isEncrypted ? (
-                        <>
-                          <Lock className="h-5 w-5 text-green-500" />
-                          <div>
-                            <p className="text-sm font-medium text-green-600">Encrypted</p>
-                            <p className="text-xs text-muted-foreground">
-                              File is encrypted at rest
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="h-5 w-5 text-amber-500" />
-                          <div>
-                            <p className="text-sm font-medium text-amber-600">Not Encrypted</p>
-                            <p className="text-xs text-muted-foreground">
-                              File is stored without encryption
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <EvidenceIntegrityTab evidence={evidence} />
             </TabsContent>
           </Tabs>
         </div>
@@ -926,7 +367,7 @@ export default function EvidenceDetailPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Category</span>
-                <span className="text-sm font-medium">{evidence.category || "—"}</span>
+                <span className="text-sm font-medium">{evidence.category || "\u2014"}</span>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
@@ -1098,4 +539,3 @@ export default function EvidenceDetailPage() {
     </div>
   );
 }
-

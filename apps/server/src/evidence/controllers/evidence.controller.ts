@@ -15,6 +15,7 @@ import {
   EvidenceStatus,
   EvidenceClassification,
   EvidenceSourceType,
+  Prisma,
 } from '@prisma/client';
 
 @Controller('evidence')
@@ -78,7 +79,7 @@ export class EvidenceController {
       isEncrypted?: boolean;
       hashSha256?: string;
       hashMd5?: string;
-      metadata?: any;
+      metadata?: Prisma.InputJsonValue;
     },
   ) {
     return this.service.create({
@@ -123,7 +124,7 @@ export class EvidenceController {
       retainUntil?: string;
       renewalRequired?: boolean;
       renewalReminderDays?: number;
-      metadata?: any;
+      metadata?: Prisma.InputJsonValue;
       notes?: string;
       updatedById: string;
     },

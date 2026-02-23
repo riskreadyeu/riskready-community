@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { FileText, Plus, CheckCircle, Clock, AlertCircle, Archive, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -81,23 +82,23 @@ export default function SOAListPage() {
     { key: "version", label: "Version" },
     { key: "name", label: "Name" },
     { key: "status", label: "Status" },
-    { key: "_count", label: "Controls", format: (v: any) => v?.entries || 0 },
-    { key: "createdAt", label: "Created", format: (v: any) => formatDate(v) },
-    { key: "approvedAt", label: "Approved", format: (v: any) => formatDate(v) },
+    { key: "_count", label: "Controls", format: (v: unknown) => String((v as Record<string, number>)?.['entries'] ?? 0) },
+    { key: "createdAt", label: "Created", format: (v: unknown) => formatDate(v as string) },
+    { key: "approvedAt", label: "Approved", format: (v: unknown) => formatDate(v as string) },
   ] : [];
 
   const handleExport = (format: "excel" | "csv" | "pdf") => {
-    console.log(`Exporting ${soas.length} SOA versions to ${format}`);
+    toast.info('Export is not yet available');
   };
 
   const handleBulkApprove = () => {
-    console.log(`Approve SOA versions:`, bulkSelection.selectedIds);
+    toast.info('Bulk approve is not yet available');
     // TODO: Call API to bulk approve
     bulkSelection.clearSelection();
   };
 
   const handleBulkArchive = () => {
-    console.log(`Archive SOA versions:`, bulkSelection.selectedIds);
+    toast.info('Bulk archive is not yet available');
     // TODO: Call API to bulk archive
     bulkSelection.clearSelection();
   };

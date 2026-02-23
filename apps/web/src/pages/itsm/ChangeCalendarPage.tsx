@@ -87,7 +87,7 @@ export default function ChangeCalendarPage() {
     LOW: 'bg-gray-500',
   };
 
-  const statusColors: Record<string, string> = {
+  const statusColors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
     APPROVED: 'default',
     SCHEDULED: 'default',
     IMPLEMENTING: 'secondary',
@@ -243,7 +243,7 @@ export default function ChangeCalendarPage() {
                         <div className="font-medium">{change.changeRef}</div>
                         <div className="text-sm text-muted-foreground">{change.title}</div>
                       </div>
-                      <Badge variant={statusColors[change.status] as any}>
+                      <Badge variant={statusColors[change.status]}>
                         {change.status}
                       </Badge>
                     </div>

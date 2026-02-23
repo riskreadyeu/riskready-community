@@ -64,7 +64,7 @@ COPY apps/mcp-server-incidents/tsconfig.json ./mcp-servers/mcp-server-incidents/
 # Install dependencies for all MCP servers + symlink Prisma client
 RUN for srv in controls risks evidence policies organisation itsm audits incidents; do \
       cd /app/mcp-servers/mcp-server-${srv} \
-      && npm install --ignore-scripts --legacy-peer-deps 2>/dev/null || true \
+      && npm ci --ignore-scripts --legacy-peer-deps \
       && mkdir -p node_modules/.prisma node_modules/@prisma \
       && ln -sf /app/node_modules/.prisma/client node_modules/.prisma/client \
       && ln -sf /app/node_modules/@prisma/client node_modules/@prisma/client; \

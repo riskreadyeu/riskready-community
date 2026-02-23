@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   Shield,
   Layers,
@@ -110,7 +111,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const actionItems = [
     { icon: Plus, label: "New Assessment", action: () => navigate("/controls/assessments/new") },
     { icon: TestTube, label: "Schedule Test", action: () => navigate("/controls/tests/schedule") },
-    { icon: FileText, label: "Export Report", action: () => console.log("Export") },
+    { icon: FileText, label: "Export Report", action: () => toast.info("Export is not yet available") },
     { icon: Activity, label: "View Activity", action: () => navigate("/controls/activity") },
   ];
 

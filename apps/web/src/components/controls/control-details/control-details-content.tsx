@@ -36,7 +36,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getControl, type Control } from "@/lib/controls-api";
+import { getControl, type Control, type ControlLayer, type ControlLayerTest } from "@/lib/controls-api";
 import { DetailHero, DetailStatCard } from "../detail-components";
 import { ControlEnableDisable } from "../ControlEnableDisable";
 
@@ -55,7 +55,9 @@ const THEME_COLORS: Record<string, string> = {
   TECHNOLOGICAL: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
 };
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
+type StatusColor = "success" | "warning" | "destructive" | "primary" | "muted";
+
+const STATUS_CONFIG: Record<string, { label: string; color: StatusColor; icon: typeof CheckCircle2 }> = {
   IMPLEMENTED: { label: "Implemented", color: "success", icon: CheckCircle2 },
   PARTIAL: { label: "Partial", color: "warning", icon: AlertTriangle },
   NOT_STARTED: { label: "Not Started", color: "muted", icon: Clock },
@@ -69,7 +71,7 @@ const FRAMEWORK_COLORS: Record<string, string> = {
 };
 
 // Calculate effectiveness from layers
-function calculateEffectiveness(layers: any[] | undefined) {
+function calculateEffectiveness(layers: ControlLayer[] | undefined) {
   if (!layers || layers.length === 0) {
     return { score: 0, effective: 0, partial: 0, failing: 0, notTested: 0 };
   }
@@ -83,9 +85,9 @@ function calculateEffectiveness(layers: any[] | undefined) {
       continue;
     }
 
-    const passCount = tests.filter((t: any) => t.result === "PASS").length;
-    const failCount = tests.filter((t: any) => t.result === "FAIL").length;
-    const testedCount = tests.filter((t: any) => t.result && t.result !== "NOT_TESTED").length;
+    const passCount = tests.filter((t: ControlLayerTest) => t.result === "PASS").length;
+    const failCount = tests.filter((t: ControlLayerTest) => t.result === "FAIL").length;
+    const testedCount = tests.filter((t: ControlLayerTest) => t.result && t.result !== "NOT_TESTED").length;
 
     if (testedCount === 0) {
       notTested++;
@@ -105,7 +107,7 @@ function calculateEffectiveness(layers: any[] | undefined) {
 }
 
 // Calculate average protection score
-function calculateProtectionScore(layers: any[] | undefined) {
+function calculateProtectionScore(layers: ControlLayer[] | undefined) {
   if (!layers || layers.length === 0) return { current: 0, target: 100 };
 
   let totalScore = 0, count = 0;
@@ -239,7 +241,7 @@ export function ControlDetailsContent(props: { controlId?: string }) {
             icon: <Layers className="w-3 h-3 text-muted-foreground" />,
           },
         ]}
-        statusColor={statusConfig.color as any}
+        statusColor={statusConfig.color}
         actions={
           <div className="flex items-center gap-3">
             <ControlEnableDisable
@@ -445,8 +447,8 @@ export function ControlDetailsContent(props: { controlId?: string }) {
             <div className="space-y-2">
               {control.layers.slice(0, 8).map((layer) => {
                 const tests = layer.tests || [];
-                const passCount = tests.filter((t: any) => t.result === "PASS").length;
-                const testedCount = tests.filter((t: any) => t.result && t.result !== "NOT_TESTED").length;
+                const passCount = tests.filter((t: ControlLayerTest) => t.result === "PASS").length;
+                const testedCount = tests.filter((t: ControlLayerTest) => t.result && t.result !== "NOT_TESTED").length;
 
                 const effectStatus = testedCount === 0 ? "notTested" :
                   passCount === testedCount ? "effective" :

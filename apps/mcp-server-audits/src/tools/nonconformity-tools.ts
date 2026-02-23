@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerNonconformityTools(server: McpServer) {
   server.tool(
@@ -14,7 +15,7 @@ export function registerNonconformityTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ status, severity, source, capStatus, skip, take }) => {
+    withErrorHandling('list_nonconformities', async ({ status, severity, source, capStatus, skip, take }) => {
       const where: Record<string, unknown> = {};
       if (status) where['status'] = status;
       if (severity) where['severity'] = severity;
@@ -57,7 +58,7 @@ export function registerNonconformityTools(server: McpServer) {
           text: JSON.stringify(response, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -66,7 +67,7 @@ export function registerNonconformityTools(server: McpServer) {
     {
       id: z.string().describe('Nonconformity UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_nonconformity', async ({ id }) => {
       const nc = await prisma.nonconformity.findUnique({
         where: { id },
         include: {
@@ -88,16 +89,16 @@ export function registerNonconformityTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(nc, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'search_nonconformities',
     'Search nonconformities by query matching against ncId, title, and description. Returns basic fields.',
     {
-      query: z.string().describe('Search term (matches against ncId, title, description)'),
+      query: z.string().max(200).describe('Search term (matches against ncId, title, description)'),
     },
-    async ({ query }) => {
+    withErrorHandling('search_nonconformities', async ({ query }) => {
       const results = await prisma.nonconformity.findMany({
         where: {
           OR: [
@@ -131,14 +132,14 @@ export function registerNonconformityTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_nc_stats',
     'Get aggregate nonconformity statistics: count by status, severity, CAP status, source. Total open and overdue counts.',
     {},
-    async () => {
+    withErrorHandling('get_nc_stats', async () => {
       const now = new Date();
 
       const [
@@ -179,6 +180,6 @@ export function registerNonconformityTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(stats, null, 2) }],
       };
-    },
+    }),
   );
 }

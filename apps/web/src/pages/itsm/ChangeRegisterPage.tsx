@@ -55,14 +55,16 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
   FAILED: <XCircle className="h-4 w-4 text-red-500" />,
 };
 
-const PRIORITY_COLORS: Record<ChangePriority, string> = {
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
+
+const PRIORITY_COLORS: Record<ChangePriority, BadgeVariant> = {
   CRITICAL: 'destructive',
   HIGH: 'default',
   MEDIUM: 'secondary',
   LOW: 'outline',
 };
 
-const TYPE_COLORS: Record<ITSMChangeType, string> = {
+const TYPE_COLORS: Record<ITSMChangeType, BadgeVariant> = {
   EMERGENCY: 'destructive',
   NORMAL: 'default',
   STANDARD: 'secondary',
@@ -332,7 +334,7 @@ export default function ChangeRegisterPage() {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={TYPE_COLORS[change.changeType] as any}>
+                      <Badge variant={TYPE_COLORS[change.changeType]}>
                         {change.changeType}
                       </Badge>
                     </TableCell>
@@ -343,7 +345,7 @@ export default function ChangeRegisterPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={PRIORITY_COLORS[change.priority] as any}>
+                      <Badge variant={PRIORITY_COLORS[change.priority]}>
                         {change.priority}
                       </Badge>
                     </TableCell>

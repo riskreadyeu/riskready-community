@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ChangeTemplateService } from '../services/change-template.service';
 import { CreateChangeTemplateDto, UpdateChangeTemplateDto } from '../dto/change-template.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('itsm/change-templates')
 export class ChangeTemplateController {
@@ -51,9 +52,9 @@ export class ChangeTemplateController {
   }
 
   @Post()
-  async create(@Body() data: CreateChangeTemplateDto, @Req() req: any) {
+  async create(@Body() data: CreateChangeTemplateDto, @Req() req: AuthenticatedRequest) {
     const templateCode = await this.service.generateTemplateCode(data.category);
-    return this.service.create({ ...data, templateCode } as any, req.user?.id);
+    return this.service.create({ ...data, templateCode } as CreateChangeTemplateDto & { templateCode: string }, req.user?.id);
   }
 
   @Post(':id/create-change')
@@ -65,7 +66,7 @@ export class ChangeTemplateController {
       plannedStart?: string;
       plannedEnd?: string;
     },
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.service.createChangeFromTemplate(id, {
       ...data,

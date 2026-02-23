@@ -29,6 +29,8 @@ import {
   getRecentActivity,
   type DashboardStats,
   type ComplianceStatus,
+  type ActionsNeeded,
+  type RecentActivityItem,
 } from "@/lib/policies-api";
 import { cn } from "@/lib/utils";
 
@@ -70,8 +72,8 @@ export default function PoliciesDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [compliance, setCompliance] = useState<ComplianceStatus | null>(null);
-  const [actions, setActions] = useState<any>(null);
-  const [activity, setActivity] = useState<any[]>([]);
+  const [actions, setActions] = useState<ActionsNeeded | null>(null);
+  const [activity, setActivity] = useState<RecentActivityItem[]>([]);
 
   useEffect(() => {
     loadData();
@@ -288,14 +290,14 @@ export default function PoliciesDashboardPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Overdue Reviews */}
-            {actions?.overdueReviews?.length > 0 && (
+            {(actions?.overdueReviews?.length ?? 0) > 0 && actions && (
               <div>
                 <h4 className="text-xs font-medium text-destructive mb-2 flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   Overdue Reviews ({actions.overdueReviews.length})
                 </h4>
                 <div className="space-y-2">
-                  {actions.overdueReviews.slice(0, 3).map((doc: any) => (
+                  {actions.overdueReviews.slice(0, 3).map((doc) => (
                     <Link
                       key={doc.id}
                       to={`/policies/documents/${doc.id}`}
@@ -315,14 +317,14 @@ export default function PoliciesDashboardPage() {
             )}
 
             {/* Pending Approvals */}
-            {actions?.pendingApprovals?.length > 0 && (
+            {(actions?.pendingApprovals?.length ?? 0) > 0 && actions && (
               <div>
                 <h4 className="text-xs font-medium text-amber-500 mb-2 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
                   Pending Approvals ({actions.pendingApprovals.length})
                 </h4>
                 <div className="space-y-2">
-                  {actions.pendingApprovals.slice(0, 3).map((step: any) => (
+                  {actions.pendingApprovals.slice(0, 3).map((step) => (
                     <Link
                       key={step.id}
                       to={`/policies/documents/${step.workflow?.document?.id}`}
@@ -344,14 +346,14 @@ export default function PoliciesDashboardPage() {
             )}
 
             {/* Expiring Exceptions */}
-            {actions?.expiringExceptions?.length > 0 && (
+            {(actions?.expiringExceptions?.length ?? 0) > 0 && actions && (
               <div>
                 <h4 className="text-xs font-medium text-orange-500 mb-2 flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" />
                   Expiring Exceptions ({actions.expiringExceptions.length})
                 </h4>
                 <div className="space-y-2">
-                  {actions.expiringExceptions.slice(0, 3).map((exc: any) => (
+                  {actions.expiringExceptions.slice(0, 3).map((exc) => (
                     <Link
                       key={exc.id}
                       to={`/policies/exceptions/${exc.id}`}
@@ -400,7 +402,7 @@ export default function PoliciesDashboardPage() {
           <CardContent>
             {activity.length > 0 ? (
               <div className="space-y-3">
-                {activity.map((item: any, idx: number) => (
+                {activity.map((item, idx) => (
                   <div
                     key={item.id || idx}
                     className="flex items-start gap-3 p-2 rounded-lg hover:bg-secondary/30 transition-all"

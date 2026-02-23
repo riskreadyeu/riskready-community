@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { BusinessProcessService } from '../services/business-process.service';
 
 @Controller('organisation/processes')
@@ -14,7 +15,7 @@ export class BusinessProcessController {
     @Query('criticalityLevel') criticalityLevel?: string,
     @Query('bcpEnabled') bcpEnabled?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.BusinessProcessWhereInput = {};
     if (departmentId) where.departmentId = departmentId;
     if (processType) where.processType = processType;
     if (criticalityLevel) where.criticalityLevel = criticalityLevel;
@@ -38,12 +39,12 @@ export class BusinessProcessController {
   }
 
   @Post()
-  async create(@Body() data: any) {
+  async create(@Body() data: Prisma.BusinessProcessCreateInput) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Prisma.BusinessProcessUpdateInput) {
     return this.service.update(id, data);
   }
 

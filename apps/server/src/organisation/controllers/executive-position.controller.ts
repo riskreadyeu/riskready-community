@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ExecutivePositionService } from '../services/executive-position.service';
 
 @Controller('organisation/executive-positions')
@@ -11,7 +12,7 @@ export class ExecutivePositionController {
     @Query('take') take?: string,
     @Query('isActive') isActive?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.ExecutivePositionWhereInput = {};
     if (isActive !== undefined) where.isActive = isActive === 'true';
 
     return this.service.findAll({
@@ -32,12 +33,12 @@ export class ExecutivePositionController {
   }
 
   @Post()
-  async create(@Body() data: any) {
+  async create(@Body() data: Prisma.ExecutivePositionCreateInput) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Prisma.ExecutivePositionUpdateInput) {
     return this.service.update(id, data);
   }
 

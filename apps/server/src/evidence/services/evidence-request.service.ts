@@ -4,6 +4,7 @@ import {
   EvidenceType,
   EvidenceRequestStatus,
   EvidenceRequestPriority,
+  Prisma,
 } from '@prisma/client';
 
 @Injectable()
@@ -26,7 +27,7 @@ export class EvidenceRequestService {
     contextId?: string;
     overdue?: boolean;
   }) {
-    const where: any = {};
+    const where: Prisma.EvidenceRequestWhereInput = {};
 
     if (params?.status) where.status = params.status;
     if (params?.priority) where.priority = params.priority;

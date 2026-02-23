@@ -13,7 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createRTS } from "@/lib/risks-api";
+import { createRTS, type ToleranceLevel, type AppetiteLevel } from "@/lib/risks-api";
+import { type ControlFramework } from "@/lib/controls-api";
 import { PageHeader } from "@/components/common";
 
 export default function RTSCreatePage() {
@@ -62,12 +63,12 @@ export default function RTSCreatePage() {
         title: formData.title,
         objective: formData.objective,
         domain: formData.domain || undefined,
-        proposedToleranceLevel: formData.proposedToleranceLevel as any,
+        proposedToleranceLevel: formData.proposedToleranceLevel as ToleranceLevel,
         proposedRTS: formData.proposedRTS,
         anticipatedOperationalImpact: formData.anticipatedOperationalImpact || undefined,
         rationale: formData.rationale || undefined,
-        framework: formData.framework as any,
-        appetiteLevel: (formData.appetiteLevel || undefined) as any,
+        framework: formData.framework as ControlFramework,
+        appetiteLevel: (formData.appetiteLevel || undefined) as AppetiteLevel | undefined,
       });
 
       navigate(`/risks/tolerance/${rts.id}`);

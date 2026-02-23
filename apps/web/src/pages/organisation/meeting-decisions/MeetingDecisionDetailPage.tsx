@@ -13,6 +13,7 @@ import {
   ThumbsDown,
   MinusCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -133,9 +134,9 @@ export default function MeetingDecisionDetailPage() {
         actions={
           <div className="flex gap-2">
             <RecordActionsMenu
-              onEdit={() => console.log("Edit decision")}
-              onDelete={() => console.log("Delete decision")}
-              onDuplicate={() => console.log("Duplicate decision")}
+              onEdit={() => toast.info("Edit functionality not yet available")}
+              onDelete={() => toast.info("Delete functionality not yet available")}
+              onDuplicate={() => toast.info("Duplicate functionality not yet available")}
             />
             <Button variant="outline" size="sm">
               <Edit3 className="h-4 w-4 mr-2" />

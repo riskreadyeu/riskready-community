@@ -42,8 +42,8 @@ export default function LoginPage(props: {
               setError(null);
               try {
                 await props.onLogin(email, password);
-              } catch (e: any) {
-                setError(e?.message ?? "Login failed");
+              } catch (e: unknown) {
+                setError(e instanceof Error ? e.message : "Login failed");
               } finally {
                 setSubmitting(false);
               }

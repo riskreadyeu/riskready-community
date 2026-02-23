@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ProductServiceService } from '../services/product-service.service';
 
 @Controller('organisation/products-services')
@@ -13,7 +14,7 @@ export class ProductServiceController {
     @Query('productType') productType?: string,
     @Query('inIsmsScope') inIsmsScope?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.ProductServiceWhereInput = {};
     if (isActive !== undefined) where.isActive = isActive === 'true';
     if (productType) where.productType = productType;
     if (inIsmsScope !== undefined) where.inIsmsScope = inIsmsScope === 'true';
@@ -36,12 +37,12 @@ export class ProductServiceController {
   }
 
   @Post()
-  async create(@Body() data: any) {
+  async create(@Body() data: Prisma.ProductServiceCreateInput) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Prisma.ProductServiceUpdateInput) {
     return this.service.update(id, data);
   }
 

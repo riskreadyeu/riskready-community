@@ -17,7 +17,7 @@ export class RequestContextMiddleware implements NestMiddleware {
     };
 
     // Store reference on request so guards/interceptors can enrich it later
-    (req as any)._requestContext = ctx;
+    (req as Request & { _requestContext?: RequestContextData })._requestContext = ctx;
 
     requestContextStorage.run(ctx, () => next());
   }

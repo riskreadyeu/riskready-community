@@ -1,12 +1,13 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
     'get_org_dashboard',
     'Get an organisation dashboard summary — departments, locations, processes, committees, personnel, and key counts.',
     {},
-    async () => {
+    withErrorHandling('get_org_dashboard', async () => {
       const [
         departments,
         locations,
@@ -61,14 +62,14 @@ export function registerAnalysisTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_bia_summary',
     'Get Business Impact Analysis summary — process BIA completion rates, criticality distribution, recovery objectives.',
     {},
-    async () => {
+    withErrorHandling('get_bia_summary', async () => {
       const [total, biaCompleted, bcpEnabled, byCriticality, byBiaStatus] = await Promise.all([
         prisma.businessProcess.count({ where: { isActive: true } }),
         prisma.businessProcess.count({ where: { isActive: true, biaStatus: 'completed' } }),
@@ -87,6 +88,7 @@ export function registerAnalysisTools(server: McpServer) {
 
       const criticalProcesses = await prisma.businessProcess.findMany({
         where: { isActive: true, criticalityLevel: 'critical' },
+        take: 1000,
         select: {
           id: true,
           name: true,
@@ -115,14 +117,14 @@ export function registerAnalysisTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_governance_activity_report',
     'Get governance activity report — recent committee meetings, open action items, upcoming meetings.',
     {},
-    async () => {
+    withErrorHandling('get_governance_activity_report', async () => {
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -133,6 +135,7 @@ export function registerAnalysisTools(server: McpServer) {
             meetingDate: { gte: thirtyDaysAgo, lte: now },
             status: { not: 'cancelled' },
           },
+          take: 1000,
           select: {
             id: true,
             title: true,
@@ -149,6 +152,7 @@ export function registerAnalysisTools(server: McpServer) {
             meetingDate: { gt: now, lte: thirtyDaysFromNow },
             status: 'scheduled',
           },
+          take: 1000,
           select: {
             id: true,
             title: true,
@@ -181,6 +185,6 @@ export function registerAnalysisTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

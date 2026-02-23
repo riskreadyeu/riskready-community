@@ -18,6 +18,7 @@ import {
   Calendar,
   RefreshCw,
   Package,
+  type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -27,6 +28,7 @@ import {
   getAssetVulnerabilities,
   deleteAsset,
   type Asset,
+  type AssetImpactAnalysis,
   type AssetRelationship,
   type AssetVulnerability,
 } from '@/lib/itsm-api';
@@ -56,7 +58,7 @@ const getUserName = (user?: { firstName?: string; lastName?: string; email: stri
   return user.email;
 };
 
-const DetailRow = ({ label, value, icon: Icon, className = '' }: any) => (
+const DetailRow = ({ label, value, icon: Icon, className = '' }: { label: string; value: React.ReactNode; icon?: LucideIcon; className?: string }) => (
   <div className={`flex items-start justify-between py-2 border-b border-border/50 last:border-0 ${className}`}>
     <div className="flex items-center gap-2 text-sm text-muted-foreground">
       {Icon && <Icon className="h-4 w-4" />}
@@ -74,7 +76,7 @@ export default function AssetDetailPage() {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [relationships, setRelationships] = useState<AssetRelationship[]>([]);
   const [vulnerabilities, setVulnerabilities] = useState<AssetVulnerability[]>([]);
-  const [impactAnalysis, setImpactAnalysis] = useState<any>(null);
+  const [impactAnalysis, setImpactAnalysis] = useState<AssetImpactAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 

@@ -13,8 +13,8 @@ export class TreatmentHistoryService {
     treatmentPlanId: string;
     action: TreatmentHistoryAction;
     fieldName?: string;
-    oldValue?: any;
-    newValue?: any;
+    oldValue?: unknown;
+    newValue?: unknown;
     description?: string;
     actionId?: string;
     userId?: string;
@@ -103,7 +103,7 @@ export class TreatmentHistoryService {
   /**
    * Log treatment plan creation
    */
-  async logCreated(treatmentPlanId: string, userId: string, planData: any) {
+  async logCreated(treatmentPlanId: string, userId: string, planData: Record<string, unknown> & { title: string }) {
     return this.logHistory({
       treatmentPlanId,
       action: 'CREATED',
@@ -119,7 +119,7 @@ export class TreatmentHistoryService {
   async logUpdated(
     treatmentPlanId: string,
     userId: string,
-    changes: { field: string; oldValue: any; newValue: any }[]
+    changes: { field: string; oldValue: unknown; newValue: unknown }[]
   ) {
     const descriptions = changes.map(c => `${c.field}: ${c.oldValue} → ${c.newValue}`);
     

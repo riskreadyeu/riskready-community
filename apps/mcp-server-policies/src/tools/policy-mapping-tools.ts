@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerPolicyMappingTools(server: McpServer) {
   server.tool(
@@ -9,7 +10,7 @@ export function registerPolicyMappingTools(server: McpServer) {
     {
       documentId: z.string().describe('PolicyDocument UUID'),
     },
-    async ({ documentId }) => {
+    withErrorHandling('get_policy_control_mappings', async ({ documentId }) => {
       const doc = await prisma.policyDocument.findUnique({
         where: { id: documentId },
         select: { id: true, documentId: true, title: true },
@@ -20,6 +21,7 @@ export function registerPolicyMappingTools(server: McpServer) {
 
       const mappings = await prisma.documentControlMapping.findMany({
         where: { documentId },
+        take: 1000,
         select: {
           id: true,
           mappingType: true,
@@ -46,7 +48,7 @@ export function registerPolicyMappingTools(server: McpServer) {
           text: JSON.stringify({ document: doc, mappings, count: mappings.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -55,7 +57,7 @@ export function registerPolicyMappingTools(server: McpServer) {
     {
       documentId: z.string().describe('PolicyDocument UUID'),
     },
-    async ({ documentId }) => {
+    withErrorHandling('get_policy_risk_mappings', async ({ documentId }) => {
       const doc = await prisma.policyDocument.findUnique({
         where: { id: documentId },
         select: { id: true, documentId: true, title: true },
@@ -66,6 +68,7 @@ export function registerPolicyMappingTools(server: McpServer) {
 
       const mappings = await prisma.documentRiskMapping.findMany({
         where: { documentId },
+        take: 1000,
         select: {
           id: true,
           relationshipType: true,
@@ -89,6 +92,6 @@ export function registerPolicyMappingTools(server: McpServer) {
           text: JSON.stringify({ document: doc, mappings, count: mappings.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

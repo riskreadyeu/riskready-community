@@ -10,6 +10,13 @@ import type {
 
 export type { Control, ControlTheme, ControlFramework, ImplementationStatus, TestResult, RAGStatus };
 
+// Minimal test result shape used within layer data
+export interface LayerTestResult {
+  id?: string;
+  result?: string;
+  [key: string]: unknown;
+}
+
 // Legacy layer shape kept locally for control-browser components.
 // The four-layer framework types have been removed from controls-api.
 export interface ControlLayerBasic {
@@ -20,8 +27,8 @@ export interface ControlLayerBasic {
   protectionScore: number;
   testsPassed: number;
   testsTotal: number;
-  tests?: any[];
-  [key: string]: any;
+  tests?: LayerTestResult[];
+  [key: string]: unknown;
 }
 
 export interface ControlWithLayers extends Control {

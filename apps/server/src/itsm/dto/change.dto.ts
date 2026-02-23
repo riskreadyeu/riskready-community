@@ -129,8 +129,16 @@ export class CreateChangeDto {
     impactedAssets?: string[];
 
     @IsOptional()
+    @IsBoolean()
+    pirRequired?: boolean;
+
+    @IsOptional()
+    @IsString()
+    successCriteria?: string;
+
+    @IsOptional()
     @IsArray()
-    attachments?: any[];
+    attachments?: Record<string, unknown>[];
 }
 
 /**
@@ -289,5 +297,5 @@ export class UpdateChangeDto {
 
     @IsOptional()
     @IsArray()
-    attachments?: any[];
+    attachments?: Record<string, unknown>[];
 }

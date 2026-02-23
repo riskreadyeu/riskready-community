@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   Link2,
   CheckCircle2,
@@ -228,17 +229,15 @@ export default function ControlMappingsPage() {
     {
       label: "View Control",
       icon: <Eye className="w-4 h-4" />,
-      onClick: (control) => {
-        // Navigate to control detail if available
-        console.log("View control:", control.controlId);
+      onClick: () => {
+        toast.info("This feature is not yet available");
       },
     },
     {
       label: "Add Document Mapping",
       icon: <Plus className="w-4 h-4" />,
-      onClick: (control) => {
-        // Open mapping dialog
-        console.log("Add mapping for:", control.controlId);
+      onClick: () => {
+        toast.info("This feature is not yet available");
       },
     },
   ];

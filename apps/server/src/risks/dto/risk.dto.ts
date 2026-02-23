@@ -23,6 +23,7 @@ import {
   ActionStatus,
   CollectionFrequency,
   RAGStatus,
+  Prisma,
 } from '@prisma/client';
 import { Type } from 'class-transformer';
 
@@ -412,7 +413,7 @@ export class CreateTreatmentPlanDto {
   acceptanceCriteria?: string;
 
   @IsOptional()
-  acceptanceConditions?: any;
+  acceptanceConditions?: Prisma.InputJsonValue;
 
   @IsDateString()
   @IsOptional()
@@ -538,7 +539,7 @@ export class UpdateTreatmentPlanDto {
   acceptanceCriteria?: string;
 
   @IsOptional()
-  acceptanceConditions?: any;
+  acceptanceConditions?: Prisma.InputJsonValue;
 
   @IsDateString()
   @IsOptional()

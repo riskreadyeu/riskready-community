@@ -55,6 +55,24 @@ export type TrendDirection = 'IMPROVING' | 'STABLE' | 'DECLINING' | 'NEW';
 export type CollectionFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUAL' | 'PER_EVENT' | 'PER_INCIDENT';
 export type EffectivenessTestType = 'DESIGN' | 'IMPLEMENTATION' | 'OPERATING';
 
+export interface ControlLayerTest {
+  id?: string;
+  result?: string;
+  [key: string]: unknown;
+}
+
+export interface ControlLayer {
+  id: string;
+  controlId: string;
+  layer: string;
+  description?: string;
+  protectionScore?: number;
+  testsPassed?: number;
+  testsTotal?: number;
+  tests?: ControlLayerTest[];
+  [key: string]: unknown;
+}
+
 export interface ControlEffectiveness {
   score: number;
   rating: string;
@@ -97,7 +115,7 @@ export interface Control {
   updatedBy?: UserBasic;
   effectiveness?: ControlEffectiveness;
   // Backend may include joined layers and relation counts
-  layers?: any[];
+  layers?: ControlLayer[];
   _count?: Record<string, number>;
 }
 
@@ -266,21 +284,23 @@ export interface MetricsDashboard {
   byType: Record<string, { total: number; green: number; amber: number; red: number }>;
 }
 
+export interface EffectivenessReportControl {
+  id: string;
+  controlId: string;
+  name: string;
+  theme: ControlTheme;
+  score: number;
+  rating: string;
+  passCount: number;
+  partialCount: number;
+  failCount: number;
+  notTestedCount: number;
+  totalLayers: number;
+}
+
 export interface EffectivenessReport {
-  controls: Array<{
-    id: string;
-    controlId: string;
-    name: string;
-    theme: ControlTheme;
-    score: number;
-    rating: string;
-    passCount: number;
-    partialCount: number;
-    failCount: number;
-    notTestedCount: number;
-    totalLayers: number;
-  }>;
-  byTheme: Record<string, { controls: any[]; avgScore: number }>;
+  controls: EffectivenessReportControl[];
+  byTheme: Record<string, { controls: EffectivenessReportControl[]; avgScore: number }>;
 }
 
 export interface MaturityHeatmapItem {
@@ -920,7 +940,7 @@ export interface AssessmentTest {
   assessmentId: string;
   assessment?: Assessment;
   layerTestId: string;
-  layerTest?: any;
+  layerTest?: { id: string; testCode?: string; name?: string; layer?: string; controlId?: string };
   scopeItemId?: string;
   scopeItem?: ScopeItem;
   status: AssessmentTestStatus;

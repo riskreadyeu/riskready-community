@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, Request } from '@nestjs/common';
 import { RiskToleranceStatementService } from '../services/rts.service';
-import { ToleranceLevel, RTSStatus, ControlFramework, ImpactCategory } from '@prisma/client';
+import { ToleranceLevel, RTSStatus, ControlFramework, ImpactCategory, Prisma } from '@prisma/client';
 import { CreateRTSDto, UpdateRTSDto, LinkRisksDto, UnlinkRisksDto } from '../dto/rts.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('risks/rts')
 export class RiskToleranceStatementController {
@@ -16,7 +17,7 @@ export class RiskToleranceStatementController {
     @Query('domain') domain?: string,
     @Query('organisationId') organisationId?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.RiskToleranceStatementWhereInput = {};
     if (status) where.status = status;
     if (level) where.proposedToleranceLevel = level;
     if (domain) where.domain = domain;
@@ -47,7 +48,7 @@ export class RiskToleranceStatementController {
 
   @Post()
   async create(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() data: CreateRTSDto,
   ) {
     // Get organisation ID from first available source
@@ -71,7 +72,7 @@ export class RiskToleranceStatementController {
 
   @Put(':id')
   async update(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() data: UpdateRTSDto,
   ) {
@@ -84,7 +85,7 @@ export class RiskToleranceStatementController {
   }
 
   @Put(':id/approve')
-  async approve(@Request() req: any, @Param('id') id: string) {
+  async approve(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.rtsService.approve(id, req.user.id);
   }
 

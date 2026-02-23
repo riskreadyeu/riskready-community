@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Network, Plus, Shield, Eye, Edit3, Trash2, ClipboardCheck } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,15 +59,15 @@ export default function BusinessProcessesPage() {
 
   const filteredProcesses = processes.filter((p) => {
     if (typeFilter !== "all" && p.processType !== typeFilter) return false;
-    if (biaFilter !== "all" && (p as any).biaStatus !== biaFilter) return false;
+    if (biaFilter !== "all" && p.biaStatus !== biaFilter) return false;
     return true;
   });
 
   // Calculate BIA stats
   const biaStats = {
-    pending: processes.filter((p) => (p as any).biaStatus === "pending" || !(p as any).biaStatus).length,
-    inProgress: processes.filter((p) => (p as any).biaStatus === "in_progress").length,
-    completed: processes.filter((p) => (p as any).biaStatus === "completed").length,
+    pending: processes.filter((p) => p.biaStatus === "pending" || !p.biaStatus).length,
+    inProgress: processes.filter((p) => p.biaStatus === "in_progress").length,
+    completed: processes.filter((p) => p.biaStatus === "completed").length,
   };
 
   const columns: Column<BusinessProcess>[] = [
@@ -150,12 +151,12 @@ export default function BusinessProcessesPage() {
     {
       label: "Edit",
       icon: <Edit3 className="w-4 h-4" />,
-      onClick: (process) => console.log("Edit", process.id),
+      onClick: () => toast.info("Edit functionality not yet available"),
     },
     {
       label: "Delete",
       icon: <Trash2 className="w-4 h-4" />,
-      onClick: (process) => console.log("Delete", process.id),
+      onClick: () => toast.info("Delete functionality not yet available"),
       variant: "destructive",
       separator: true,
     },

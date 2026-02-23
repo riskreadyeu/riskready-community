@@ -139,10 +139,8 @@ export default function MeetingDecisionsPage() {
     try {
       setIsSubmitting(true);
       // TODO: Implement API call when backend is ready
-      console.log("Updating decision:", formData);
-      toast.success("Decision updated successfully");
+      toast.info("Save functionality not yet available");
       setFormOpen(false);
-      await loadData();
     } catch (err) {
       console.error("Error saving decision:", err);
       toast.error("Failed to save decision");
@@ -161,11 +159,9 @@ export default function MeetingDecisionsPage() {
     try {
       setIsDeleting(true);
       // TODO: Implement API call when backend is ready
-      console.log("Deleting decision:", deletingDecision.id);
-      toast.success("Decision deleted successfully");
+      toast.info("Delete functionality not yet available");
       setDeleteOpen(false);
       setDeletingDecision(null);
-      await loadData();
     } catch (err) {
       console.error("Error deleting decision:", err);
       toast.error("Failed to delete decision");

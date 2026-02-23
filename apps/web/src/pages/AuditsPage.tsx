@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, Download, Plus, AlertCircle, ExternalLink, Clock, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { Calendar, Download, Plus, AlertCircle, ExternalLink, Clock, CheckCircle2, XCircle, AlertTriangle, type LucideIcon } from "lucide-react";
 import { getNonconformities, getNonconformityStats, type Nonconformity, type NonconformityStats, type NCStatus, type NCSeverity } from "@/lib/audits-api";
 import { format } from "date-fns";
 
@@ -70,7 +70,7 @@ export default function AuditsPage() {
   };
 
   const getStatusBadge = (status: NCStatus) => {
-    const variants: Record<NCStatus, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
+    const variants: Record<NCStatus, { variant: "default" | "secondary" | "destructive" | "outline", icon: LucideIcon }> = {
       DRAFT: { variant: "secondary", icon: AlertCircle },
       OPEN: { variant: "destructive", icon: AlertCircle },
       IN_PROGRESS: { variant: "default", icon: Clock },

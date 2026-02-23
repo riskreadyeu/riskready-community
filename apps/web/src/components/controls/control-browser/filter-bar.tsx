@@ -145,7 +145,7 @@ export function FilterBar({
         {/* Effectiveness Filter */}
         <Select
           value={filters.effectivenessRating}
-          onValueChange={(value) => onFilterChange({ effectivenessRating: value as any })}
+          onValueChange={(value) => onFilterChange({ effectivenessRating: value as ControlBrowserFilters['effectivenessRating'] })}
         >
           <SelectTrigger className="w-40 h-9">
             <SelectValue placeholder="Effectiveness" />

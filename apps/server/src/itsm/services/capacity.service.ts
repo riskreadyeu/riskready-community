@@ -11,7 +11,7 @@ export class CapacityService {
     memoryUsagePercent?: number;
     storageUsagePercent?: number;
     networkUsagePercent?: number;
-    customMetrics?: any;
+    customMetrics?: Prisma.InputJsonValue;
     source?: string;
   }) {
     // Create capacity record

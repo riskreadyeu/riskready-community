@@ -8,7 +8,7 @@ import {
 } from './regulatory-scope-propagation.service';
 
 export interface CompleteSurveyResult {
-  survey: any;
+  survey: Record<string, unknown>;
   propagation?: PropagationResult;
 }
 

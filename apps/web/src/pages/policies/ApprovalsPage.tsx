@@ -277,7 +277,7 @@ export default function ApprovalsPage() {
             document: { id: doc.id, documentId: doc.documentId, title: doc.title }
           })));
         } catch (e) {
-          // Skip if no workflows
+          console.error(`Failed to load workflows for document ${doc.id}:`, e);
         }
       }
       setWorkflows(allWorkflows);

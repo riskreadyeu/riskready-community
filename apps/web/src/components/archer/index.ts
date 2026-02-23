@@ -16,7 +16,7 @@ export { DetailPageLayout } from "./detail-page-layout";
 export { EmptyState } from "./empty-state";
 export { FieldWithHelp } from "./field-with-help";
 export { ListPageLayout } from "./list-page-layout";
-export { PermissionGate, withPermission } from "./permission-gate";
+
 export { ProgressTracker } from "./progress-tracker";
 export { RecordHeader } from "./record-header";
 export { Section } from "./section";
@@ -24,8 +24,6 @@ export { SmartSelect } from "./smart-select";
 export { WorkflowSidebar } from "./workflow-sidebar";
 
 // Hooks
-export { usePermissions } from "./hooks/use-permissions";
-export type { UsePermissionsReturn } from "./hooks/use-permissions";
 export {
   useCollapsedState,
   useBreakpoint,
@@ -59,7 +57,6 @@ export type {
   EmptyStateProps,
   FieldWithHelpProps,
   ListPageLayoutProps,
-  PermissionGateProps,
   ProgressStatus,
   ProgressStep,
   ProgressTrackerProps,
@@ -76,14 +73,3 @@ export type {
   WorkflowStage,
 } from "@/lib/archer/types";
 
-// Permissions (re-export from lib/archer/permissions for convenience)
-export {
-  PERMISSIONS,
-  ROLES,
-  ROLE_PERMISSIONS,
-  hasPermission,
-  hasAnyPermission,
-  hasAllPermissions,
-  getPermissionsForRole,
-  getPermissionsForRoles,
-} from "@/lib/archer/permissions";

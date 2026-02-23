@@ -43,6 +43,7 @@ import {
   type AssetType,
   type AssetStatus,
   type BusinessCriticality,
+  type CapacityStatus,
 } from '@/lib/itsm-api';
 
 const ASSET_TYPE_ICONS: Record<string, React.ReactNode> = {
@@ -55,14 +56,16 @@ const ASSET_TYPE_ICONS: Record<string, React.ReactNode> = {
   APPLICATION: <Shield className="h-4 w-4" />,
 };
 
-const CRITICALITY_COLORS: Record<BusinessCriticality, string> = {
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
+
+const CRITICALITY_COLORS: Record<BusinessCriticality, BadgeVariant> = {
   CRITICAL: 'destructive',
   HIGH: 'default',
   MEDIUM: 'secondary',
   LOW: 'outline',
 };
 
-const STATUS_COLORS: Record<AssetStatus, string> = {
+const STATUS_COLORS: Record<AssetStatus, BadgeVariant> = {
   ACTIVE: 'default',
   PLANNED: 'secondary',
   PROCUREMENT: 'secondary',
@@ -106,7 +109,7 @@ export default function AssetRegisterPage() {
           assetType: filters.assetType || undefined,
           status: filters.status || undefined,
           businessCriticality: filters.businessCriticality || undefined,
-          capacityStatus: filters.capacityStatus as any,
+          capacityStatus: filters.capacityStatus as CapacityStatus | undefined,
         }),
         getAssetSummary(),
       ]);
@@ -337,10 +340,10 @@ export default function AssetRegisterPage() {
                       <span className="text-sm">{asset.assetType.replace(/_/g, ' ')}</span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={STATUS_COLORS[asset.status] as any}>{asset.status}</Badge>
+                      <Badge variant={STATUS_COLORS[asset.status]}>{asset.status}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={CRITICALITY_COLORS[asset.businessCriticality] as any}>
+                      <Badge variant={CRITICALITY_COLORS[asset.businessCriticality]}>
                         {asset.businessCriticality}
                       </Badge>
                     </TableCell>

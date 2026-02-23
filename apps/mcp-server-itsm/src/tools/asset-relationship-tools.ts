@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerAssetRelationshipTools(server: McpServer) {
   server.tool(
@@ -10,7 +11,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
       assetId: z.string().describe('Asset UUID'),
       direction: z.enum(['outgoing', 'incoming', 'all']).default('all').describe('Relationship direction: outgoing (this asset depends on), incoming (depends on this asset), or all'),
     },
-    async ({ assetId, direction }) => {
+    withErrorHandling('get_asset_relationships', async ({ assetId, direction }) => {
       // Verify asset exists
       const asset = await prisma.asset.findUnique({
         where: { id: assetId },
@@ -23,6 +24,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
       const outgoing = direction === 'outgoing' || direction === 'all'
         ? await prisma.assetRelationship.findMany({
             where: { fromAssetId: assetId },
+            take: 1000,
             include: {
               toAsset: { select: { id: true, assetTag: true, name: true, assetType: true, status: true } },
             },
@@ -32,13 +34,14 @@ export function registerAssetRelationshipTools(server: McpServer) {
       const incoming = direction === 'incoming' || direction === 'all'
         ? await prisma.assetRelationship.findMany({
             where: { toAssetId: assetId },
+            take: 1000,
             include: {
               fromAsset: { select: { id: true, assetTag: true, name: true, assetType: true, status: true } },
             },
           })
         : [];
 
-      const response: any = {
+      const response: Record<string, unknown> = {
         asset: { id: asset.id, assetTag: asset.assetTag, name: asset.name },
         outgoing,
         incoming,
@@ -52,7 +55,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -61,7 +64,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
     {
       assetId: z.string().describe('Asset UUID'),
     },
-    async ({ assetId }) => {
+    withErrorHandling('get_asset_controls', async ({ assetId }) => {
       const asset = await prisma.asset.findUnique({
         where: { id: assetId },
         select: { id: true, assetTag: true, name: true },
@@ -72,6 +75,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
 
       const controlLinks = await prisma.assetControl.findMany({
         where: { assetId },
+        take: 1000,
         include: {
           control: {
             select: {
@@ -88,7 +92,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
         orderBy: { createdAt: 'asc' },
       });
 
-      const response: any = {
+      const response: Record<string, unknown> = {
         asset: { id: asset.id, assetTag: asset.assetTag, name: asset.name },
         controlLinks,
         count: controlLinks.length,
@@ -100,7 +104,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -109,7 +113,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
     {
       assetId: z.string().describe('Asset UUID'),
     },
-    async ({ assetId }) => {
+    withErrorHandling('get_asset_risks', async ({ assetId }) => {
       const asset = await prisma.asset.findUnique({
         where: { id: assetId },
         select: { id: true, assetTag: true, name: true },
@@ -120,6 +124,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
 
       const riskLinks = await prisma.assetRisk.findMany({
         where: { assetId },
+        take: 1000,
         include: {
           risk: {
             select: {
@@ -134,7 +139,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
         orderBy: { createdAt: 'asc' },
       });
 
-      const response: any = {
+      const response: Record<string, unknown> = {
         asset: { id: asset.id, assetTag: asset.assetTag, name: asset.name },
         riskLinks,
         count: riskLinks.length,
@@ -146,7 +151,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -155,7 +160,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
     {
       assetId: z.string().describe('Asset UUID'),
     },
-    async ({ assetId }) => {
+    withErrorHandling('get_asset_business_processes', async ({ assetId }) => {
       const asset = await prisma.asset.findUnique({
         where: { id: assetId },
         select: { id: true, assetTag: true, name: true },
@@ -166,6 +171,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
 
       const processLinks = await prisma.assetBusinessProcess.findMany({
         where: { assetId },
+        take: 1000,
         include: {
           businessProcess: {
             select: {
@@ -179,7 +185,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
         orderBy: { createdAt: 'asc' },
       });
 
-      const response: any = {
+      const response: Record<string, unknown> = {
         asset: { id: asset.id, assetTag: asset.assetTag, name: asset.name },
         processLinks,
         count: processLinks.length,
@@ -191,6 +197,6 @@ export function registerAssetRelationshipTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 }

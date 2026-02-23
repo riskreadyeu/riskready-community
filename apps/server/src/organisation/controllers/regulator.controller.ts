@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { RegulatorService } from '../services/regulator.service';
 
 @Controller('organisation/regulators')
@@ -12,7 +13,7 @@ export class RegulatorController {
     @Query('regulatorType') regulatorType?: string,
     @Query('isActive') isActive?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.RegulatorWhereInput = {};
     if (regulatorType) where.regulatorType = regulatorType;
     if (isActive !== undefined) where.isActive = isActive === 'true';
 
@@ -34,12 +35,12 @@ export class RegulatorController {
   }
 
   @Post()
-  async create(@Body() data: any) {
+  async create(@Body() data: Prisma.RegulatorCreateInput) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Prisma.RegulatorUpdateInput) {
     return this.service.update(id, data);
   }
 

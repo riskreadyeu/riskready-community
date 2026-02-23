@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerIncidentDetailTools(server: McpServer) {
   server.tool(
@@ -11,7 +12,7 @@ export function registerIncidentDetailTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size'),
     },
-    async (params) => {
+    withErrorHandling('list_incident_timeline', async (params) => {
       const incident = await prisma.incident.findUnique({
         where: { id: params.incidentId },
         select: { id: true, referenceNumber: true },
@@ -47,7 +48,7 @@ export function registerIncidentDetailTools(server: McpServer) {
           text: JSON.stringify({ incidentRef: incident.referenceNumber, entries, total }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -56,7 +57,7 @@ export function registerIncidentDetailTools(server: McpServer) {
     {
       incidentId: z.string().describe('Incident UUID'),
     },
-    async ({ incidentId }) => {
+    withErrorHandling('list_incident_lessons', async ({ incidentId }) => {
       const incident = await prisma.incident.findUnique({
         where: { id: incidentId },
         select: { id: true, referenceNumber: true },
@@ -67,6 +68,7 @@ export function registerIncidentDetailTools(server: McpServer) {
 
       const lessons = await prisma.incidentLessonsLearned.findMany({
         where: { incidentId },
+        take: 1000,
         orderBy: { priority: 'asc' },
         select: {
           id: true,
@@ -88,7 +90,7 @@ export function registerIncidentDetailTools(server: McpServer) {
           text: JSON.stringify({ incidentRef: incident.referenceNumber, lessons, count: lessons.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -97,7 +99,7 @@ export function registerIncidentDetailTools(server: McpServer) {
     {
       incidentId: z.string().describe('Incident UUID'),
     },
-    async ({ incidentId }) => {
+    withErrorHandling('get_incident_assets', async ({ incidentId }) => {
       const incident = await prisma.incident.findUnique({
         where: { id: incidentId },
         select: { id: true, referenceNumber: true },
@@ -108,6 +110,7 @@ export function registerIncidentDetailTools(server: McpServer) {
 
       const assets = await prisma.incidentAsset.findMany({
         where: { incidentId },
+        take: 1000,
         select: {
           id: true,
           impactType: true,
@@ -132,7 +135,7 @@ export function registerIncidentDetailTools(server: McpServer) {
           text: JSON.stringify({ incidentRef: incident.referenceNumber, assets, count: assets.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -141,7 +144,7 @@ export function registerIncidentDetailTools(server: McpServer) {
     {
       incidentId: z.string().describe('Incident UUID'),
     },
-    async ({ incidentId }) => {
+    withErrorHandling('get_incident_controls', async ({ incidentId }) => {
       const incident = await prisma.incident.findUnique({
         where: { id: incidentId },
         select: { id: true, referenceNumber: true },
@@ -152,6 +155,7 @@ export function registerIncidentDetailTools(server: McpServer) {
 
       const controls = await prisma.incidentControl.findMany({
         where: { incidentId },
+        take: 1000,
         select: {
           id: true,
           linkType: true,
@@ -174,6 +178,6 @@ export function registerIncidentDetailTools(server: McpServer) {
           text: JSON.stringify({ incidentRef: incident.referenceNumber, controls, count: controls.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

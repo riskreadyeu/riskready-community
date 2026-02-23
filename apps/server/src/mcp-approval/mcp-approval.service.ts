@@ -13,7 +13,7 @@ export class McpApprovalService {
     skip?: number;
     take?: number;
   }) {
-    const where: any = {};
+    const where: Prisma.McpPendingActionWhereInput = {};
     if (params?.status) where.status = params.status;
     if (params?.actionType) where.actionType = params.actionType;
     if (params?.organisationId) where.organisationId = params.organisationId;
@@ -52,7 +52,7 @@ export class McpApprovalService {
   }
 
   async getStats(organisationId?: string) {
-    const where: any = {};
+    const where: Prisma.McpPendingActionWhereInput = {};
     if (organisationId) where.organisationId = organisationId;
 
     const counts = await this.prisma.mcpPendingAction.groupBy({
@@ -131,7 +131,7 @@ export class McpApprovalService {
     });
   }
 
-  async markExecuted(id: string, resultData?: any) {
+  async markExecuted(id: string, resultData?: unknown) {
     return this.prisma.mcpPendingAction.update({
       where: { id },
       data: {

@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { DepartmentService } from '../services/department.service';
 import { CreateDepartmentDto, UpdateDepartmentDto } from '../dto/department.dto';
 
@@ -13,7 +14,7 @@ export class DepartmentController {
     @Query('isActive') isActive?: string,
     @Query('criticalityLevel') criticalityLevel?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.DepartmentWhereInput = {};
     if (isActive !== undefined) where.isActive = isActive === 'true';
     if (criticalityLevel) where.criticalityLevel = criticalityLevel;
 

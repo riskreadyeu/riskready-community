@@ -1,47 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-
-async function getDefaultOrganisationId(): Promise<string> {
-  const org = await prisma.organisationProfile.findFirst({ select: { id: true } });
-  if (!org) throw new Error('No organisation found in the database. Please create one first.');
-  return org.id;
-}
-
-async function createPendingAction(params: {
-  actionType: string;
-  summary: string;
-  reason?: string;
-  payload: any;
-  mcpSessionId?: string;
-  mcpToolName: string;
-  organisationId?: string;
-}) {
-  const orgId = params.organisationId || await getDefaultOrganisationId();
-  const action = await prisma.mcpPendingAction.create({
-    data: {
-      actionType: params.actionType as any,
-      summary: params.summary,
-      reason: params.reason,
-      payload: params.payload,
-      mcpSessionId: params.mcpSessionId,
-      mcpToolName: params.mcpToolName,
-      organisationId: orgId,
-    },
-  });
-  return {
-    content: [{
-      type: 'text' as const,
-      text: JSON.stringify({
-        message: `Action proposed successfully. Awaiting human approval.`,
-        actionId: action.id,
-        actionType: action.actionType,
-        status: action.status,
-        summary: action.summary,
-      }, null, 2),
-    }],
-  };
-}
+import { createPendingAction, getDefaultOrganisationId, withErrorHandling } from '#mcp-shared';
 
 // ========================================
 // ASSET MUTATIONS
@@ -102,16 +62,16 @@ function registerAssetMutations(server: McpServer) {
       rack: z.string().optional().describe('Rack identifier'),
       rackPosition: z.string().optional().describe('Rack position (e.g. U1-U4)'),
       // Lifecycle
-      purchaseDate: z.string().optional().describe('Purchase date (ISO 8601)'),
-      deploymentDate: z.string().optional().describe('Deployment date (ISO 8601)'),
-      warrantyExpiry: z.string().optional().describe('Warranty expiry date (ISO 8601)'),
-      endOfLife: z.string().optional().describe('End of life date (ISO 8601)'),
-      endOfSupport: z.string().optional().describe('End of support date (ISO 8601)'),
-      disposalDate: z.string().optional().describe('Disposal date (ISO 8601)'),
+      purchaseDate: z.string().datetime().optional().describe('Purchase date (ISO 8601)'),
+      deploymentDate: z.string().datetime().optional().describe('Deployment date (ISO 8601)'),
+      warrantyExpiry: z.string().datetime().optional().describe('Warranty expiry date (ISO 8601)'),
+      endOfLife: z.string().datetime().optional().describe('End of life date (ISO 8601)'),
+      endOfSupport: z.string().datetime().optional().describe('End of support date (ISO 8601)'),
+      disposalDate: z.string().datetime().optional().describe('Disposal date (ISO 8601)'),
       lifecycleNotes: z.string().optional().describe('Lifecycle notes'),
       // Technical
-      ipAddresses: z.any().optional().describe('IP addresses (JSON array)'),
-      macAddresses: z.any().optional().describe('MAC addresses (JSON array)'),
+      ipAddresses: z.array(z.string()).optional().describe('IP addresses (JSON array)'),
+      macAddresses: z.array(z.string()).optional().describe('MAC addresses (JSON array)'),
       operatingSystem: z.string().optional().describe('Operating system'),
       osVersion: z.string().optional().describe('OS version'),
       version: z.string().optional().describe('Software/firmware version'),
@@ -121,7 +81,7 @@ function registerAssetMutations(server: McpServer) {
       model: z.string().optional().describe('Model'),
       serialNumber: z.string().optional().describe('Serial number'),
       supportContract: z.string().optional().describe('Support contract reference'),
-      supportExpiry: z.string().optional().describe('Support contract expiry (ISO 8601)'),
+      supportExpiry: z.string().datetime().optional().describe('Support contract expiry (ISO 8601)'),
       supportTier: z.string().optional().describe('Support tier (e.g. Gold, Silver)'),
       vendorId: z.string().optional().describe('Vendor/external dependency UUID'),
       // Financial
@@ -156,14 +116,14 @@ function registerAssetMutations(server: McpServer) {
       redundancyType: z.string().optional().describe('Redundancy type (e.g. active-active, active-passive)'),
       failoverAssetId: z.string().optional().describe('Failover asset UUID'),
       // Metadata
-      typeAttributes: z.any().optional().describe('Type-specific attributes (JSON)'),
-      tags: z.any().optional().describe('Tags (JSON array)'),
+      typeAttributes: z.record(z.string(), z.unknown()).optional().describe('Type-specific attributes (JSON object)'),
+      tags: z.array(z.string()).optional().describe('Tags (JSON array)'),
       discoverySource: z.string().optional().describe('Discovery source'),
       organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_asset', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_ASSET',
         summary: `Create ${params.assetType} asset "${params.name}"${params.businessCriticality ? ` (${params.businessCriticality} criticality)` : ''}`,
@@ -173,7 +133,7 @@ function registerAssetMutations(server: McpServer) {
         mcpToolName: 'propose_asset',
         organisationId: params.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -222,16 +182,16 @@ function registerAssetMutations(server: McpServer) {
       rack: z.string().optional().describe('Rack identifier'),
       rackPosition: z.string().optional().describe('Rack position'),
       // Lifecycle
-      purchaseDate: z.string().optional().describe('Purchase date (ISO 8601)'),
-      deploymentDate: z.string().optional().describe('Deployment date (ISO 8601)'),
-      warrantyExpiry: z.string().optional().describe('Warranty expiry date (ISO 8601)'),
-      endOfLife: z.string().optional().describe('End of life date (ISO 8601)'),
-      endOfSupport: z.string().optional().describe('End of support date (ISO 8601)'),
-      disposalDate: z.string().optional().describe('Disposal date (ISO 8601)'),
+      purchaseDate: z.string().datetime().optional().describe('Purchase date (ISO 8601)'),
+      deploymentDate: z.string().datetime().optional().describe('Deployment date (ISO 8601)'),
+      warrantyExpiry: z.string().datetime().optional().describe('Warranty expiry date (ISO 8601)'),
+      endOfLife: z.string().datetime().optional().describe('End of life date (ISO 8601)'),
+      endOfSupport: z.string().datetime().optional().describe('End of support date (ISO 8601)'),
+      disposalDate: z.string().datetime().optional().describe('Disposal date (ISO 8601)'),
       lifecycleNotes: z.string().optional().describe('Lifecycle notes'),
       // Technical
-      ipAddresses: z.any().optional().describe('IP addresses (JSON array)'),
-      macAddresses: z.any().optional().describe('MAC addresses (JSON array)'),
+      ipAddresses: z.array(z.string()).optional().describe('IP addresses (JSON array)'),
+      macAddresses: z.array(z.string()).optional().describe('MAC addresses (JSON array)'),
       operatingSystem: z.string().optional().describe('Operating system'),
       osVersion: z.string().optional().describe('OS version'),
       version: z.string().optional().describe('Software/firmware version'),
@@ -241,7 +201,7 @@ function registerAssetMutations(server: McpServer) {
       model: z.string().optional().describe('Model'),
       serialNumber: z.string().optional().describe('Serial number'),
       supportContract: z.string().optional().describe('Support contract reference'),
-      supportExpiry: z.string().optional().describe('Support contract expiry (ISO 8601)'),
+      supportExpiry: z.string().datetime().optional().describe('Support contract expiry (ISO 8601)'),
       supportTier: z.string().optional().describe('Support tier'),
       vendorId: z.string().optional().describe('Vendor/external dependency UUID'),
       // Financial
@@ -276,13 +236,13 @@ function registerAssetMutations(server: McpServer) {
       redundancyType: z.string().optional().describe('Redundancy type'),
       failoverAssetId: z.string().optional().describe('Failover asset UUID'),
       // Metadata
-      typeAttributes: z.any().optional().describe('Type-specific attributes (JSON)'),
-      tags: z.any().optional().describe('Tags (JSON array)'),
+      typeAttributes: z.record(z.string(), z.unknown()).optional().describe('Type-specific attributes (JSON object)'),
+      tags: z.array(z.string()).optional().describe('Tags (JSON array)'),
       discoverySource: z.string().optional().describe('Discovery source'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_asset_update', async (params) => {
       const asset = await prisma.asset.findUnique({
         where: { id: params.assetId },
         select: { id: true, assetTag: true, name: true },
@@ -302,7 +262,7 @@ function registerAssetMutations(server: McpServer) {
         mcpToolName: 'propose_asset_update',
         organisationId: orgId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -323,7 +283,7 @@ function registerAssetMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_asset_relationship', async (params) => {
       // Validate both assets exist
       const [fromAsset, toAsset] = await Promise.all([
         prisma.asset.findUnique({ where: { id: params.fromAssetId }, select: { id: true, assetTag: true, name: true } }),
@@ -347,7 +307,7 @@ function registerAssetMutations(server: McpServer) {
         mcpToolName: 'propose_asset_relationship',
         organisationId: orgId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -358,13 +318,13 @@ function registerAssetMutations(server: McpServer) {
       controlId: z.string().describe('Control UUID'),
       status: z.string().optional().describe('Implementation status (e.g. "planned", "implemented", "verified")'),
       implementationNotes: z.string().optional().describe('Notes about how the control is implemented for this asset'),
-      implementedDate: z.string().optional().describe('Date the control was implemented (ISO 8601)'),
+      implementedDate: z.string().datetime().optional().describe('Date the control was implemented (ISO 8601)'),
       evidenceUrl: z.string().optional().describe('URL to implementation evidence'),
-      lastVerified: z.string().optional().describe('Date the implementation was last verified (ISO 8601)'),
+      lastVerified: z.string().datetime().optional().describe('Date the implementation was last verified (ISO 8601)'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_link_asset_control', async (params) => {
       const [asset, control] = await Promise.all([
         prisma.asset.findUnique({ where: { id: params.assetId }, select: { id: true, assetTag: true, name: true } }),
         prisma.control.findUnique({ where: { id: params.controlId }, select: { id: true, controlId: true, name: true, organisationId: true } }),
@@ -385,7 +345,7 @@ function registerAssetMutations(server: McpServer) {
         mcpToolName: 'propose_link_asset_control',
         organisationId: control.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -399,7 +359,7 @@ function registerAssetMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_link_asset_risk', async (params) => {
       const [asset, risk] = await Promise.all([
         prisma.asset.findUnique({ where: { id: params.assetId }, select: { id: true, assetTag: true, name: true } }),
         prisma.risk.findUnique({ where: { id: params.riskId }, select: { id: true, riskId: true, title: true, organisationId: true } }),
@@ -420,7 +380,7 @@ function registerAssetMutations(server: McpServer) {
         mcpToolName: 'propose_link_asset_risk',
         organisationId: risk.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -432,7 +392,7 @@ function registerAssetMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_delete_asset', async (params) => {
       const asset = await prisma.asset.findUnique({
         where: { id: params.assetId },
         select: { id: true, assetTag: true, name: true },
@@ -452,7 +412,7 @@ function registerAssetMutations(server: McpServer) {
         mcpToolName: 'propose_delete_asset',
         organisationId: orgId,
       });
-    },
+    }),
   );
 }
 
@@ -475,8 +435,8 @@ function registerChangeMutations(server: McpServer) {
       priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Priority level'),
       securityImpact: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'NONE']).optional().describe('Security impact level'),
       businessJustification: z.string().optional().describe('Business justification for the change'),
-      plannedStart: z.string().optional().describe('Planned start date (ISO 8601)'),
-      plannedEnd: z.string().optional().describe('Planned end date (ISO 8601)'),
+      plannedStart: z.string().datetime().optional().describe('Planned start date (ISO 8601)'),
+      plannedEnd: z.string().datetime().optional().describe('Planned end date (ISO 8601)'),
       backoutPlan: z.string().optional().describe('Backout/rollback plan'),
       impactAssessment: z.string().optional().describe('Impact assessment'),
       affectedServices: z.string().optional().describe('Affected services'),
@@ -489,7 +449,7 @@ function registerChangeMutations(server: McpServer) {
       outageRequired: z.boolean().optional().describe('Whether an outage is required'),
       estimatedDowntime: z.string().optional().describe('Estimated downtime'),
       cabRequired: z.boolean().optional().describe('Whether CAB review is required'),
-      cabMeetingDate: z.string().optional().describe('CAB meeting date (ISO 8601)'),
+      cabMeetingDate: z.string().datetime().optional().describe('CAB meeting date (ISO 8601)'),
       successCriteria: z.string().optional().describe('Success criteria'),
       parentChangeId: z.string().optional().describe('Parent change UUID'),
       incidentId: z.string().optional().describe('Related incident UUID'),
@@ -500,7 +460,7 @@ function registerChangeMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_change', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_CHANGE',
         summary: `Create ${params.changeType} change "${params.title}" (${params.category}, ${params.securityImpact || 'LOW'} security impact)`,
@@ -510,7 +470,7 @@ function registerChangeMutations(server: McpServer) {
         mcpToolName: 'propose_change',
         organisationId: params.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -541,10 +501,10 @@ function registerChangeMutations(server: McpServer) {
       backoutPlan: z.string().optional().describe('Backout/rollback plan'),
       rollbackTime: z.string().optional().describe('Estimated rollback time'),
       testPlan: z.string().optional().describe('Test plan'),
-      plannedStart: z.string().optional().describe('Planned start date (ISO 8601)'),
-      plannedEnd: z.string().optional().describe('Planned end date (ISO 8601)'),
-      actualStart: z.string().optional().describe('Actual start date (ISO 8601)'),
-      actualEnd: z.string().optional().describe('Actual end date (ISO 8601)'),
+      plannedStart: z.string().datetime().optional().describe('Planned start date (ISO 8601)'),
+      plannedEnd: z.string().datetime().optional().describe('Planned end date (ISO 8601)'),
+      actualStart: z.string().datetime().optional().describe('Actual start date (ISO 8601)'),
+      actualEnd: z.string().datetime().optional().describe('Actual end date (ISO 8601)'),
       maintenanceWindow: z.string().optional().describe('Maintenance window'),
       outageRequired: z.boolean().optional().describe('Whether an outage is required'),
       estimatedDowntime: z.string().optional().describe('Estimated downtime'),
@@ -557,7 +517,7 @@ function registerChangeMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_change', async (params) => {
       const change = await prisma.change.findUnique({
         where: { id: params.changeId },
         select: { id: true, changeRef: true, title: true },
@@ -577,7 +537,7 @@ function registerChangeMutations(server: McpServer) {
         mcpToolName: 'propose_update_change',
         organisationId: orgId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -589,7 +549,7 @@ function registerChangeMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_approve_change', async (params) => {
       const change = await prisma.change.findUnique({
         where: { id: params.changeId },
         select: { id: true, changeRef: true, title: true },
@@ -609,7 +569,7 @@ function registerChangeMutations(server: McpServer) {
         mcpToolName: 'propose_approve_change',
         organisationId: orgId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -621,7 +581,7 @@ function registerChangeMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_reject_change', async (params) => {
       const change = await prisma.change.findUnique({
         where: { id: params.changeId },
         select: { id: true, changeRef: true, title: true },
@@ -641,7 +601,7 @@ function registerChangeMutations(server: McpServer) {
         mcpToolName: 'propose_reject_change',
         organisationId: orgId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -650,11 +610,11 @@ function registerChangeMutations(server: McpServer) {
     {
       changeId: z.string().describe('Change UUID to mark as implementing'),
       implementationNotes: z.string().optional().describe('Implementation notes'),
-      actualStart: z.string().optional().describe('Actual start date (ISO 8601)'),
+      actualStart: z.string().datetime().optional().describe('Actual start date (ISO 8601)'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_implement_change', async (params) => {
       const change = await prisma.change.findUnique({
         where: { id: params.changeId },
         select: { id: true, changeRef: true, title: true },
@@ -674,7 +634,7 @@ function registerChangeMutations(server: McpServer) {
         mcpToolName: 'propose_implement_change',
         organisationId: orgId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -691,7 +651,7 @@ function registerChangeMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_complete_change', async (params) => {
       const change = await prisma.change.findUnique({
         where: { id: params.changeId },
         select: { id: true, changeRef: true, title: true },
@@ -711,7 +671,7 @@ function registerChangeMutations(server: McpServer) {
         mcpToolName: 'propose_complete_change',
         organisationId: orgId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -723,7 +683,7 @@ function registerChangeMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_cancel_change', async (params) => {
       const change = await prisma.change.findUnique({
         where: { id: params.changeId },
         select: { id: true, changeRef: true, title: true },
@@ -743,7 +703,7 @@ function registerChangeMutations(server: McpServer) {
         mcpToolName: 'propose_cancel_change',
         organisationId: orgId,
       });
-    },
+    }),
   );
 }
 
@@ -775,15 +735,15 @@ function registerCapacityMutations(server: McpServer) {
       projectionPeriodMonths: z.number().int().optional().describe('Projection period in months'),
       recommendedAction: z.string().optional().describe('Recommended action to address capacity'),
       estimatedCost: z.number().optional().describe('Estimated cost for the recommended action'),
-      projectedExhaustionDate: z.string().optional().describe('Projected capacity exhaustion date (ISO 8601)'),
-      recommendedDate: z.string().optional().describe('Recommended action date (ISO 8601)'),
+      projectedExhaustionDate: z.string().datetime().optional().describe('Projected capacity exhaustion date (ISO 8601)'),
+      recommendedDate: z.string().datetime().optional().describe('Recommended action date (ISO 8601)'),
       costCurrency: z.string().optional().describe('Cost currency (e.g. USD, EUR)'),
-      reviewDate: z.string().optional().describe('Next review date (ISO 8601)'),
+      reviewDate: z.string().datetime().optional().describe('Next review date (ISO 8601)'),
       organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_capacity_plan', async (params) => {
       // Validate asset if provided
       if (params.assetId) {
         const asset = await prisma.asset.findUnique({
@@ -804,7 +764,7 @@ function registerCapacityMutations(server: McpServer) {
         mcpToolName: 'propose_capacity_plan',
         organisationId: params.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -819,15 +779,15 @@ function registerCapacityMutations(server: McpServer) {
       currentUtilizationPercent: z.number().int().min(0).max(100).optional().describe('Current utilization percentage'),
       projectedGrowthPercent: z.number().optional().describe('New projected growth percentage'),
       projectionPeriodMonths: z.number().int().optional().describe('Projection period in months'),
-      projectedExhaustionDate: z.string().optional().describe('Projected capacity exhaustion date (ISO 8601)'),
+      projectedExhaustionDate: z.string().datetime().optional().describe('Projected capacity exhaustion date (ISO 8601)'),
       recommendedAction: z.string().optional().describe('New recommended action'),
       estimatedCost: z.number().optional().describe('Estimated cost'),
       costCurrency: z.string().optional().describe('Cost currency'),
-      reviewDate: z.string().optional().describe('Next review date (ISO 8601)'),
+      reviewDate: z.string().datetime().optional().describe('Next review date (ISO 8601)'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_capacity_plan', async (params) => {
       const plan = await prisma.capacityPlan.findUnique({
         where: { id: params.capacityPlanId },
         select: { id: true, title: true },
@@ -847,7 +807,7 @@ function registerCapacityMutations(server: McpServer) {
         mcpToolName: 'propose_update_capacity_plan',
         organisationId: orgId,
       });
-    },
+    }),
   );
 }
 

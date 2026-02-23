@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerTreatmentTools(server: McpServer) {
   server.tool(
@@ -14,8 +15,8 @@ export function registerTreatmentTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ status, type, priority, riskId, skip, take }) => {
-      const where: any = {};
+    withErrorHandling('list_treatment_plans', async ({ status, type, priority, riskId, skip, take }) => {
+      const where: Record<string, unknown> = {};
       if (status) where.status = status;
       if (type) where.treatmentType = type;
       if (priority) where.priority = priority;
@@ -45,7 +46,7 @@ export function registerTreatmentTools(server: McpServer) {
         prisma.treatmentPlan.count({ where }),
       ]);
 
-      const response: any = { results, total: count, skip, take };
+      const response: Record<string, unknown> = { results, total: count, skip, take };
       if (count === 0) {
         response.note = 'No treatment plans found matching the specified filters.';
       }
@@ -53,7 +54,7 @@ export function registerTreatmentTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -62,7 +63,7 @@ export function registerTreatmentTools(server: McpServer) {
     {
       id: z.string().describe('TreatmentPlan UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_treatment_plan', async ({ id }) => {
       const plan = await prisma.treatmentPlan.findUnique({
         where: { id },
         include: {
@@ -106,7 +107,7 @@ export function registerTreatmentTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(plan, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -115,8 +116,8 @@ export function registerTreatmentTools(server: McpServer) {
     {
       organisationId: z.string().optional().describe('Organisation UUID'),
     },
-    async ({ organisationId }) => {
-      const where: any = {};
+    withErrorHandling('get_treatment_stats', async ({ organisationId }) => {
+      const where: Record<string, unknown> = {};
       if (organisationId) where.organisationId = organisationId;
 
       const [total, byStatus, byType, byPriority, plans] = await Promise.all([
@@ -126,12 +127,13 @@ export function registerTreatmentTools(server: McpServer) {
         prisma.treatmentPlan.groupBy({ by: ['priority'], _count: true, where }),
         prisma.treatmentPlan.findMany({
           where,
+          take: 1000,
           select: { progressPercentage: true },
         }),
       ]);
 
       const avgProgress = plans.length > 0
-        ? Math.round(plans.reduce((sum: number, p: any) => sum + p.progressPercentage, 0) / plans.length)
+        ? Math.round(plans.reduce((sum: number, p: { progressPercentage: number }) => sum + p.progressPercentage, 0) / plans.length)
         : 0;
 
       return {
@@ -140,12 +142,12 @@ export function registerTreatmentTools(server: McpServer) {
           text: JSON.stringify({
             total,
             averageProgress: avgProgress,
-            byStatus: Object.fromEntries(byStatus.map((s: any) => [s.status, s._count])),
-            byType: Object.fromEntries(byType.map((t: any) => [t.treatmentType, t._count])),
-            byPriority: Object.fromEntries(byPriority.map((p: any) => [p.priority, p._count])),
+            byStatus: Object.fromEntries(byStatus.map((s: Record<string, unknown>) => [s.status, s._count])),
+            byType: Object.fromEntries(byType.map((t: Record<string, unknown>) => [t.treatmentType, t._count])),
+            byPriority: Object.fromEntries(byPriority.map((p: Record<string, unknown>) => [p.priority, p._count])),
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { createControl, type ControlTheme, type ControlFramework } from "@/lib/controls-api";
+import { createControl, type ControlTheme, type ControlFramework, type ImplementationStatus } from "@/lib/controls-api";
 import { PageHeader } from "@/components/common";
 
 export default function ControlCreatePage() {
@@ -65,7 +65,7 @@ export default function ControlCreatePage() {
         tscCategory: formData.tscCategory || undefined,
         applicable: formData.applicable,
         justificationIfNa: !formData.applicable ? formData.justificationIfNa || undefined : undefined,
-        implementationStatus: formData.implementationStatus as any,
+        implementationStatus: formData.implementationStatus as ImplementationStatus,
         implementationDesc: formData.implementationDesc || undefined,
         organisationId: orgId,
       });

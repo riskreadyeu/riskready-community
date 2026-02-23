@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerProcessTools(server: McpServer) {
   server.tool(
@@ -14,8 +15,8 @@ export function registerProcessTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_business_processes', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.isActive !== undefined) where.isActive = params.isActive;
       if (params.criticalityLevel) where.criticalityLevel = params.criticalityLevel;
       if (params.bcpEnabled !== undefined) where.bcpEnabled = params.bcpEnabled;
@@ -52,7 +53,7 @@ export function registerProcessTools(server: McpServer) {
           text: JSON.stringify({ processes, total, skip: params.skip || 0, take: params.take || 50 }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -61,7 +62,7 @@ export function registerProcessTools(server: McpServer) {
     {
       id: z.string().describe('BusinessProcess UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_business_process', async ({ id }) => {
       const process = await prisma.businessProcess.findUnique({
         where: { id },
         include: {
@@ -90,7 +91,7 @@ export function registerProcessTools(server: McpServer) {
           text: JSON.stringify(process, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -102,8 +103,8 @@ export function registerProcessTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_external_dependencies', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.dependencyType) where.dependencyType = params.dependencyType;
       if (params.criticalityLevel) where.criticalityLevel = params.criticalityLevel;
 
@@ -135,7 +136,7 @@ export function registerProcessTools(server: McpServer) {
           text: JSON.stringify({ dependencies, total, skip: params.skip || 0, take: params.take || 50 }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -144,7 +145,7 @@ export function registerProcessTools(server: McpServer) {
     {
       id: z.string().describe('ExternalDependency UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_external_dependency', async ({ id }) => {
       const dep = await prisma.externalDependency.findUnique({
         where: { id },
         include: {
@@ -164,6 +165,6 @@ export function registerProcessTools(server: McpServer) {
           text: JSON.stringify(dep, null, 2),
         }],
       };
-    },
+    }),
   );
 }

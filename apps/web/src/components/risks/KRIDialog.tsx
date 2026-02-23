@@ -80,7 +80,7 @@ export function KRIDialog({
         thresholdGreen: kri.thresholdGreen || "",
         thresholdAmber: kri.thresholdAmber || "",
         thresholdRed: kri.thresholdRed || "",
-        soc2Criteria: (kri as any).soc2Criteria || "",
+        soc2Criteria: kri.soc2Criteria || "",
       });
     } else {
       resetForm();
@@ -133,9 +133,9 @@ export function KRIDialog({
       onSuccess?.();
       onOpenChange(false);
       if (!isEditing) resetForm();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error saving KRI:", err);
-      setError(err.message || "Failed to save KRI");
+      setError(err instanceof Error ? err.message : "Failed to save KRI");
     } finally {
       setSaving(false);
     }

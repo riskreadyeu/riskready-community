@@ -4,7 +4,7 @@ import { Injectable, Logger } from '@nestjs/common';
 export class RiskEventBusService {
   private readonly logger = new Logger(RiskEventBusService.name);
 
-  async emitScenarioCalculated(...args: any[]) {
+  async emitScenarioCalculated(...args: unknown[]) {
     this.logger.debug('emitScenarioCalculated (stub)');
   }
 }

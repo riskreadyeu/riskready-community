@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
@@ -9,7 +10,7 @@ export function registerAnalysisTools(server: McpServer) {
     {
       days: z.number().int().min(1).max(365).default(30).optional().describe('Number of days to look ahead (default 30)'),
     },
-    async (params) => {
+    withErrorHandling('get_expiring_evidence', async (params) => {
       const daysAhead = params.days || 30;
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + daysAhead);
@@ -19,6 +20,7 @@ export function registerAnalysisTools(server: McpServer) {
           validUntil: { lte: futureDate, gte: new Date() },
           status: { notIn: ['EXPIRED', 'ARCHIVED'] },
         },
+        take: 1000,
         orderBy: { validUntil: 'asc' },
         select: {
           id: true,
@@ -39,6 +41,7 @@ export function registerAnalysisTools(server: McpServer) {
           validUntil: { lt: new Date() },
           status: { notIn: ['EXPIRED', 'ARCHIVED'] },
         },
+        take: 1000,
         orderBy: { validUntil: 'asc' },
         select: {
           id: true,
@@ -61,15 +64,16 @@ export function registerAnalysisTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_evidence_coverage',
     'Get evidence coverage analysis: which controls have linked evidence and which do not.',
     {},
-    async () => {
+    withErrorHandling('get_evidence_coverage', async () => {
       const controlsWithEvidence = await prisma.evidenceControl.findMany({
+        take: 1000,
         select: {
           controlId: true,
           control: { select: { controlId: true, name: true, theme: true } },
@@ -107,19 +111,20 @@ export function registerAnalysisTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_request_aging',
     'Get aging report for open evidence requests. Shows overdue and approaching-due requests.',
     {},
-    async () => {
+    withErrorHandling('get_request_aging', async () => {
       const openStatuses = ['OPEN', 'IN_PROGRESS'] as const;
       const now = new Date();
 
       const requests = await prisma.evidenceRequest.findMany({
         where: { status: { in: [...openStatuses] } },
+        take: 1000,
         select: {
           id: true,
           requestRef: true,
@@ -159,6 +164,6 @@ export function registerAnalysisTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

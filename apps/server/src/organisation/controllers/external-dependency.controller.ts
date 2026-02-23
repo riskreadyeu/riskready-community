@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ExternalDependencyService } from '../services/external-dependency.service';
 
 @Controller('organisation/dependencies')
@@ -12,7 +13,7 @@ export class ExternalDependencyController {
     @Query('dependencyType') dependencyType?: string,
     @Query('criticalityLevel') criticalityLevel?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.ExternalDependencyWhereInput = {};
     if (dependencyType) where.dependencyType = dependencyType;
     if (criticalityLevel) where.criticalityLevel = criticalityLevel;
 
@@ -34,12 +35,12 @@ export class ExternalDependencyController {
   }
 
   @Post()
-  async create(@Body() data: any) {
+  async create(@Body() data: Prisma.ExternalDependencyCreateInput) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Prisma.ExternalDependencyUpdateInput) {
     return this.service.update(id, data);
   }
 

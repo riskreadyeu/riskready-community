@@ -345,6 +345,18 @@ export const SECTION_NUMBERS: Record<DocumentType, Record<DocumentSectionType, s
   RECORD: {} as Record<DocumentSectionType, string>,
 };
 
+// Editor section data (used by DocumentEditor and section editors)
+export interface EditorSection {
+  id: string;
+  type: DocumentSectionType;
+  title: string;
+  order: number;
+  isVisible: boolean;
+  isCollapsed: boolean;
+  content?: string;
+  structuredData?: unknown;
+}
+
 // Section icons (Lucide icon names)
 export const SECTION_ICONS: Record<DocumentSectionType, string> = {
   DOCUMENT_HEADER: 'FileText',

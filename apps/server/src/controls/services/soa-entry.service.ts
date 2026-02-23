@@ -25,7 +25,7 @@ export class SOAEntryService {
       data: {
         applicable: data.applicable,
         justificationIfNa: data.justificationIfNa,
-        implementationStatus: data.implementationStatus as any,
+        implementationStatus: data.implementationStatus as ImplementationStatus,
         implementationDesc: data.implementationDesc,
         parentRiskId: data.parentRiskId,
         scenarioIds: data.scenarioIds,
@@ -54,7 +54,7 @@ export class SOAEntryService {
           data: {
             applicable: update.applicable,
             justificationIfNa: update.justificationIfNa,
-            implementationStatus: update.implementationStatus as any,
+            implementationStatus: update.implementationStatus as ImplementationStatus,
             implementationDesc: update.implementationDesc,
           },
         })

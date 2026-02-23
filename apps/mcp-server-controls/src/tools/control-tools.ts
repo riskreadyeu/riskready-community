@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerControlTools(server: McpServer) {
   server.tool(
@@ -14,8 +15,8 @@ export function registerControlTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ framework, theme, implementationStatus, applicable, skip, take }) => {
-      const where: any = {};
+    withErrorHandling('list_controls', async ({ framework, theme, implementationStatus, applicable, skip, take }) => {
+      const where: Record<string, unknown> = {};
       if (framework) where.framework = framework;
       if (theme) where.theme = theme;
       if (implementationStatus) where.implementationStatus = implementationStatus;
@@ -48,7 +49,7 @@ export function registerControlTools(server: McpServer) {
         prisma.control.count({ where }),
       ]);
 
-      const response: any = { results, total: count, skip, take };
+      const response: Record<string, unknown> = { results, total: count, skip, take };
       if (count === 0) {
         response.note = 'No controls found matching the specified filters.';
       }
@@ -59,7 +60,7 @@ export function registerControlTools(server: McpServer) {
           text: JSON.stringify(response, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -68,7 +69,7 @@ export function registerControlTools(server: McpServer) {
     {
       id: z.string().describe('Control UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_control', async ({ id }) => {
       const control = await prisma.control.findUnique({
         where: { id },
         include: {
@@ -116,14 +117,14 @@ export function registerControlTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(control, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_control_stats',
     'Get aggregate statistics for the control library: total count, by theme, by framework, by implementation status.',
     {},
-    async () => {
+    withErrorHandling('get_control_stats', async () => {
       const [total, applicable, implemented, partial, notStarted, byTheme, byFramework] = await Promise.all([
         prisma.control.count(),
         prisma.control.count({ where: { applicable: true } }),
@@ -146,18 +147,18 @@ export function registerControlTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(stats, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'search_controls',
     'Search controls by name or controlId pattern. Returns matching controls with basic info.',
     {
-      query: z.string().describe('Search term (matches against name and controlId)'),
+      query: z.string().max(200).describe('Search term (matches against name and controlId)'),
       framework: z.enum(['ISO', 'SOC2', 'NIS2', 'DORA']).optional().describe('Limit search to a specific framework'),
     },
-    async ({ query, framework }) => {
-      const where: any = {
+    withErrorHandling('search_controls', async ({ query, framework }) => {
+      const where: Record<string, unknown> = {
         OR: [
           { name: { contains: query, mode: 'insensitive' } },
           { controlId: { contains: query, mode: 'insensitive' } },
@@ -186,7 +187,7 @@ export function registerControlTools(server: McpServer) {
         },
       });
 
-      const response: any = { results, count: results.length };
+      const response: Record<string, unknown> = { results, count: results.length };
       if (results.length === 0) {
         response.note = `No controls matched the search query '${query}'.`;
       }
@@ -194,7 +195,7 @@ export function registerControlTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -207,8 +208,8 @@ export function registerControlTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ scopeType, criticality, isActive, skip, take }) => {
-      const where: any = {};
+    withErrorHandling('list_scope_items', async ({ scopeType, criticality, isActive, skip, take }) => {
+      const where: Record<string, unknown> = {};
       if (scopeType) where.scopeType = scopeType;
       if (criticality) where.criticality = criticality;
       if (isActive !== undefined) where.isActive = isActive;
@@ -236,7 +237,7 @@ export function registerControlTools(server: McpServer) {
         prisma.scopeItem.count({ where }),
       ]);
 
-      const response: any = { results, total: count, skip, take };
+      const response: Record<string, unknown> = { results, total: count, skip, take };
       if (count === 0) {
         response.note = 'No scope items found matching the specified filters.';
       }
@@ -247,7 +248,7 @@ export function registerControlTools(server: McpServer) {
           text: JSON.stringify(response, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -256,8 +257,8 @@ export function registerControlTools(server: McpServer) {
     {
       organisationId: z.string().optional().describe('Organisation UUID (uses first org if omitted)'),
     },
-    async ({ organisationId }) => {
-      const where: any = { applicable: true, enabled: true };
+    withErrorHandling('get_effectiveness_report', async ({ organisationId }) => {
+      const where: Record<string, unknown> = { applicable: true, enabled: true };
       if (organisationId) where.organisationId = organisationId;
 
       const controls = await prisma.control.findMany({
@@ -276,7 +277,7 @@ export function registerControlTools(server: McpServer) {
       const partial = controls.filter(c => c.implementationStatus === 'PARTIAL').length;
       const notStarted = controls.filter(c => c.implementationStatus === 'NOT_STARTED').length;
 
-      const response: any = {
+      const response: Record<string, unknown> = {
         controls,
         summary: {
           total,
@@ -296,7 +297,7 @@ export function registerControlTools(server: McpServer) {
           text: JSON.stringify(response, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -305,7 +306,7 @@ export function registerControlTools(server: McpServer) {
     {
       ids: z.array(z.string()).describe('Array of control UUIDs'),
     },
-    async ({ ids }) => {
+    withErrorHandling('find_controls_by_ids', async ({ ids }) => {
       const results = await prisma.control.findMany({
         where: { id: { in: ids } },
         orderBy: { controlId: 'asc' },
@@ -328,7 +329,7 @@ export function registerControlTools(server: McpServer) {
         },
       });
 
-      const response: any = { results, count: results.length };
+      const response: Record<string, unknown> = { results, count: results.length };
       if (results.length === 0) {
         response.note = 'None of the specified control IDs were found.';
       }
@@ -339,7 +340,7 @@ export function registerControlTools(server: McpServer) {
           text: JSON.stringify(response, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -348,7 +349,7 @@ export function registerControlTools(server: McpServer) {
     {
       id: z.string().describe('Scope item UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_scope_item', async ({ id }) => {
       const item = await prisma.scopeItem.findUnique({
         where: { id },
         include: {
@@ -364,6 +365,6 @@ export function registerControlTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(item, null, 2) }],
       };
-    },
+    }),
   );
 }

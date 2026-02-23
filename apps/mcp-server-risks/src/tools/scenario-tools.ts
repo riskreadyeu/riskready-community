@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerScenarioTools(server: McpServer) {
   server.tool(
@@ -13,8 +14,8 @@ export function registerScenarioTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ riskId, status, toleranceStatus, skip, take }) => {
-      const where: any = {};
+    withErrorHandling('list_scenarios', async ({ riskId, status, toleranceStatus, skip, take }) => {
+      const where: Record<string, unknown> = {};
       if (riskId) where.riskId = riskId;
       if (status) where.status = status;
       if (toleranceStatus) where.toleranceStatus = toleranceStatus;
@@ -47,7 +48,7 @@ export function registerScenarioTools(server: McpServer) {
         prisma.riskScenario.count({ where }),
       ]);
 
-      const response: any = { results, total: count, skip, take };
+      const response: Record<string, unknown> = { results, total: count, skip, take };
       if (count === 0) {
         response.note = 'No risk scenarios found matching the specified filters.';
       }
@@ -55,7 +56,7 @@ export function registerScenarioTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -64,7 +65,7 @@ export function registerScenarioTools(server: McpServer) {
     {
       id: z.string().describe('RiskScenario UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_scenario', async ({ id }) => {
       const scenario = await prisma.riskScenario.findUnique({
         where: { id },
         include: {
@@ -125,7 +126,7 @@ export function registerScenarioTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(scenario, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -134,7 +135,7 @@ export function registerScenarioTools(server: McpServer) {
     {
       id: z.string().describe('RiskScenario UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_scenario_scores', async ({ id }) => {
       const scenario = await prisma.riskScenario.findUnique({
         where: { id },
         select: {
@@ -192,6 +193,6 @@ export function registerScenarioTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(scenario, null, 2) }],
       };
-    },
+    }),
   );
 }

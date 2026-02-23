@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import {
   FileText,
   Plus,
@@ -239,9 +240,8 @@ export default function PolicyDocumentListPage() {
     {
       label: "Submit for Approval",
       icon: <CheckCircle2 className="w-4 h-4" />,
-      onClick: (doc) => {
-        // TODO: Implement submit for approval
-        console.log("Submit for approval:", doc.id);
+      onClick: () => {
+        toast.info("This feature is not yet available");
       },
       hidden: (doc) => doc.status !== "DRAFT" && doc.status !== "UNDER_REVISION",
     },
@@ -250,9 +250,8 @@ export default function PolicyDocumentListPage() {
       icon: <Trash2 className="w-4 h-4" />,
       variant: "destructive",
       separator: true,
-      onClick: (doc) => {
-        // TODO: Implement delete
-        console.log("Delete:", doc.id);
+      onClick: () => {
+        toast.info("This feature is not yet available");
       },
       hidden: (doc) => doc.status === "PUBLISHED" || doc.status === "APPROVED",
     },

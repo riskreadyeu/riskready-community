@@ -9,6 +9,7 @@ import {
   Query,
   HttpCode,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { AssetRelationshipService } from '../services/asset-relationship.service';
 import { CreateRelationshipDto, UpdateRelationshipDto } from '../dto/asset-relationship.dto';
 
@@ -23,8 +24,8 @@ export class AssetRelationshipController {
     @Query('relationshipType') relationshipType?: string,
     @Query('isCritical') isCritical?: string,
   ) {
-    const where: any = {};
-    if (relationshipType) where.relationshipType = relationshipType;
+    const where: Prisma.AssetRelationshipWhereInput = {};
+    if (relationshipType) where.relationshipType = relationshipType as Prisma.AssetRelationshipWhereInput['relationshipType'];
     if (isCritical !== undefined) where.isCritical = isCritical === 'true';
 
     return this.service.findAll({

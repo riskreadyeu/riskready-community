@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -43,6 +46,10 @@ jobs:
         working-directory: apps/server
         run: npm ci
 
+      - name: Audit server dependencies
+        working-directory: apps/server
+        run: npm audit --audit-level=high
+
       - name: Server TypeScript type check
         working-directory: apps/server
         run: npx tsc --noEmit
@@ -61,6 +68,10 @@ jobs:
       - name: Install web dependencies
         working-directory: apps/web
         run: npm ci
+
+      - name: Audit web dependencies
+        working-directory: apps/web
+        run: npm audit --audit-level=high
 
       - name: Web TypeScript type check
         working-directory: apps/web
@@ -94,6 +105,10 @@ jobs:
         working-directory: apps/mcp-server-${{ matrix.server }}
         run: npm ci
 
+      - name: Audit MCP server dependencies
+        working-directory: apps/mcp-server-${{ matrix.server }}
+        run: npm audit --audit-level=high
+
       - name: TypeScript type check
         working-directory: apps/mcp-server-${{ matrix.server }}
         run: npx tsc --noEmit
@@ -101,3 +116,36 @@ jobs:
       - name: Run tests
         working-directory: apps/mcp-server-${{ matrix.server }}
         run: npx vitest run
+
+  gateway:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Install server dependencies (for Prisma client)
+        working-directory: apps/server
+        run: npm ci
+
+      - name: Install gateway dependencies
+        working-directory: gateway
+        run: npm ci
+
+      - name: Audit gateway dependencies
+        working-directory: gateway
+        run: npm audit --audit-level=high
+
+      - name: TypeScript type check
+        working-directory: gateway
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        working-directory: gateway
+        run: npm test

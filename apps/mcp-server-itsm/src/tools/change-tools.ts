@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerChangeTools(server: McpServer) {
   server.tool(
@@ -22,8 +23,8 @@ export function registerChangeTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ status, changeType, category, priority, securityImpact, skip, take }) => {
-      const where: any = {};
+    withErrorHandling('list_changes', async ({ status, changeType, category, priority, securityImpact, skip, take }) => {
+      const where: Record<string, unknown> = {};
       if (status) where.status = status;
       if (changeType) where.changeType = changeType;
       if (category) where.category = category;
@@ -59,7 +60,7 @@ export function registerChangeTools(server: McpServer) {
         prisma.change.count({ where }),
       ]);
 
-      const response: any = { results, total: count, skip, take };
+      const response: Record<string, unknown> = { results, total: count, skip, take };
       if (count === 0) {
         response.note = 'No changes found matching the specified filters.';
       }
@@ -70,7 +71,7 @@ export function registerChangeTools(server: McpServer) {
           text: JSON.stringify(response, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -79,7 +80,7 @@ export function registerChangeTools(server: McpServer) {
     {
       id: z.string().describe('Change UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_change', async ({ id }) => {
       const change = await prisma.change.findUnique({
         where: { id },
         include: {
@@ -122,16 +123,16 @@ export function registerChangeTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(change, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'search_changes',
     'Search change requests by title, change reference, or description.',
     {
-      query: z.string().describe('Search term (matches against title, changeRef, and description)'),
+      query: z.string().max(200).describe('Search term (matches against title, changeRef, and description)'),
     },
-    async ({ query }) => {
+    withErrorHandling('search_changes', async ({ query }) => {
       const results = await prisma.change.findMany({
         where: {
           OR: [
@@ -159,7 +160,7 @@ export function registerChangeTools(server: McpServer) {
         },
       });
 
-      const response: any = { results, count: results.length };
+      const response: Record<string, unknown> = { results, count: results.length };
       if (results.length === 0) {
         response.note = `No changes matched the search query '${query}'.`;
       }
@@ -167,6 +168,6 @@ export function registerChangeTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 }

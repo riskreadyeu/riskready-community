@@ -1,11 +1,9 @@
 services:
   db:
     image: postgres:16-alpine
-    ports:
-      - "5433:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-riskready}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-riskready}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-riskready}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -14,6 +12,12 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - backend
     restart: unless-stopped
 
   migrate:
@@ -22,10 +26,16 @@ services:
     command: ["sh", "-c", "npx prisma db push"]
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-riskready}:${POSTGRES_PASSWORD:-riskready}@db:5432/${POSTGRES_DB:-riskready}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-riskready}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-riskready}?schema=public
     depends_on:
       db:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - backend
     restart: "no"
 
   server:
@@ -34,24 +44,34 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-riskready}:${POSTGRES_PASSWORD:-riskready}@db:5432/${POSTGRES_DB:-riskready}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-riskready}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-riskready}?schema=public
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       ACCESS_TOKEN_TTL_SECONDS: ${ACCESS_TOKEN_TTL_SECONDS:-900}
       REFRESH_SESSION_TTL_DAYS: ${REFRESH_SESSION_TTL_DAYS:-14}
       ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in .env}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
-      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
     depends_on:
       db:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-    ports:
-      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     volumes:
       - evidence_data:/app/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - backend
     restart: unless-stopped
 
   gateway:
@@ -59,7 +79,7 @@ services:
       context: .
       dockerfile: gateway/Dockerfile
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-riskready}:${POSTGRES_PASSWORD:-riskready}@db:5432/${POSTGRES_DB:-riskready}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-riskready}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-riskready}?schema=public
       GATEWAY_PORT: 3100
       NODE_ENV: production
     depends_on:
@@ -67,13 +87,35 @@ services:
         condition: service_healthy
       server:
         condition: service_healthy
-    ports:
-      - "3100:3100"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3100/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - backend
     restart: unless-stopped
 
   web:
     build:
       context: ./apps/web
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - backend
     restart: unless-stopped
 
   caddy:
@@ -82,7 +124,7 @@ services:
       server:
         condition: service_healthy
       web:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "8080:80"
     environment:
@@ -91,6 +133,19 @@ services:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - frontend
+      - backend
     restart: unless-stopped
 
 volumes:
@@ -98,3 +153,9 @@ volumes:
   evidence_data:
   caddy_data:
   caddy_config:
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge

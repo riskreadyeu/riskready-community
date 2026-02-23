@@ -17,8 +17,8 @@ Thank you for your interest in contributing to RiskReady. This guide covers the 
 git clone https://github.com/riskready/riskready-community.git
 cd riskready-community
 
-# Start PostgreSQL and Redis
-docker compose -f docker-compose.dev.yml up -d
+# Start PostgreSQL
+docker compose up db -d
 
 # Set up the backend
 cd apps/server

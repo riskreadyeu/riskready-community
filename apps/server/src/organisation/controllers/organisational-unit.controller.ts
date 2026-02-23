@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { OrganisationalUnitService } from '../services/organisational-unit.service';
 
 @Controller('organisation/units')
@@ -22,12 +23,12 @@ export class OrganisationalUnitController {
   }
 
   @Post()
-  async create(@Body() data: any) {
+  async create(@Body() data: Prisma.OrganisationalUnitCreateInput) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Prisma.OrganisationalUnitUpdateInput) {
     return this.service.update(id, data);
   }
 

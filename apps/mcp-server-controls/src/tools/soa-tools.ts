@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerSOATools(server: McpServer) {
   server.tool(
@@ -11,8 +12,8 @@ export function registerSOATools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(50).default(20).describe('Page size (max 50)'),
     },
-    async ({ status, skip, take }) => {
-      const where: any = {};
+    withErrorHandling('list_soas', async ({ status, skip, take }) => {
+      const where: Record<string, unknown> = {};
       if (status) where.status = status;
 
       const [results, count] = await Promise.all([
@@ -31,7 +32,7 @@ export function registerSOATools(server: McpServer) {
         prisma.statementOfApplicability.count({ where }),
       ]);
 
-      const response: any = { results, total: count, skip, take };
+      const response: Record<string, unknown> = { results, total: count, skip, take };
       if (count === 0) {
         response.note = 'No Statements of Applicability found.';
       }
@@ -39,7 +40,7 @@ export function registerSOATools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -48,7 +49,7 @@ export function registerSOATools(server: McpServer) {
     {
       id: z.string().describe('StatementOfApplicability UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_soa', async ({ id }) => {
       const soa = await prisma.statementOfApplicability.findUnique({
         where: { id },
         include: {
@@ -80,7 +81,7 @@ export function registerSOATools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify({ ...soa, summary }, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -89,7 +90,7 @@ export function registerSOATools(server: McpServer) {
     {
       id: z.string().describe('SOAEntry UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_soa_entry', async ({ id }) => {
       const entry = await prisma.sOAEntry.findUnique({
         where: { id },
         include: {
@@ -121,14 +122,14 @@ export function registerSOATools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(entry, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_soa_stats',
     'Get aggregate SOA statistics: total SOAs, by status, and latest SOA entry summary.',
     {},
-    async () => {
+    withErrorHandling('get_soa_stats', async () => {
       const [total, byStatus, latest] = await Promise.all([
         prisma.statementOfApplicability.count(),
         prisma.statementOfApplicability.groupBy({ by: ['status'], _count: true }),
@@ -169,7 +170,7 @@ export function registerSOATools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -178,8 +179,8 @@ export function registerSOATools(server: McpServer) {
     {
       organisationId: z.string().optional().describe('Organisation UUID (uses most recent SOA if omitted)'),
     },
-    async ({ organisationId }) => {
-      const where: any = {};
+    withErrorHandling('get_latest_soa', async ({ organisationId }) => {
+      const where: Record<string, unknown> = {};
       if (organisationId) where.organisationId = organisationId;
 
       const soa = await prisma.statementOfApplicability.findFirst({
@@ -213,6 +214,6 @@ export function registerSOATools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify({ ...soa, summary }, null, 2) }],
       };
-    },
+    }),
   );
 }

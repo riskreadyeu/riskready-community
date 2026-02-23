@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma, ReviewType, ReviewOutcome, ReviewFrequency } from '@prisma/client';
 import { PolicyAuditService } from './policy-audit.service';
@@ -6,6 +6,8 @@ import { ChangeRequestService } from './change-request.service';
 
 @Injectable()
 export class DocumentReviewService {
+  private readonly logger = new Logger(DocumentReviewService.name);
+
   constructor(
     private prisma: PrismaService,
     private auditService: PolicyAuditService,
@@ -136,7 +138,7 @@ export class DocumentReviewService {
         });
       } catch (error) {
         // Log error but don't fail the review creation
-        console.error('Failed to auto-create change request:', error);
+        this.logger.error('Failed to auto-create change request', error instanceof Error ? error.stack : String(error));
       }
     }
 

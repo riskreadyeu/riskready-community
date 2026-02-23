@@ -23,6 +23,7 @@ import {
   LinkControlDto,
   UpdateControlLinkDto,
 } from '../dto/risk-scenario.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('risk-scenarios')
 export class RiskScenarioController {
@@ -46,7 +47,7 @@ export class RiskScenarioController {
 
   @Post()
   async create(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() data: CreateScenarioDto,
   ) {
     return this.service.create({
@@ -73,7 +74,7 @@ export class RiskScenarioController {
    */
   @Put(':id/factor-scores')
   async updateFactorScores(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() data: UpdateFactorScoresDto,
   ) {
@@ -101,7 +102,7 @@ export class RiskScenarioController {
    */
   @Put(':id/residual-factor-scores')
   async updateResidualFactorScores(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() data: UpdateResidualFactorScoresDto,
   ) {
@@ -132,7 +133,7 @@ export class RiskScenarioController {
   @Get(':id/tolerance-evaluation')
   async getToleranceEvaluation(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     const scenario = await this.service.findOne(id);
     if (!scenario || !scenario.riskId) {
@@ -150,7 +151,7 @@ export class RiskScenarioController {
   @Post(':id/recalculate')
   async recalculate(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.calculationService.calculateScenario(
       id,
@@ -216,7 +217,7 @@ export class RiskScenarioController {
 
   @Put(':id')
   async update(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() data: UpdateScenarioDto,
   ) {

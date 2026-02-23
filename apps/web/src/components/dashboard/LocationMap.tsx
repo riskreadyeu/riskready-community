@@ -13,16 +13,30 @@ const DefaultIcon = new Icon({
     iconAnchor: [12, 41]
 });
 
-export function LocationMap({ locations }: { locations: any[] }) {
+interface MapLocation {
+    id: string;
+    name: string;
+    city?: string;
+    country?: string;
+    latitude?: number;
+    longitude?: number;
+    employeeCount?: number;
+}
+
+export function LocationMap({ locations }: { locations: MapLocation[] }) {
     // Default center (London)
     const center: [number, number] = [51.505, -0.09];
 
     // Filter locations with valid coordinates
-    const validLocations = locations.filter(loc => loc.latitude && loc.longitude);
+    const validLocations = locations.filter(
+        (loc): loc is MapLocation & { latitude: number; longitude: number } =>
+            loc.latitude != null && loc.longitude != null
+    );
 
     // If we have locations, center on the first one
-    const mapCenter = validLocations.length > 0
-        ? [validLocations[0].latitude, validLocations[0].longitude] as [number, number]
+    const firstLoc = validLocations[0];
+    const mapCenter: [number, number] = firstLoc
+        ? [firstLoc.latitude, firstLoc.longitude]
         : center;
 
     return (

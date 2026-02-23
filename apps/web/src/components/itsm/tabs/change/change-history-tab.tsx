@@ -13,9 +13,9 @@ export function ChangeHistoryTab({ change }: ChangeHistoryTabProps) {
         <CardTitle>Change History</CardTitle>
       </CardHeader>
       <CardContent>
-        {(change as any).history?.length > 0 ? (
+        {change.history && change.history.length > 0 ? (
           <div className="space-y-3">
-            {(change as any).history.map((entry: any) => (
+            {change.history.map((entry) => (
               <div key={entry.id} className="flex items-start gap-3 border-b pb-3 last:border-0">
                 <div className="mt-0.5 rounded-full bg-muted p-1.5">
                   <GitBranch className="h-3 w-3" />

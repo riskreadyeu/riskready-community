@@ -34,6 +34,7 @@ import {
   FileText,
   Send,
   SkipForward,
+  type LucideIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 import { CompleteNCDialog } from "@/components/audits/CompleteNCDialog";
@@ -115,7 +116,7 @@ export default function NonconformityRegisterPage() {
   };
 
   const getStatusBadge = (status: NCStatus) => {
-    const variants: Record<NCStatus, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
+    const variants: Record<NCStatus, { variant: "default" | "secondary" | "destructive" | "outline", icon: LucideIcon }> = {
       DRAFT: { variant: "secondary", icon: AlertCircle },
       OPEN: { variant: "destructive", icon: AlertCircle },
       IN_PROGRESS: { variant: "default", icon: Clock },
@@ -136,7 +137,7 @@ export default function NonconformityRegisterPage() {
   };
 
   const getCapStatusBadge = (capStatus: CAPStatus) => {
-    const variants: Record<CAPStatus, { label: string; className: string; icon: any }> = {
+    const variants: Record<CAPStatus, { label: string; className: string; icon: LucideIcon }> = {
       NOT_REQUIRED: { label: "N/A", className: "bg-muted text-muted-foreground", icon: SkipForward },
       NOT_DEFINED: { label: "Not Defined", className: "bg-amber-100 text-amber-700", icon: AlertCircle },
       DRAFT: { label: "Draft", className: "bg-blue-100 text-blue-700", icon: FileText },

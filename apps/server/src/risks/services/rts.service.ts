@@ -113,7 +113,7 @@ export class RiskToleranceStatementService {
     domain?: string;
     proposedToleranceLevel?: ToleranceLevel;
     proposedRTS: string;
-    conditions?: any;
+    conditions?: Prisma.InputJsonValue;
     anticipatedOperationalImpact?: string;
     rationale?: string;
     status?: RTSStatus;
@@ -176,7 +176,7 @@ export class RiskToleranceStatementService {
     domain?: string;
     proposedToleranceLevel?: ToleranceLevel;
     proposedRTS?: string;
-    conditions?: any;
+    conditions?: Prisma.InputJsonValue;
     anticipatedOperationalImpact?: string;
     rationale?: string;
     status?: RTSStatus;

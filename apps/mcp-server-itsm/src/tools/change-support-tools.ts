@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerChangeSupportTools(server: McpServer) {
   server.tool(
@@ -9,7 +10,7 @@ export function registerChangeSupportTools(server: McpServer) {
     {
       changeId: z.string().describe('Change UUID'),
     },
-    async ({ changeId }) => {
+    withErrorHandling('get_change_approvals', async ({ changeId }) => {
       const change = await prisma.change.findUnique({
         where: { id: changeId },
         select: { id: true, changeRef: true, title: true },
@@ -20,13 +21,14 @@ export function registerChangeSupportTools(server: McpServer) {
 
       const approvals = await prisma.changeApproval.findMany({
         where: { changeId },
+        take: 1000,
         include: {
           approver: { select: { id: true, email: true, firstName: true, lastName: true } },
         },
         orderBy: { createdAt: 'asc' },
       });
 
-      const response: any = {
+      const response: Record<string, unknown> = {
         change: { id: change.id, changeRef: change.changeRef, title: change.title },
         approvals,
         count: approvals.length,
@@ -38,16 +40,17 @@ export function registerChangeSupportTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_pending_change_approvals',
     'Find all pending approvals across all change requests. Useful for approval queue management.',
     {},
-    async () => {
+    withErrorHandling('get_pending_change_approvals', async () => {
       const approvals = await prisma.changeApproval.findMany({
         where: { status: 'PENDING' },
+        take: 1000,
         include: {
           change: {
             select: {
@@ -65,7 +68,7 @@ export function registerChangeSupportTools(server: McpServer) {
         orderBy: { createdAt: 'asc' },
       });
 
-      const response: any = { approvals, count: approvals.length };
+      const response: Record<string, unknown> = { approvals, count: approvals.length };
       if (approvals.length === 0) {
         response.note = 'No pending change approvals found.';
       }
@@ -73,7 +76,7 @@ export function registerChangeSupportTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -82,7 +85,7 @@ export function registerChangeSupportTools(server: McpServer) {
     {
       changeId: z.string().describe('Change UUID'),
     },
-    async ({ changeId }) => {
+    withErrorHandling('get_change_history', async ({ changeId }) => {
       const change = await prisma.change.findUnique({
         where: { id: changeId },
         select: { id: true, changeRef: true, title: true },
@@ -93,13 +96,14 @@ export function registerChangeSupportTools(server: McpServer) {
 
       const history = await prisma.changeHistory.findMany({
         where: { changeId },
+        take: 1000,
         include: {
           changedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
         },
         orderBy: { createdAt: 'desc' },
       });
 
-      const response: any = {
+      const response: Record<string, unknown> = {
         change: { id: change.id, changeRef: change.changeRef, title: change.title },
         history,
         count: history.length,
@@ -111,7 +115,7 @@ export function registerChangeSupportTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -126,8 +130,8 @@ export function registerChangeSupportTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ isActive, category, skip, take }) => {
-      const where: any = {};
+    withErrorHandling('list_change_templates', async ({ isActive, category, skip, take }) => {
+      const where: Record<string, unknown> = {};
       if (isActive !== undefined) where.isActive = isActive;
       if (category) where.category = category;
 
@@ -156,7 +160,7 @@ export function registerChangeSupportTools(server: McpServer) {
         prisma.changeTemplate.count({ where }),
       ]);
 
-      const response: any = { results, total: count, skip, take };
+      const response: Record<string, unknown> = { results, total: count, skip, take };
       if (count === 0) {
         response.note = 'No change templates found matching the specified filters.';
       }
@@ -164,7 +168,7 @@ export function registerChangeSupportTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -173,7 +177,7 @@ export function registerChangeSupportTools(server: McpServer) {
     {
       id: z.string().describe('Change template UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_change_template', async ({ id }) => {
       const template = await prisma.changeTemplate.findUnique({
         where: { id },
         include: {
@@ -188,6 +192,6 @@ export function registerChangeSupportTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(template, null, 2) }],
       };
-    },
+    }),
   );
 }

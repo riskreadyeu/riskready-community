@@ -106,12 +106,12 @@ export default function IncidentFormPage() {
         setIntegrityBreach(incident.integrityBreach);
         setAvailabilityBreach(incident.availabilityBreach);
         setIsConfirmed(incident.isConfirmed || false);
-        setEvidencePreserved((incident as any).evidencePreserved || false);
-        setChainOfCustodyMaintained((incident as any).chainOfCustodyMaintained || false);
-        setRootCauseIdentified((incident as any).rootCauseIdentified || false);
-        setLessonsLearnedCompleted((incident as any).lessonsLearnedCompleted || false);
-        setCorrectiveActionsIdentified((incident as any).correctiveActionsIdentified || false);
-        setResolutionType((incident as any).resolutionType || "");
+        setEvidencePreserved(incident.evidencePreserved || false);
+        setChainOfCustodyMaintained(incident.chainOfCustodyMaintained || false);
+        setRootCauseIdentified(incident.rootCauseIdentified || false);
+        setLessonsLearnedCompleted(incident.lessonsLearnedCompleted || false);
+        setCorrectiveActionsIdentified(incident.correctiveActionsIdentified || false);
+        setResolutionType(incident.resolutionType || "");
       } else {
         // Set default detected time to now
         setDetectedAt(new Date().toISOString().slice(0, 16));
@@ -143,7 +143,7 @@ export default function IncidentFormPage() {
     try {
       setSaving(true);
 
-      const data = {
+      const baseData = {
         title: title.trim(),
         description: description.trim(),
         severity,
@@ -157,7 +157,11 @@ export default function IncidentFormPage() {
         confidentialityBreach,
         integrityBreach,
         availabilityBreach,
-        ...(isEditing && {
+      };
+
+      if (isEditing) {
+        await updateIncident(id!, {
+          ...baseData,
           status,
           isConfirmed,
           evidencePreserved,
@@ -166,14 +170,10 @@ export default function IncidentFormPage() {
           lessonsLearnedCompleted,
           correctiveActionsIdentified,
           resolutionType: (resolutionType || undefined) as IncidentResolutionType | undefined,
-        }),
-      };
-
-      if (isEditing) {
-        await updateIncident(id!, data);
+        });
         toast.success("Incident updated");
       } else {
-        const created = await createIncident(data as any);
+        const created = await createIncident(baseData);
         toast.success("Incident reported");
         navigate(`/incidents/${created.id}`);
         return;

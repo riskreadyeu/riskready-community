@@ -1095,7 +1095,7 @@ export interface TreatmentPlan {
   approvedBy?: UserBasic;
   acceptanceRationale?: string;
   acceptanceCriteria?: string;
-  acceptanceConditions?: any[];
+  acceptanceConditions?: Record<string, unknown>[];
   acceptanceExpiryDate?: string;
   progressPercentage: number;
   progressNotes?: string;
@@ -1172,7 +1172,7 @@ export async function createRTS(data: {
   domain?: string;
   proposedToleranceLevel?: ToleranceLevel;
   proposedRTS: string;
-  conditions?: any;
+  conditions?: Record<string, unknown>;
   anticipatedOperationalImpact?: string;
   rationale?: string;
   status?: RTSStatus;
@@ -1288,7 +1288,7 @@ export async function createTreatmentPlan(data: {
   implementerId?: string;
   acceptanceRationale?: string;
   acceptanceCriteria?: string;
-  acceptanceConditions?: any;
+  acceptanceConditions?: Record<string, unknown>[];
   acceptanceExpiryDate?: string;
   controlIds?: string;
   riskId: string;

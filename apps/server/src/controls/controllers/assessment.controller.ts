@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { AssessmentService } from '../services/assessment.service';
 import { AssessmentTestService } from '../services/assessment-test.service';
+import { AuthenticatedRequest } from '../../shared/types';
+import { ControlAssessmentStatus } from '@prisma/client';
 import {
   CreateAssessmentDto,
   UpdateAssessmentDto,
@@ -40,13 +42,13 @@ export class AssessmentController {
   @Get('assessments')
   findAll(@Query('organisationId') organisationId: string, @Query('status') status?: string) {
     return this.assessmentService.findAll(organisationId, {
-      status: status as any,
+      status: status as ControlAssessmentStatus | undefined,
     });
   }
 
   @Post('assessments')
-  create(@Body() dto: CreateAssessmentDto, @Request() req: any) {
-    const organisationId = req.query?.organisationId || req.body?.organisationId;
+  create(@Body() dto: CreateAssessmentDto, @Request() req: AuthenticatedRequest) {
+    const organisationId = (req.query?.['organisationId'] || req.body?.['organisationId']) as string;
     return this.assessmentService.create(
       {
         organisationId,
@@ -152,7 +154,7 @@ export class AssessmentController {
 
   @Get('my-tests')
   getMyTests(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('status') status?: string,
     @Query('testMethod') testMethod?: string,
     @Query('role') role?: 'owner' | 'tester' | 'assessor',
@@ -161,7 +163,7 @@ export class AssessmentController {
   }
 
   @Get('my-tests/count')
-  getMyTestsCount(@Request() req: any) {
+  getMyTestsCount(@Request() req: AuthenticatedRequest) {
     return this.assessmentTestService.getMyTestsCount(req.user?.id);
   }
 
@@ -192,7 +194,7 @@ export class AssessmentController {
   executeTest(
     @Param('testId') testId: string,
     @Body() dto: ExecuteAssessmentTestDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.assessmentTestService.executeTest(
       testId,

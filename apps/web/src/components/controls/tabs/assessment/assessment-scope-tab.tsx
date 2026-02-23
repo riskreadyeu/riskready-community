@@ -56,8 +56,8 @@ function AddControlsPanel({
       try {
         const res = await getControls({ take: 200 });
         setAllControls(res.results);
-      } catch {
-        // silent
+      } catch (error) {
+        console.error("Failed to load controls:", error);
       } finally {
         setLoading(false);
       }
@@ -89,8 +89,8 @@ function AddControlsPanel({
       setSaving(true);
       await addControlsToAssessment(assessmentId, Array.from(selected));
       onDone();
-    } catch {
-      // error
+    } catch (error) {
+      console.error("Failed to add controls to assessment:", error);
     } finally {
       setSaving(false);
     }
@@ -189,8 +189,8 @@ function AddScopeItemsPanel({
         const orgId = "cmj7b9wys0000eocjc9zm0j9m";
         const items = await fetchScopeItems(orgId);
         setAllItems(items);
-      } catch {
-        // silent
+      } catch (error) {
+        console.error("Failed to load scope items:", error);
       } finally {
         setLoading(false);
       }
@@ -222,8 +222,8 @@ function AddScopeItemsPanel({
       setSaving(true);
       await addScopeItemsToAssessment(assessmentId, Array.from(selected));
       onDone();
-    } catch {
-      // error
+    } catch (error) {
+      console.error("Failed to add scope items to assessment:", error);
     } finally {
       setSaving(false);
     }
@@ -339,8 +339,8 @@ export function AssessmentScopeTab({ assessment, onUpdate }: AssessmentScopeTabP
       setRemoving(controlId);
       await removeControlFromAssessment(assessment.id, controlId);
       onUpdate();
-    } catch {
-      // Error handling
+    } catch (error) {
+      console.error("Failed to remove control from assessment:", error);
     } finally {
       setRemoving(null);
     }
@@ -351,8 +351,8 @@ export function AssessmentScopeTab({ assessment, onUpdate }: AssessmentScopeTabP
       setRemoving(scopeItemId);
       await removeScopeItemFromAssessment(assessment.id, scopeItemId);
       onUpdate();
-    } catch {
-      // Error handling
+    } catch (error) {
+      console.error("Failed to remove scope item from assessment:", error);
     } finally {
       setRemoving(null);
     }

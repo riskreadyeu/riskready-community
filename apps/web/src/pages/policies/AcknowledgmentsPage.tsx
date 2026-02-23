@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import {
   UserCheck,
   FileText,
@@ -214,9 +215,8 @@ export default function AcknowledgmentsPage() {
     {
       label: "Send Reminder",
       icon: <Bell className="w-4 h-4" />,
-      onClick: (ack) => {
-        // TODO: Implement send reminder
-        console.log("Send reminder:", ack.id);
+      onClick: () => {
+        toast.info("This feature is not yet available");
       },
       hidden: (ack) => ack.isAcknowledged,
     },

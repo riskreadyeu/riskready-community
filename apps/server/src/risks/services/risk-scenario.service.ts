@@ -1,6 +1,5 @@
 import { Injectable, ConflictException, Inject, forwardRef, NotFoundException, Logger } from '@nestjs/common';
-import * as fs from 'fs';
-import { ControlFramework, LikelihoodLevel, ImpactLevel, ImpactCategory } from '@prisma/client';
+import { ControlFramework, LikelihoodLevel, ImpactLevel, ImpactCategory, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   calculateScore,
@@ -20,6 +19,17 @@ import {
 import { RiskService } from './risk.service';
 import { ControlRiskIntegrationService } from './control-risk-integration.service';
 import { RiskCalculationService } from './risk-calculation.service';
+
+/**
+ * Maps control implementation status to an effectiveness percentage.
+ * Used by getFactorEvidence() and getResidualFactorScores() to convert
+ * a control's implementation status into a numeric effectiveness score.
+ */
+const STATUS_TO_EFFECTIVENESS: Record<string, number> = {
+  IMPLEMENTED: 85,
+  PARTIAL: 60,
+  NOT_STARTED: 20,
+};
 
 // Use shared CONTROL_EFFECTIVENESS for reduction values
 // Maps effectiveness score to { likelihoodReduction, impactReduction }
@@ -473,7 +483,7 @@ export class RiskScenarioService {
     });
 
     // Build update data based on whether this is inherent or residual
-    let updateData: any;
+    let updateData: Prisma.RiskScenarioUpdateInput;
     if (isResidual) {
       updateData = {
         residualWeightedImpact: weightedImpact,
@@ -622,7 +632,7 @@ export class RiskScenarioService {
       throw new NotFoundException(`Scenario ${scenarioId} not found`);
     }
 
-    const where: any = { scenarioId };
+    const where: Prisma.ScenarioImpactAssessmentWhereInput = { scenarioId };
     if (isResidual !== undefined) {
       where.isResidual = isResidual;
     }
@@ -630,7 +640,7 @@ export class RiskScenarioService {
     await this.prisma.scenarioImpactAssessment.deleteMany({ where });
 
     // Reset weighted impact
-    const updateData: any = {};
+    const updateData: Prisma.RiskScenarioUpdateInput = {};
     if (isResidual === undefined || isResidual === false) {
       updateData.weightedImpact = null;
     }
@@ -796,7 +806,6 @@ export class RiskScenarioService {
         riskId: true,
         title: true,
         controlIds: true,
-        // Use scenario-level control links instead of risk-level controls
         controlLinks: {
           include: {
             control: {
@@ -822,101 +831,80 @@ export class RiskScenarioService {
       throw new NotFoundException(`Scenario ${scenarioId} not found`);
     }
 
-    const evidence: {
-      f2?: {
-        linkedControls?: Array<{
-          id: string;
-          controlId: string;
-          name: string;
-          effectiveness: number;
-          lastTested?: string;
-          maturity?: string;
-        }>;
-        averageEffectiveness?: number;
-        gapCount?: number;
-      };
-      f3?: {
-        openVulnerabilities?: number;
-        criticalVulnerabilities?: number;
-        auditFindings?: number;
-        lastScanDate?: string;
-        source?: string;
-      };
-      f4?: {
-        incidents?: Array<{
-          id: string;
-          referenceNumber: string;
-          title: string;
-          severity: string;
-          date: string;
-        }>;
-        incidentCount?: number;
-        lastIncidentDate?: string;
-      };
-      f5?: {
-        externalAssets?: number;
-        internetFacing?: boolean;
-        thirdPartyConnections?: number;
-        cloudExposure?: string;
-        source?: string;
-      };
-      f6?: {
-        regulatoryPressure?: string;
-        industryTargeting?: boolean;
-        geopoliticalRisk?: string;
-        recentAlerts?: string[];
-      };
-    } = {};
+    const [f2, f3, f4] = await Promise.all([
+      Promise.resolve(this.buildControlEffectivenessEvidence(scenario.controlLinks)),
+      this.buildVulnerabilityGapEvidence(),
+      this.buildIncidentHistoryEvidence(scenario.title, scenario.riskId),
+    ]);
 
-    // F2: Get control effectiveness data from scenario-level control links
-    if (scenario.controlLinks && scenario.controlLinks.length > 0) {
-      // For each control, get its implementation status (proxy for effectiveness)
-      const controlsWithScores = scenario.controlLinks.map((link) => {
-        // Map implementation status to effectiveness score
-        const statusToEffectiveness: Record<string, number> = {
-          IMPLEMENTED: 85,
-          PARTIAL: 60,
-          NOT_STARTED: 20,
-        };
-        const baseEffectiveness = statusToEffectiveness[link.control.implementationStatus] ?? 50;
-        // Apply effectiveness weight from the link
-        const effectiveness = Math.round((baseEffectiveness * link.effectivenessWeight) / 100);
-
-        return {
-          id: link.control.id,
-          controlId: link.control.controlId,
-          name: link.control.name,
-          effectiveness,
-          implementationStatus: link.control.implementationStatus,
-        };
-      });
-
-      const totalEffectiveness = controlsWithScores.reduce((sum, c) => sum + c.effectiveness, 0);
-      evidence.f2 = {
-        linkedControls: controlsWithScores,
-        averageEffectiveness: Math.round(totalEffectiveness / controlsWithScores.length),
-        gapCount: controlsWithScores.filter((c) => c.effectiveness < 60).length,
-      };
-    }
-
-    // F3: Get vulnerability/gap data (from audit findings if available)
-    const auditFindings = await this.prisma.nonconformity.count({
-      where: {
-        status: { in: ['OPEN', 'IN_PROGRESS'] },
+    return {
+      ...(f2 && { f2 }),
+      ...(f3 && { f3 }),
+      ...(f4 && { f4 }),
+      // F5: Attack surface - placeholder for asset inventory integration
+      f5: {
+        externalAssets: 0,
+        internetFacing: false,
+        thirdPartyConnections: 0,
       },
-    });
-    if (auditFindings > 0) {
-      evidence.f3 = {
-        auditFindings,
-      };
-    }
+      // F6: Environmental - placeholder for regulatory tracking integration
+      f6: {
+        regulatoryPressure: 'MEDIUM' as const,
+        industryTargeting: false,
+      },
+    };
+  }
 
-    // F4: Get incident history
+  /**
+   * F2 evidence: control effectiveness from scenario-level control links
+   */
+  private buildControlEffectivenessEvidence(
+    controlLinks: Array<{
+      effectivenessWeight: number;
+      control: { id: string; controlId: string; name: string; implementationStatus: string };
+    }>,
+  ) {
+    if (!controlLinks || controlLinks.length === 0) return undefined;
+
+    const controlsWithScores = controlLinks.map((link) => {
+      const baseEffectiveness = STATUS_TO_EFFECTIVENESS[link.control.implementationStatus] ?? 50;
+      const effectiveness = Math.round((baseEffectiveness * link.effectivenessWeight) / 100);
+      return {
+        id: link.control.id,
+        controlId: link.control.controlId,
+        name: link.control.name,
+        effectiveness,
+        implementationStatus: link.control.implementationStatus,
+      };
+    });
+
+    const totalEffectiveness = controlsWithScores.reduce((sum, c) => sum + c.effectiveness, 0);
+    return {
+      linkedControls: controlsWithScores,
+      averageEffectiveness: Math.round(totalEffectiveness / controlsWithScores.length),
+      gapCount: controlsWithScores.filter((c) => c.effectiveness < 60).length,
+    };
+  }
+
+  /**
+   * F3 evidence: vulnerability/gap data from open audit findings
+   */
+  private async buildVulnerabilityGapEvidence() {
+    const auditFindings = await this.prisma.nonconformity.count({
+      where: { status: { in: ['OPEN', 'IN_PROGRESS'] } },
+    });
+    return auditFindings > 0 ? { auditFindings } : undefined;
+  }
+
+  /**
+   * F4 evidence: incident history related to this scenario
+   */
+  private async buildIncidentHistoryEvidence(scenarioTitle: string, riskId: string) {
     const incidents = await this.prisma.incident.findMany({
       where: {
         OR: [
-          { description: { contains: scenario.title, mode: 'insensitive' } },
-          { description: { contains: scenario.riskId, mode: 'insensitive' } },
+          { description: { contains: scenarioTitle, mode: 'insensitive' } },
+          { description: { contains: riskId, mode: 'insensitive' } },
         ],
       },
       orderBy: { occurredAt: 'desc' },
@@ -930,36 +918,19 @@ export class RiskScenarioService {
       },
     });
 
-    if (incidents.length > 0) {
-      evidence.f4 = {
-        incidents: incidents.map((i) => ({
-          id: i.id,
-          referenceNumber: i.referenceNumber,
-          title: i.title,
-          severity: i.severity,
-          date: i.occurredAt?.toISOString() || '',
-        })),
-        incidentCount: incidents.length,
-        lastIncidentDate: incidents[0]?.occurredAt?.toISOString(),
-      };
-    }
+    if (incidents.length === 0) return undefined;
 
-    // F5: Attack surface - simplified, based on available data
-    // In a real implementation, this would integrate with asset inventory
-    evidence.f5 = {
-      externalAssets: 0, // Would come from asset inventory
-      internetFacing: false, // Would come from network topology
-      thirdPartyConnections: 0, // Would come from vendor management
+    return {
+      incidents: incidents.map((i) => ({
+        id: i.id,
+        referenceNumber: i.referenceNumber,
+        title: i.title,
+        severity: i.severity,
+        date: i.occurredAt?.toISOString() || '',
+      })),
+      incidentCount: incidents.length,
+      lastIncidentDate: incidents[0]?.occurredAt?.toISOString(),
     };
-
-    // F6: Environmental - from organization profile or regulatory framework
-    // In a real implementation, this would integrate with regulatory tracking
-    evidence.f6 = {
-      regulatoryPressure: 'MEDIUM',
-      industryTargeting: false,
-    };
-
-    return evidence;
   }
 
   /**
@@ -988,65 +959,16 @@ export class RiskScenarioService {
       throw new NotFoundException(`Scenario ${scenarioId} not found`);
     }
 
-    // Validate scores are 1-5
-    const validateScore = (score: number | undefined, name: string) => {
-      if (score !== undefined && (score < 1 || score > 5)) {
-        throw new Error(`${name} must be between 1 and 5`);
-      }
-    };
+    this.validateFactorScores(data);
 
-    validateScore(data.f1ThreatFrequency, 'f1ThreatFrequency');
-    validateScore(data.f2ControlEffectiveness, 'f2ControlEffectiveness');
-    validateScore(data.f3GapVulnerability, 'f3GapVulnerability');
-    validateScore(data.f4IncidentHistory, 'f4IncidentHistory');
-    validateScore(data.f5AttackSurface, 'f5AttackSurface');
-    validateScore(data.f6Environmental, 'f6Environmental');
-
-    // Build update data - ONLY update factor scores and set override flags
-    // Manual scores are marked as overrides so automatic calculation won't overwrite them
-    const updateData: any = {
-      updatedById,
-    };
-
-    if (data.f1ThreatFrequency !== undefined) {
-      updateData.f1ThreatFrequency = data.f1ThreatFrequency;
-      updateData.f1Override = true;
-      updateData.f1Source = 'manual';
-    }
-    if (data.f2ControlEffectiveness !== undefined) {
-      updateData.f2ControlEffectiveness = data.f2ControlEffectiveness;
-      updateData.f2Override = true;
-      updateData.f2Source = 'manual';
-    }
-    if (data.f3GapVulnerability !== undefined) {
-      updateData.f3GapVulnerability = data.f3GapVulnerability;
-      updateData.f3Override = true;
-      updateData.f3Source = 'manual';
-    }
-    if (data.f4IncidentHistory !== undefined) {
-      updateData.f4IncidentHistory = data.f4IncidentHistory;
-      updateData.f4Override = true;
-      updateData.f4Source = 'manual';
-    }
-    if (data.f5AttackSurface !== undefined) {
-      updateData.f5AttackSurface = data.f5AttackSurface;
-      updateData.f5Override = true;
-      updateData.f5Source = 'manual';
-    }
-    if (data.f6Environmental !== undefined) {
-      updateData.f6Environmental = data.f6Environmental;
-      updateData.f6Override = true;
-      updateData.f6Source = 'manual';
-    }
-
-    // Update factor scores and override flags
+    // Save factor scores with override flags
+    const updateData = this.buildFactorUpdateData(data, updatedById);
     await this.prisma.riskScenario.update({
       where: { id: scenarioId },
       data: updateData,
     });
 
-    // Delegate all calculation to RiskCalculationService (single source of truth)
-    // This ensures consistent score calculation and respects override flags
+    // Delegate calculation to RiskCalculationService (single source of truth)
     const calculationResult = await this.riskCalculationService.calculateScenario(
       scenarioId,
       'MANUAL',
@@ -1054,41 +976,107 @@ export class RiskScenarioService {
       updatedById,
     );
 
-    // Explicitly sync the Calculated Score to the Database Enum Fields
-    // (Bypasses potential missing sync in RiskCalculationService)
-    if (calculationResult) {
-      const newLikelihood = valueToLikelihoodLevel(calculationResult.likelihood);
-      const newImpact = valueToImpactLevel(calculationResult.impact);
+    // Sync calculated scores to enum fields
+    await this.syncCalculatedScoreEnums(scenarioId, calculationResult);
 
-      if (newLikelihood || newImpact) {
-        await this.prisma.riskScenario.update({
-          where: { id: scenarioId },
-          data: {
-            likelihood: newLikelihood ?? undefined,
-            impact: newImpact ?? undefined,
-            inherentScore: calculationResult.inherentScore
-          }
-        });
+    // Return updated scenario with calculation result
+    return this.buildFactorUpdateResponse(scenarioId, calculationResult);
+  }
+
+  /**
+   * Validate that all provided factor scores are within the 1-5 range
+   */
+  private validateFactorScores(data: Record<string, number | undefined>) {
+    const factorNames = [
+      'f1ThreatFrequency', 'f2ControlEffectiveness', 'f3GapVulnerability',
+      'f4IncidentHistory', 'f5AttackSurface', 'f6Environmental',
+    ];
+    for (const name of factorNames) {
+      const score = data[name];
+      if (score !== undefined && (score < 1 || score > 5)) {
+        throw new Error(`${name} must be between 1 and 5`);
+      }
+    }
+  }
+
+  /**
+   * Build Prisma update data for factor scores, marking each as a manual override
+   */
+  private buildFactorUpdateData(
+    data: {
+      f1ThreatFrequency?: number;
+      f2ControlEffectiveness?: number;
+      f3GapVulnerability?: number;
+      f4IncidentHistory?: number;
+      f5AttackSurface?: number;
+      f6Environmental?: number;
+    },
+    updatedById?: string,
+  ): Prisma.RiskScenarioUpdateInput {
+    const updateData: Prisma.RiskScenarioUpdateInput = {
+      updatedBy: updatedById ? { connect: { id: updatedById } } : undefined,
+    };
+
+    const factorMap: Array<[string, string, string, number | undefined]> = [
+      ['f1ThreatFrequency', 'f1Override', 'f1Source', data.f1ThreatFrequency],
+      ['f2ControlEffectiveness', 'f2Override', 'f2Source', data.f2ControlEffectiveness],
+      ['f3GapVulnerability', 'f3Override', 'f3Source', data.f3GapVulnerability],
+      ['f4IncidentHistory', 'f4Override', 'f4Source', data.f4IncidentHistory],
+      ['f5AttackSurface', 'f5Override', 'f5Source', data.f5AttackSurface],
+      ['f6Environmental', 'f6Override', 'f6Source', data.f6Environmental],
+    ];
+
+    const updateRecord = updateData as Record<string, unknown>;
+    for (const [scoreField, overrideField, sourceField, value] of factorMap) {
+      if (value !== undefined) {
+        updateRecord[scoreField] = value;
+        updateRecord[overrideField] = true;
+        updateRecord[sourceField] = 'manual';
       }
     }
 
-    // Return updated scenario with calculation result
+    return updateData;
+  }
+
+  /**
+   * Sync calculated numeric scores back to the database enum fields
+   */
+  private async syncCalculatedScoreEnums(
+    scenarioId: string,
+    calculationResult: { likelihood: number; impact: number; inherentScore: number },
+  ) {
+    const newLikelihood = valueToLikelihoodLevel(calculationResult.likelihood);
+    const newImpact = valueToImpactLevel(calculationResult.impact);
+
+    if (newLikelihood || newImpact) {
+      await this.prisma.riskScenario.update({
+        where: { id: scenarioId },
+        data: {
+          likelihood: newLikelihood ?? undefined,
+          impact: newImpact ?? undefined,
+          inherentScore: calculationResult.inherentScore,
+        },
+      });
+    }
+  }
+
+  /**
+   * Fetch updated scenario and build the response for factor score updates
+   */
+  private async buildFactorUpdateResponse(
+    scenarioId: string,
+    calculationResult: { likelihood: number; impact: number; inherentScore: number; residualScore: number; zone: string },
+  ) {
     const updated = await this.prisma.riskScenario.findUnique({
       where: { id: scenarioId },
       select: {
         id: true,
-        f1ThreatFrequency: true,
-        f1Override: true,
-        f2ControlEffectiveness: true,
-        f2Override: true,
-        f3GapVulnerability: true,
-        f3Override: true,
-        f4IncidentHistory: true,
-        f4Override: true,
-        f5AttackSurface: true,
-        f5Override: true,
-        f6Environmental: true,
-        f6Override: true,
+        f1ThreatFrequency: true, f1Override: true,
+        f2ControlEffectiveness: true, f2Override: true,
+        f3GapVulnerability: true, f3Override: true,
+        f4IncidentHistory: true, f4Override: true,
+        f5AttackSurface: true, f5Override: true,
+        f6Environmental: true, f6Override: true,
         calculatedLikelihood: true,
         likelihood: true,
         inherentScore: true,
@@ -1097,7 +1085,6 @@ export class RiskScenarioService {
       },
     });
 
-    // Check if all 6 factors are now scored
     const allScored =
       updated?.f1ThreatFrequency !== null &&
       updated?.f2ControlEffectiveness !== null &&
@@ -1168,56 +1155,12 @@ export class RiskScenarioService {
       throw new NotFoundException(`Scenario ${scenarioId} not found`);
     }
 
-    // Map implementation status to effectiveness percentage
-    const statusToEffectiveness: Record<string, number> = {
-      IMPLEMENTED: 85,
-      PARTIAL: 60,
-      NOT_STARTED: 20,
-    };
+    // Calculate control reductions and residual factor scores
+    const linkedControls = this.computeControlReductions(scenario.controlLinks);
+    const totalReductions = this.aggregateFactorReductions(linkedControls);
+    const calculatedResidualScores = this.computeResidualFactorScores(scenario, totalReductions);
 
-    // Process linked controls with effectiveness
-    const linkedControls = scenario.controlLinks.map((link) => {
-      const effectiveness = statusToEffectiveness[link.control.implementationStatus] ?? 50;
-
-      // Calculate per-factor reduction (controls primarily affect F2, but can have secondary effects)
-      // For simplicity, use a standard reduction model based on effectiveness
-      const baseReduction = Math.round((100 - effectiveness) / 100 * 2 * 10) / 10; // 0-2 point reduction scale
-
-      return {
-        id: link.control.id, // Database ID for linking
-        controlId: link.control.controlId,
-        controlName: link.control.name,
-        effectiveness,
-        affectedFactors: ['F1', 'F2', 'F3'] as ('F1' | 'F2' | 'F3')[],
-        reductionPerFactor: {
-          f1: Math.round(baseReduction * 0.3 * 10) / 10, // 30% weight on F1
-          f2: Math.round(baseReduction * 0.5 * 10) / 10, // 50% weight on F2
-          f3: Math.round(baseReduction * 0.2 * 10) / 10, // 20% weight on F3
-        },
-      };
-    });
-
-    // Calculate total reductions per factor
-    const totalReductions = {
-      f1: linkedControls.reduce((sum, c) => sum + c.reductionPerFactor.f1, 0),
-      f2: linkedControls.reduce((sum, c) => sum + c.reductionPerFactor.f2, 0),
-      f3: linkedControls.reduce((sum, c) => sum + c.reductionPerFactor.f3, 0),
-      totalReduction: 0,
-    };
-    totalReductions.totalReduction = totalReductions.f1 + totalReductions.f2 + totalReductions.f3;
-
-    // Calculate residual factor scores (inherent - reduction, min 1)
-    const f1Inherent = scenario.f1ThreatFrequency ?? 3;
-    const f2Inherent = scenario.f2ControlEffectiveness ?? 3;
-    const f3Inherent = scenario.f3GapVulnerability ?? 3;
-
-    const calculatedResidualScores = {
-      f1Residual: Math.max(1, Math.round((f1Inherent - totalReductions.f1) * 10) / 10),
-      f2Residual: Math.max(1, Math.round((f2Inherent - totalReductions.f2) * 10) / 10),
-      f3Residual: Math.max(1, Math.round((f3Inherent - totalReductions.f3) * 10) / 10),
-    };
-
-    // Calculate residual likelihood (weighted average of F1-F3, rounded)
+    // Residual likelihood = weighted average of F1-F3
     const calculatedResidualLikelihood = Math.round(
       (calculatedResidualScores.f1Residual * 0.34 +
         calculatedResidualScores.f2Residual * 0.33 +
@@ -1248,6 +1191,63 @@ export class RiskScenarioService {
         f3OverrideJustification: scenario.f3OverrideJustification,
       },
       linkedControls,
+    };
+  }
+
+  /**
+   * Compute per-factor reductions for each linked control based on implementation status
+   */
+  private computeControlReductions(
+    controlLinks: Array<{
+      control: { id: string; controlId: string; name: string; implementationStatus: string };
+    }>,
+  ) {
+    return controlLinks.map((link) => {
+      const effectiveness = STATUS_TO_EFFECTIVENESS[link.control.implementationStatus] ?? 50;
+      // 0-2 point reduction scale based on effectiveness gap
+      const baseReduction = Math.round((100 - effectiveness) / 100 * 2 * 10) / 10;
+
+      return {
+        id: link.control.id,
+        controlId: link.control.controlId,
+        controlName: link.control.name,
+        effectiveness,
+        affectedFactors: ['F1', 'F2', 'F3'] as ('F1' | 'F2' | 'F3')[],
+        reductionPerFactor: {
+          f1: Math.round(baseReduction * 0.3 * 10) / 10, // 30% weight on F1
+          f2: Math.round(baseReduction * 0.5 * 10) / 10, // 50% weight on F2
+          f3: Math.round(baseReduction * 0.2 * 10) / 10, // 20% weight on F3
+        },
+      };
+    });
+  }
+
+  /**
+   * Aggregate per-control reductions into totals per factor
+   */
+  private aggregateFactorReductions(
+    linkedControls: Array<{ reductionPerFactor: { f1: number; f2: number; f3: number } }>,
+  ) {
+    const f1 = linkedControls.reduce((sum, c) => sum + c.reductionPerFactor.f1, 0);
+    const f2 = linkedControls.reduce((sum, c) => sum + c.reductionPerFactor.f2, 0);
+    const f3 = linkedControls.reduce((sum, c) => sum + c.reductionPerFactor.f3, 0);
+    return { f1, f2, f3, totalReduction: f1 + f2 + f3 };
+  }
+
+  /**
+   * Compute residual factor scores by subtracting control reductions from inherent scores
+   */
+  private computeResidualFactorScores(
+    scenario: { f1ThreatFrequency: number | null; f2ControlEffectiveness: number | null; f3GapVulnerability: number | null },
+    reductions: { f1: number; f2: number; f3: number },
+  ) {
+    const clampResidual = (inherent: number, reduction: number) =>
+      Math.max(1, Math.round((inherent - reduction) * 10) / 10);
+
+    return {
+      f1Residual: clampResidual(scenario.f1ThreatFrequency ?? 3, reductions.f1),
+      f2Residual: clampResidual(scenario.f2ControlEffectiveness ?? 3, reductions.f2),
+      f3Residual: clampResidual(scenario.f3GapVulnerability ?? 3, reductions.f3),
     };
   }
 

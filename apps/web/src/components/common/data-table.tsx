@@ -229,9 +229,9 @@ export function DataTable<T>({
                     {col.key === "__selection" && selectable ? (
                       <Checkbox
                         checked={allSelected}
-                        ref={(el: any) => {
+                        ref={(el: HTMLButtonElement | null) => {
                           if (el) {
-                            el.indeterminate = someSelected;
+                            (el as unknown as HTMLInputElement).indeterminate = someSelected;
                           }
                         }}
                         onCheckedChange={handleToggleAll}

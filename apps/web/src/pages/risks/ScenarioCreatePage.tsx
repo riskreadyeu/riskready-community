@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createRiskScenario, getRisks, type Risk } from "@/lib/risks-api";
+import { createRiskScenario, getRisks, type Risk, type LikelihoodLevel, type ImpactLevel } from "@/lib/risks-api";
 import { PageHeader } from "@/components/common";
 
 export default function ScenarioCreatePage() {
@@ -64,8 +64,8 @@ export default function ScenarioCreatePage() {
         cause: formData.cause || undefined,
         event: formData.event || undefined,
         consequence: formData.consequence || undefined,
-        likelihood: formData.likelihood ? formData.likelihood as any : undefined,
-        impact: formData.impact ? formData.impact as any : undefined,
+        likelihood: formData.likelihood ? formData.likelihood as LikelihoodLevel : undefined,
+        impact: formData.impact ? formData.impact as ImpactLevel : undefined,
         riskId: formData.riskId,
       });
 

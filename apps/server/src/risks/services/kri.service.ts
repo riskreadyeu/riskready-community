@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { Prisma, RAGStatus, TrendDirection } from '@prisma/client';
+import { Prisma, RAGStatus, TrendDirection, CollectionFrequency, RiskTier, ControlFramework } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -58,11 +58,11 @@ export class KRIService {
     thresholdGreen?: string;
     thresholdAmber?: string;
     thresholdRed?: string;
-    frequency?: any;
+    frequency?: CollectionFrequency;
     dataSource?: string;
     automated?: boolean;
-    tier?: any;
-    framework?: any;
+    tier?: RiskTier;
+    framework?: ControlFramework;
     soc2Criteria?: string;
     riskId: string;
     createdById: string;
@@ -109,10 +109,10 @@ export class KRIService {
     thresholdGreen?: string;
     thresholdAmber?: string;
     thresholdRed?: string;
-    frequency?: any;
+    frequency?: CollectionFrequency;
     dataSource?: string;
     automated?: boolean;
-    tier?: any;
+    tier?: RiskTier;
     soc2Criteria?: string;
     updatedById: string;
   }) {

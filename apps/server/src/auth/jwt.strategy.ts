@@ -4,7 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Request } from 'express';
 
 function cookieExtractor(req: Request): string | null {
-  const cookies = (req as any).cookies as Record<string, string> | undefined;
+  const cookies = (req as Request & { cookies?: Record<string, string> }).cookies;
   return cookies?.['access_token'] ?? null;
 }
 
@@ -24,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
+  async validate(payload: { sub: string; email: string }) {
     return { id: payload.sub, email: payload.email };
   }
 }

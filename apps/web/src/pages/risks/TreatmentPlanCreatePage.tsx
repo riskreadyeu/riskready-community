@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createTreatmentPlan, getRisks, type Risk } from "@/lib/risks-api";
+import { createTreatmentPlan, getRisks, type Risk, type TreatmentType, type TreatmentPriority } from "@/lib/risks-api";
 import { PageHeader } from "@/components/common";
 
 export default function TreatmentPlanCreatePage() {
@@ -72,8 +72,8 @@ export default function TreatmentPlanCreatePage() {
         treatmentId: formData.treatmentId,
         title: formData.title,
         description: formData.description,
-        treatmentType: formData.treatmentType as any,
-        priority: formData.priority as any,
+        treatmentType: formData.treatmentType as TreatmentType,
+        priority: formData.priority as TreatmentPriority,
         targetResidualScore: formData.targetResidualScore ? parseInt(formData.targetResidualScore) : undefined,
         estimatedCost: formData.estimatedCost ? parseFloat(formData.estimatedCost) : undefined,
         targetStartDate: formData.targetStartDate || undefined,

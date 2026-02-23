@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Crown, Plus, Users, Eye, Edit3, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -140,12 +141,12 @@ export default function ExecutivePositionsPage() {
     {
       label: "Edit",
       icon: <Edit3 className="w-4 h-4" />,
-      onClick: (position) => console.log("Edit", position.id),
+      onClick: () => toast.info("Edit functionality not yet available"),
     },
     {
       label: "Delete",
       icon: <Trash2 className="w-4 h-4" />,
-      onClick: (position) => console.log("Delete", position.id),
+      onClick: () => toast.info("Delete functionality not yet available"),
       variant: "destructive",
       separator: true,
     },

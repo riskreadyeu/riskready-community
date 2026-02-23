@@ -11,8 +11,8 @@ export class PolicyAuditService {
     action: PolicyAuditAction;
     description: string;
     performedById: string;
-    previousValue?: any;
-    newValue?: any;
+    previousValue?: Prisma.InputJsonValue;
+    newValue?: Prisma.InputJsonValue;
     ipAddress?: string;
     userAgent?: string;
     sessionId?: string;

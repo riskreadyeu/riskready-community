@@ -11,7 +11,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { LessonsLearnedCategory, LessonsLearnedStatus } from '@prisma/client';
+import { LessonsLearnedCategory, LessonsLearnedStatus, Prisma } from '@prisma/client';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('incidents/:incidentId/lessons-learned')
 export class IncidentLessonsLearnedController {
@@ -25,7 +26,7 @@ export class IncidentLessonsLearnedController {
     @Query('skip') skip?: string,
     @Query('take') take?: string,
   ) {
-    const where: any = { incidentId };
+    const where: Prisma.IncidentLessonsLearnedWhereInput = { incidentId };
     if (category) where.category = category;
     if (status) where.status = status;
 
@@ -66,7 +67,7 @@ export class IncidentLessonsLearnedController {
   @Post()
   async create(
     @Param('incidentId') incidentId: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body()
     data: {
       category: LessonsLearnedCategory;
@@ -125,7 +126,7 @@ export class IncidentLessonsLearnedController {
   async update(
     @Param('incidentId') incidentId: string,
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body()
     data: {
       category?: LessonsLearnedCategory;
@@ -218,7 +219,7 @@ export class IncidentLessonsLearnedController {
   async linkNonconformity(
     @Param('incidentId') incidentId: string,
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() data: { nonconformityId: string },
   ) {
     const lesson = await this.prisma.incidentLessonsLearned.findFirst({

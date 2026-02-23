@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerSoftwareTools(server: McpServer) {
   server.tool(
@@ -9,7 +10,7 @@ export function registerSoftwareTools(server: McpServer) {
     {
       assetId: z.string().describe('Asset UUID (the hardware asset)'),
     },
-    async ({ assetId }) => {
+    withErrorHandling('list_asset_software', async ({ assetId }) => {
       const asset = await prisma.asset.findUnique({
         where: { id: assetId },
         select: { id: true, assetTag: true, name: true },
@@ -37,7 +38,7 @@ export function registerSoftwareTools(server: McpServer) {
         },
       });
 
-      const response: any = {
+      const response: Record<string, unknown> = {
         asset: { id: asset.id, assetTag: asset.assetTag, name: asset.name },
         software,
         count: software.length,
@@ -49,16 +50,16 @@ export function registerSoftwareTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'search_software',
     'Search for software by name across all assets. Returns matching software with the asset it is installed on.',
     {
-      query: z.string().describe('Search term (matches against software name)'),
+      query: z.string().max(200).describe('Search term (matches against software name)'),
     },
-    async ({ query }) => {
+    withErrorHandling('search_software', async ({ query }) => {
       const results = await prisma.assetSoftware.findMany({
         where: {
           softwareName: { contains: query, mode: 'insensitive' },
@@ -85,7 +86,7 @@ export function registerSoftwareTools(server: McpServer) {
         },
       });
 
-      const response: any = { results, count: results.length };
+      const response: Record<string, unknown> = { results, count: results.length };
       if (results.length === 0) {
         response.note = `No software matched the search query '${query}'.`;
       }
@@ -93,6 +94,6 @@ export function registerSoftwareTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 }

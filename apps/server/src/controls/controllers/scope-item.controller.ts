@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { ScopeItemService } from '../services/scope-item.service';
 import { CreateScopeItemDto, UpdateScopeItemDto } from '../dto/scope-item.dto';
 import { ScopeType } from '@prisma/client';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('scope-items')
 @UseGuards(JwtAuthGuard)
@@ -34,7 +35,7 @@ export class ScopeItemController {
   }
 
   @Post()
-  async create(@Body() dto: CreateScopeItemDto, @Req() req: any) {
+  async create(@Body() dto: CreateScopeItemDto, @Req() req: AuthenticatedRequest) {
     const userId = req.user?.id;
     return this.scopeItemService.create(dto, userId);
   }

@@ -42,9 +42,9 @@ export function isExcludedModel(modelName: string): boolean {
 }
 
 /** Returns a shallow copy with sensitive field values replaced by [REDACTED]. */
-export function maskSensitiveData(data: Record<string, any> | null): Record<string, any> | null {
+export function maskSensitiveData(data: Record<string, unknown> | null): Record<string, unknown> | null {
   if (!data) return null;
-  const masked: Record<string, any> = {};
+  const masked: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(data)) {
     masked[key] = SENSITIVE_FIELDS.has(key) ? '[REDACTED]' : value;
   }

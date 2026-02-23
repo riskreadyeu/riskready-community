@@ -86,7 +86,16 @@ export class TreatmentPlanService {
    * Compute smart defaults for missing treatment plan fields
    * based on associated risk scenario data
    */
-  private async computeDefaults(plan: any) {
+  private async computeDefaults(plan: {
+    riskId: string;
+    targetResidualScore: number | null;
+    expectedReduction: number | null;
+    targetStartDate: Date | null;
+    targetEndDate: Date | null;
+    costBenefit: string | null;
+    createdAt: Date;
+    risk?: { residualScore: number | null } | null;
+  }) {
     const computed: string[] = [];
 
     // Get risk scenario data for calculations
@@ -243,7 +252,7 @@ export class TreatmentPlanService {
     implementerId?: string;
     acceptanceRationale?: string;
     acceptanceCriteria?: string;
-    acceptanceConditions?: any;
+    acceptanceConditions?: Prisma.InputJsonValue;
     acceptanceExpiryDate?: Date;
     controlIds?: string;
     riskId: string;
@@ -385,7 +394,7 @@ export class TreatmentPlanService {
     approvedById?: string;
     acceptanceRationale?: string;
     acceptanceCriteria?: string;
-    acceptanceConditions?: any;
+    acceptanceConditions?: Prisma.InputJsonValue;
     acceptanceExpiryDate?: Date;
     progressPercentage?: number;
     progressNotes?: string;

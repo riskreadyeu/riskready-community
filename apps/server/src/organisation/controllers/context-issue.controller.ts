@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ContextIssueService } from '../services/context-issue.service';
 
 @Controller('organisation/context-issues')
@@ -14,7 +15,7 @@ export class ContextIssueController {
     @Query('category') category?: string,
     @Query('status') status?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.ContextIssueWhereInput = {};
     if (isActive !== undefined) where.isActive = isActive === 'true';
     if (issueType) where.issueType = issueType;
     if (category) where.category = category;
@@ -38,12 +39,12 @@ export class ContextIssueController {
   }
 
   @Post()
-  async create(@Body() data: any) {
+  async create(@Body() data: Prisma.ContextIssueCreateInput) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Prisma.ContextIssueUpdateInput) {
     return this.service.update(id, data);
   }
 

@@ -255,8 +255,8 @@ export function AssetRelationshipDiagram({
         <Controls position="bottom-right" />
         <MiniMap
           position="bottom-left"
-          nodeColor={(node: any) =>
-            node.data?.isCurrent ? 'hsl(var(--primary))' : 'hsl(var(--muted))'
+          nodeColor={(node: Node) =>
+            (node.data as Record<string, unknown>)?.['isCurrent'] ? 'hsl(var(--primary))' : 'hsl(var(--muted))'
           }
           maskColor="rgba(0, 0, 0, 0.1)"
         />

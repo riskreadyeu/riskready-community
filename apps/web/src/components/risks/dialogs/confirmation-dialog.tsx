@@ -55,9 +55,9 @@ export function ConfirmationDialog({
       await onConfirm(reason.trim() || undefined);
       onOpenChange(false);
       setReason("");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error in confirmation action:", err);
-      setError(err.message || "Operation failed");
+      setError(err instanceof Error ? err.message : "Operation failed");
     } finally {
       setLoading(false);
     }

@@ -45,6 +45,7 @@ import {
   Send,
   ThumbsUp,
   SkipForward,
+  type LucideIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
@@ -56,7 +57,7 @@ const SEVERITY_CONFIG = {
   OBSERVATION: { icon: FileWarning, color: "text-blue-600", bgColor: "bg-blue-600/10", status: "muted" as const },
 };
 
-const STATUS_CONFIG: Record<NCStatus, { icon: any, color: string, bgColor: string, label: string }> = {
+const STATUS_CONFIG: Record<NCStatus, { icon: LucideIcon, color: string, bgColor: string, label: string }> = {
   DRAFT: { icon: AlertCircle, color: "text-amber-600", bgColor: "bg-amber-600/10", label: "Pending Review" },
   OPEN: { icon: AlertCircle, color: "text-destructive", bgColor: "bg-destructive/10", label: "Open" },
   IN_PROGRESS: { icon: Clock, color: "text-primary", bgColor: "bg-primary/10", label: "In Progress" },
@@ -67,7 +68,7 @@ const STATUS_CONFIG: Record<NCStatus, { icon: any, color: string, bgColor: strin
   REJECTED: { icon: XCircle, color: "text-muted-foreground", bgColor: "bg-muted", label: "Rejected" },
 };
 
-const CAP_STATUS_CONFIG: Record<CAPStatus, { label: string; color: string; bgColor: string; icon: any }> = {
+const CAP_STATUS_CONFIG: Record<CAPStatus, { label: string; color: string; bgColor: string; icon: LucideIcon }> = {
   NOT_REQUIRED: { label: "Not Required", color: "text-muted-foreground", bgColor: "bg-muted", icon: SkipForward },
   NOT_DEFINED: { label: "Not Defined", color: "text-amber-600", bgColor: "bg-amber-100", icon: AlertCircle },
   DRAFT: { label: "Draft", color: "text-blue-600", bgColor: "bg-blue-100", icon: FileText },
@@ -162,9 +163,9 @@ export default function NonconformityDetailPage() {
     try {
       await approveCap(id, currentUserId, comments);
       await loadData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error approving CAP:", err);
-      alert(err.message || "Failed to approve CAP");
+      alert(err instanceof Error ? err.message : "Failed to approve CAP");
     }
   };
 

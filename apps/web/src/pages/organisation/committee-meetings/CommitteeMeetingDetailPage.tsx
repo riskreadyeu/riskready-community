@@ -507,10 +507,10 @@ export default function CommitteeMeetingDetailPage() {
               <CardTitle className="text-lg">Meeting Decisions</CardTitle>
             </CardHeader>
             <CardContent>
-              {(meeting as any).decisions?.length > 0 ? (
+              {(meeting.decisions?.length ?? 0) > 0 ? (
                 <DataTable
                   columns={decisionColumns}
-                  data={(meeting as any).decisions}
+                  data={meeting.decisions!}
                   keyExtractor={(d) => d.id}
                   emptyMessage="No decisions recorded"
                 />
@@ -529,10 +529,10 @@ export default function CommitteeMeetingDetailPage() {
               <CardTitle className="text-lg">Action Items</CardTitle>
             </CardHeader>
             <CardContent>
-              {(meeting as any).actionItems?.length > 0 ? (
+              {(meeting.actionItems?.length ?? 0) > 0 ? (
                 <DataTable
                   columns={actionColumns}
-                  data={(meeting as any).actionItems}
+                  data={meeting.actionItems!}
                   keyExtractor={(a) => a.id}
                   emptyMessage="No action items"
                 />

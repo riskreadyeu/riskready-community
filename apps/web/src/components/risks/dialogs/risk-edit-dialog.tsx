@@ -86,9 +86,9 @@ export function RiskEditDialog({
       });
       onSuccess?.();
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error saving risk:", err);
-      setError(err.message || "Failed to save risk");
+      setError(err instanceof Error ? err.message : "Failed to save risk");
     } finally {
       setSaving(false);
     }

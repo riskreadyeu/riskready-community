@@ -11,7 +11,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { IncidentTimelineEntryType, IncidentVisibility } from '@prisma/client';
+import { IncidentTimelineEntryType, IncidentVisibility, Prisma } from '@prisma/client';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('incidents/:incidentId/timeline')
 export class IncidentTimelineController {
@@ -25,7 +26,7 @@ export class IncidentTimelineController {
     @Query('skip') skip?: string,
     @Query('take') take?: string,
   ) {
-    const where: any = { incidentId };
+    const where: Prisma.IncidentTimelineEntryWhereInput = { incidentId };
     if (entryType) where.entryType = entryType;
     if (visibility) where.visibility = visibility;
 
@@ -64,7 +65,7 @@ export class IncidentTimelineController {
   @Post()
   async create(
     @Param('incidentId') incidentId: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body()
     data: {
       timestamp: string;

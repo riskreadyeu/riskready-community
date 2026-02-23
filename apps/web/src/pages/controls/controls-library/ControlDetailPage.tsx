@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Shield, Target, CheckCircle2, History, Edit3, MoreHorizontal, Check, Clock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -256,7 +257,7 @@ export default function ControlDetailPage() {
           {
             value: "general",
             label: "GENERAL",
-            content: <ControlGeneralTab control={control} onEdit={() => console.log("Edit control")} />,
+            content: <ControlGeneralTab control={control} onEdit={() => toast.info("This feature is not yet available")} />,
           },
           {
             value: "assessment",

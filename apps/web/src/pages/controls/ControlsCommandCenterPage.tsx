@@ -97,7 +97,7 @@ export default function ControlsCommandCenterPage() {
     // Get avg effectiveness
     const avgEff = effectiveness?.controls?.length
       ? Math.round(
-          effectiveness.controls.reduce((s: number, c: any) => s + (c.score || 0), 0) /
+          effectiveness.controls.reduce((s: number, c: { score?: number }) => s + (c.score || 0), 0) /
           effectiveness.controls.length
         )
       : 0;

@@ -10,7 +10,7 @@ const MAX_SKIP = 1_000_000;
  */
 @Injectable()
 export class PaginationInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const req = context.switchToHttp().getRequest();
     if (req.query) {
       if (req.query.skip !== undefined) {

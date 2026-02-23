@@ -1,9 +1,44 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
+interface AssetImportRow {
+  assetTag?: string;
+  name?: string;
+  displayName?: string;
+  description?: string;
+  assetType?: string;
+  assetSubtype?: string;
+  businessCriticality?: string;
+  dataClassification?: string;
+  handlesPersonalData?: string | boolean;
+  handlesFinancialData?: string | boolean;
+  handlesHealthData?: string | boolean;
+  handlesConfidentialData?: string | boolean;
+  inIsmsScope?: string | boolean;
+  inPciScope?: string | boolean;
+  inDoraScope?: string | boolean;
+  inGdprScope?: string | boolean;
+  inNis2Scope?: string | boolean;
+  inSoc2Scope?: string | boolean;
+  status?: string;
+  cloudProvider?: string;
+  cloudRegion?: string;
+  fqdn?: string;
+  operatingSystem?: string;
+  osVersion?: string;
+  manufacturer?: string;
+  model?: string;
+  serialNumber?: string;
+  rtoMinutes?: string;
+  rpoMinutes?: string;
+  targetAvailability?: string;
+  hasRedundancy?: string | boolean;
+}
+
 @Injectable()
 export class AssetService {
+  private readonly logger = new Logger(AssetService.name);
   constructor(private prisma: PrismaService) { }
 
   async findAll(params?: {
@@ -333,7 +368,7 @@ export class AssetService {
     return prefixes[assetType] || 'AST-OTH';
   }
 
-  async importAssets(assets: any[]): Promise<{
+  async importAssets(assets: AssetImportRow[]): Promise<{
     imported: number;
     updated: number;
     errors: Array<{ row: number; error: string }>;
@@ -345,7 +380,7 @@ export class AssetService {
     };
 
     for (let i = 0; i < assets.length; i++) {
-      const row = assets[i];
+      const row = assets[i]!;
       try {
         // Check if asset with this tag already exists
         const existing = row.assetTag
@@ -391,17 +426,17 @@ export class AssetService {
         if (existing) {
           await this.prisma.asset.update({
             where: { id: existing.id },
-            data,
+            data: data as Prisma.AssetUpdateInput,
           });
           results.updated++;
         } else {
-          await this.prisma.asset.create({ data });
+          await this.prisma.asset.create({ data: data as Prisma.AssetCreateInput });
           results.imported++;
         }
-      } catch (error: any) {
+      } catch (error) {
         results.errors.push({
           row: i + 1,
-          error: error.message || 'Unknown error',
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     }
@@ -503,6 +538,28 @@ export class AssetService {
       description: string;
     }>;
   }> {
+    const counts = await this.fetchDataQualityCounts();
+    const percentages = this.computeDataQualityPercentages(counts);
+    const issues = this.identifyDataQualityIssues(counts);
+
+    return {
+      totalAssets: counts.totalAssets,
+      completeness: {
+        withOwner: counts.withOwner,
+        withDepartment: counts.withDepartment,
+        withLocation: counts.withLocation,
+        withDescription: counts.withDescription,
+        withDataClassification: counts.totalAssets, // All have default
+        withCriticality: counts.totalAssets, // businessCriticality always has a default
+        withRto: counts.withRto,
+        withRpo: counts.withRpo,
+      },
+      percentages,
+      issues,
+    };
+  }
+
+  private async fetchDataQualityCounts() {
     const [
       totalAssets,
       withOwner,
@@ -534,30 +591,38 @@ export class AssetService {
       this.prisma.asset.count({ where: { rtoMinutes: { not: null } } }),
       this.prisma.asset.count({ where: { rpoMinutes: { not: null } } }),
       this.prisma.asset.count({
-        where: {
-          businessCriticality: 'CRITICAL',
-          ownerId: null,
-        },
+        where: { businessCriticality: 'CRITICAL', ownerId: null },
       }),
       this.prisma.asset.count({
-        where: {
-          status: 'ACTIVE',
-          locationId: null,
-          cloudProvider: null,
-        },
+        where: { status: 'ACTIVE', locationId: null, cloudProvider: null },
       }),
     ]);
 
-    // businessCriticality has a default value so it's never null
-    const withoutCriticality = 0;
+    return {
+      totalAssets, withOwner, withDepartment, withLocation,
+      withDescription, withRto, withRpo, criticalWithoutOwner, activeWithoutLocation,
+    };
+  }
 
-    const ownerPercent = totalAssets > 0 ? Math.round((withOwner / totalAssets) * 100) : 0;
-    const departmentPercent = totalAssets > 0 ? Math.round((withDepartment / totalAssets) * 100) : 0;
-    const locationPercent = totalAssets > 0 ? Math.round((withLocation / totalAssets) * 100) : 0;
-    const descriptionPercent = totalAssets > 0 ? Math.round((withDescription / totalAssets) * 100) : 0;
-    const rtoRpoPercent = totalAssets > 0 ? Math.round(((withRto + withRpo) / 2 / totalAssets) * 100) : 0;
+  private computeDataQualityPercentages(counts: {
+    totalAssets: number;
+    withOwner: number;
+    withDepartment: number;
+    withLocation: number;
+    withDescription: number;
+    withRto: number;
+    withRpo: number;
+  }) {
+    const pct = (n: number) => counts.totalAssets > 0 ? Math.round((n / counts.totalAssets) * 100) : 0;
 
-    // Calculate overall data quality score (weighted average)
+    const ownerPercent = pct(counts.withOwner);
+    const departmentPercent = pct(counts.withDepartment);
+    const locationPercent = pct(counts.withLocation);
+    const descriptionPercent = pct(counts.withDescription);
+    const rtoRpoPercent = counts.totalAssets > 0
+      ? Math.round(((counts.withRto + counts.withRpo) / 2 / counts.totalAssets) * 100)
+      : 0;
+
     const overallScore = Math.round(
       ownerPercent * 0.25 +
       departmentPercent * 0.15 +
@@ -566,71 +631,55 @@ export class AssetService {
       rtoRpoPercent * 0.25
     );
 
-    const issues: Array<{
-      type: string;
-      count: number;
-      severity: 'high' | 'medium' | 'low';
-      description: string;
-    }> = [];
+    return { ownerPercent, departmentPercent, locationPercent, descriptionPercent, rtoRpoPercent, overallScore };
+  }
 
-    if (criticalWithoutOwner > 0) {
+  private identifyDataQualityIssues(counts: {
+    totalAssets: number;
+    withDescription: number;
+    withRto: number;
+    criticalWithoutOwner: number;
+    activeWithoutLocation: number;
+  }): Array<{ type: string; count: number; severity: 'high' | 'medium' | 'low'; description: string }> {
+    const issues: Array<{ type: string; count: number; severity: 'high' | 'medium' | 'low'; description: string }> = [];
+
+    if (counts.criticalWithoutOwner > 0) {
       issues.push({
         type: 'critical_no_owner',
-        count: criticalWithoutOwner,
+        count: counts.criticalWithoutOwner,
         severity: 'high',
         description: 'Critical assets without an assigned owner',
       });
     }
 
-    if (activeWithoutLocation > 0) {
+    if (counts.activeWithoutLocation > 0) {
       issues.push({
         type: 'active_no_location',
-        count: activeWithoutLocation,
+        count: counts.activeWithoutLocation,
         severity: 'medium',
         description: 'Active assets without location or cloud provider',
       });
     }
 
-    if (totalAssets - withDescription > 0) {
+    if (counts.totalAssets - counts.withDescription > 0) {
       issues.push({
         type: 'missing_description',
-        count: totalAssets - withDescription,
+        count: counts.totalAssets - counts.withDescription,
         severity: 'low',
         description: 'Assets without description',
       });
     }
 
-    if (totalAssets - withRto > 0) {
+    if (counts.totalAssets - counts.withRto > 0) {
       issues.push({
         type: 'missing_rto',
-        count: totalAssets - withRto,
+        count: counts.totalAssets - counts.withRto,
         severity: 'medium',
         description: 'Assets without RTO defined (NIS2 requirement)',
       });
     }
 
-    return {
-      totalAssets,
-      completeness: {
-        withOwner,
-        withDepartment,
-        withLocation,
-        withDescription,
-        withDataClassification: totalAssets, // All have default
-        withCriticality: totalAssets - withoutCriticality,
-        withRto,
-        withRpo,
-      },
-      percentages: {
-        ownerPercent,
-        departmentPercent,
-        locationPercent,
-        descriptionPercent,
-        rtoRpoPercent,
-        overallScore,
-      },
-      issues,
-    };
+    return issues;
   }
 
   // ============================================
@@ -692,128 +741,22 @@ export class AssetService {
       throw new NotFoundException(`Asset with ID ${assetId} not found`);
     }
 
-    // ==========================================
-    // CATEGORY 1: Vulnerability Risk (35% weight)
-    // ==========================================
-    // CVSS-weighted score normalized to 0-100
-    const criticalVulns = asset.openVulnsCritical || 0;
-    const highVulns = asset.openVulnsHigh || 0;
-    const mediumVulns = asset.openVulnsMedium || 0;
-    const lowVulns = asset.openVulnsLow || 0;
-    const totalVulns = criticalVulns + highVulns + mediumVulns + lowVulns;
-    const slaBreached = asset.slaBreachedVulns || 0;
+    const vulnScore = this.calculateVulnerabilityScore(asset);
+    const businessScore = this.calculateBusinessImpactScore(asset);
+    const accessScore = this.calculateAccessControlScore(asset);
+    const lifecycleScore = this.calculateLifecycleScore(asset);
 
-    let vulnScore = 0;
-    if (totalVulns > 0) {
-      // Weighted severity score (CVSS-aligned weights)
-      const weightedSum = (criticalVulns * 10) + (highVulns * 7) + (mediumVulns * 4) + (lowVulns * 1);
-      const maxPossible = totalVulns * 10;
-      const severityScore = (weightedSum / maxPossible) * 60; // Up to 60 points for severity mix
-
-      // Volume factor using logarithmic scale (diminishing returns)
-      const volumeScore = Math.min(25, Math.log10(totalVulns + 1) * 15); // Up to 25 points
-
-      // SLA breach penalty
-      const slaScore = Math.min(15, slaBreached * 3); // Up to 15 points
-
-      vulnScore = Math.min(100, severityScore + volumeScore + slaScore);
-    }
-
-    // ==========================================
-    // CATEGORY 2: Business Impact (25% weight)
-    // ==========================================
-    const criticalityScores: Record<string, number> = {
-      CRITICAL: 50,
-      HIGH: 35,
-      MEDIUM: 20,
-      LOW: 5,
-    };
-    const classificationScores: Record<string, number> = {
-      RESTRICTED: 50,
-      CONFIDENTIAL: 35,
-      INTERNAL: 15,
-      PUBLIC: 0,
-    };
-    const businessScore =
-      (criticalityScores[asset.businessCriticality] || 0) +
-      (classificationScores[asset.dataClassification] || 0);
-
-    // ==========================================
-    // CATEGORY 3: Access Control Risk (20% weight)
-    // ==========================================
-    const privilegedUsers = asset.privilegedUserCount || 0;
-    const humanUsers = asset.humanUserCount || 0;
-    const totalUsers = humanUsers + (asset.serviceAccountCount || 0);
-    const authFailures = asset.lastAuthFailureCount || 0;
-
-    let accessScore = 0;
-
-    // Privileged user ratio (if we have user data)
-    if (totalUsers > 0 && privilegedUsers > 0) {
-      const privRatio = privilegedUsers / totalUsers;
-      // More than 20% privileged is concerning
-      if (privRatio > 0.5) accessScore += 40;
-      else if (privRatio > 0.3) accessScore += 30;
-      else if (privRatio > 0.2) accessScore += 20;
-      else if (privRatio > 0.1) accessScore += 10;
-    }
-
-    // Absolute privileged count (even low ratio can be risky with many admins)
-    if (privilegedUsers > 10) accessScore += 20;
-    else if (privilegedUsers > 5) accessScore += 10;
-
-    // Auth failures (logarithmic to handle large numbers)
-    if (authFailures > 0) {
-      accessScore += Math.min(40, Math.log10(authFailures + 1) * 20);
-    }
-
-    accessScore = Math.min(100, accessScore);
-
-    // ==========================================
-    // CATEGORY 4: Lifecycle Risk (20% weight)
-    // ==========================================
-    let lifecycleScore = 0;
-    const now = new Date();
-
-    if (asset.endOfLife && new Date(asset.endOfLife) < now) {
-      lifecycleScore = 100; // End of Life = maximum lifecycle risk
-    } else if (asset.endOfSupport && new Date(asset.endOfSupport) < now) {
-      lifecycleScore = 70; // End of Support = high lifecycle risk
-    } else if (asset.endOfSupport) {
-      // Approaching EOS (within 6 months)
-      const eosDate = new Date(asset.endOfSupport);
-      const monthsToEos = (eosDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30);
-      if (monthsToEos < 6) {
-        lifecycleScore = 40;
-      } else if (monthsToEos < 12) {
-        lifecycleScore = 20;
-      }
-    }
-
-    // ==========================================
-    // CALCULATE INHERENT RISK (weighted sum)
-    // ==========================================
+    // Inherent risk: weighted sum of all categories
     const inherentRisk =
       (vulnScore * 0.35) +      // 35% weight
       (businessScore * 0.25) +   // 25% weight
       (accessScore * 0.20) +     // 20% weight
       (lifecycleScore * 0.20);   // 20% weight
 
-    // ==========================================
-    // APPLY CONTROL EFFECTIVENESS (SCA-based)
-    // ==========================================
-    // SCA Score represents technical control implementation
-    // Based on CIS Benchmarks which map to ISO 27001 Annex A
-    //
+    // Apply control effectiveness (SCA-based)
     // Formula: Residual = Inherent × (1 - Effectiveness × 0.8)
-    // - Max 80% reduction (even perfect controls can't eliminate all risk)
-    // - No SCA data = assume 0% effectiveness (full inherent risk)
-
-    let controlEffectiveness = 0;
-    if (asset.scaScore !== null && asset.scaScore !== undefined) {
-      controlEffectiveness = asset.scaScore / 100;
-    }
-
+    // Max 80% reduction (even perfect controls can't eliminate all risk)
+    const controlEffectiveness = (asset.scaScore != null) ? asset.scaScore / 100 : 0;
     const riskReductionFactor = 1 - (controlEffectiveness * 0.8);
     const residualRisk = Math.round(inherentRisk * riskReductionFactor);
 
@@ -827,6 +770,118 @@ export class AssetService {
     });
 
     return residualRisk;
+  }
+
+  /**
+   * Vulnerability risk score (0-100) using CVSS-weighted severity and SLA breach penalty
+   */
+  private calculateVulnerabilityScore(asset: {
+    openVulnsCritical: number | null;
+    openVulnsHigh: number | null;
+    openVulnsMedium: number | null;
+    openVulnsLow: number | null;
+    slaBreachedVulns: number | null;
+  }): number {
+    const criticalVulns = asset.openVulnsCritical || 0;
+    const highVulns = asset.openVulnsHigh || 0;
+    const mediumVulns = asset.openVulnsMedium || 0;
+    const lowVulns = asset.openVulnsLow || 0;
+    const totalVulns = criticalVulns + highVulns + mediumVulns + lowVulns;
+    const slaBreached = asset.slaBreachedVulns || 0;
+
+    if (totalVulns === 0) return 0;
+
+    // Weighted severity score (CVSS-aligned weights)
+    const weightedSum = (criticalVulns * 10) + (highVulns * 7) + (mediumVulns * 4) + (lowVulns * 1);
+    const maxPossible = totalVulns * 10;
+    const severityScore = (weightedSum / maxPossible) * 60; // Up to 60 points for severity mix
+
+    // Volume factor using logarithmic scale (diminishing returns)
+    const volumeScore = Math.min(25, Math.log10(totalVulns + 1) * 15); // Up to 25 points
+
+    // SLA breach penalty
+    const slaScore = Math.min(15, slaBreached * 3); // Up to 15 points
+
+    return Math.min(100, severityScore + volumeScore + slaScore);
+  }
+
+  /**
+   * Business impact score (0-100) from criticality and data classification
+   */
+  private calculateBusinessImpactScore(asset: {
+    businessCriticality: string;
+    dataClassification: string;
+  }): number {
+    const criticalityScores: Record<string, number> = {
+      CRITICAL: 50, HIGH: 35, MEDIUM: 20, LOW: 5,
+    };
+    const classificationScores: Record<string, number> = {
+      RESTRICTED: 50, CONFIDENTIAL: 35, INTERNAL: 15, PUBLIC: 0,
+    };
+    return (criticalityScores[asset.businessCriticality] || 0) +
+      (classificationScores[asset.dataClassification] || 0);
+  }
+
+  /**
+   * Access control risk score (0-100) from privileged user ratio and auth failures
+   */
+  private calculateAccessControlScore(asset: {
+    privilegedUserCount: number | null;
+    humanUserCount: number | null;
+    serviceAccountCount: number | null;
+    lastAuthFailureCount: number | null;
+  }): number {
+    const privilegedUsers = asset.privilegedUserCount || 0;
+    const humanUsers = asset.humanUserCount || 0;
+    const totalUsers = humanUsers + (asset.serviceAccountCount || 0);
+    const authFailures = asset.lastAuthFailureCount || 0;
+
+    let score = 0;
+
+    // Privileged user ratio (if we have user data)
+    if (totalUsers > 0 && privilegedUsers > 0) {
+      const privRatio = privilegedUsers / totalUsers;
+      if (privRatio > 0.5) score += 40;
+      else if (privRatio > 0.3) score += 30;
+      else if (privRatio > 0.2) score += 20;
+      else if (privRatio > 0.1) score += 10;
+    }
+
+    // Absolute privileged count (even low ratio can be risky with many admins)
+    if (privilegedUsers > 10) score += 20;
+    else if (privilegedUsers > 5) score += 10;
+
+    // Auth failures (logarithmic to handle large numbers)
+    if (authFailures > 0) {
+      score += Math.min(40, Math.log10(authFailures + 1) * 20);
+    }
+
+    return Math.min(100, score);
+  }
+
+  /**
+   * Lifecycle risk score (0-100) from EOL/EOS status
+   */
+  private calculateLifecycleScore(asset: {
+    endOfLife: Date | null;
+    endOfSupport: Date | null;
+  }): number {
+    const now = new Date();
+
+    if (asset.endOfLife && new Date(asset.endOfLife) < now) {
+      return 100; // End of Life = maximum lifecycle risk
+    }
+    if (asset.endOfSupport && new Date(asset.endOfSupport) < now) {
+      return 70; // End of Support = high lifecycle risk
+    }
+    if (asset.endOfSupport) {
+      // Approaching EOS
+      const eosDate = new Date(asset.endOfSupport);
+      const monthsToEos = (eosDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30);
+      if (monthsToEos < 6) return 40;
+      if (monthsToEos < 12) return 20;
+    }
+    return 0;
   }
 
   /**
@@ -845,7 +900,7 @@ export class AssetService {
         await this.calculateRiskScore(asset.id);
         updated++;
       } catch (err) {
-        console.error(`Failed to calculate risk score for asset ${asset.id}:`, err);
+        this.logger.error(`Failed to calculate risk score for asset ${asset.id}`, err instanceof Error ? err.stack : String(err));
       }
     }
 

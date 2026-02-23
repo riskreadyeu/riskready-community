@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { MeetingActionItemService } from '../services/meeting-action-item.service';
 
 @Controller('organisation/meeting-action-items')
@@ -14,7 +15,7 @@ export class MeetingActionItemController {
     @Query('status') status?: string,
     @Query('priority') priority?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.MeetingActionItemWhereInput = {};
     if (meetingId) where.meetingId = meetingId;
     if (assignedToId) where.assignedToId = assignedToId;
     if (status) where.status = status;
@@ -48,12 +49,12 @@ export class MeetingActionItemController {
   }
 
   @Post()
-  async create(@Body() data: any) {
+  async create(@Body() data: Prisma.MeetingActionItemCreateInput) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Prisma.MeetingActionItemUpdateInput) {
     return this.service.update(id, data);
   }
 

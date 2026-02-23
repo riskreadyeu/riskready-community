@@ -72,8 +72,8 @@ export default function ChangeTemplateListPage() {
   async function loadTemplates() {
     setLoading(true);
     try {
-      const params: any = { skip: page * PAGE_SIZE, take: PAGE_SIZE };
-      if (categoryFilter !== 'all') params.category = categoryFilter;
+      const params: { skip: number; take: number; category?: ChangeCategory; isActive?: boolean; search?: string } = { skip: page * PAGE_SIZE, take: PAGE_SIZE };
+      if (categoryFilter !== 'all') params.category = categoryFilter as ChangeCategory;
       if (activeFilter !== 'all') params.isActive = activeFilter === 'true';
       if (search) params.search = search;
       const data = await getChangeTemplates(params);

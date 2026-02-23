@@ -318,7 +318,7 @@ export default function McpApprovalsPage() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium text-sm">{action.summary}</span>
-                            <Badge variant={config.variant as any}>{config.label}</Badge>
+                            <Badge variant={config.variant}>{config.label}</Badge>
                             <Badge variant="outline" className="text-[10px]">
                               {getModuleLabel(action.actionType)}
                             </Badge>

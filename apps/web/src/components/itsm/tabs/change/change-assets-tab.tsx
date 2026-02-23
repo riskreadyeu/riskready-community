@@ -20,9 +20,9 @@ export function ChangeAssetsTab({ change }: ChangeAssetsTabProps) {
         </Button>
       </CardHeader>
       <CardContent>
-        {(change as any).assetLinks?.length > 0 ? (
+        {change.assetLinks && change.assetLinks.length > 0 ? (
           <div className="space-y-2">
-            {(change as any).assetLinks.map((link: any) => (
+            {change.assetLinks.map((link) => (
               <Link
                 key={link.id}
                 to={`/itsm/assets/${link.asset.id}`}

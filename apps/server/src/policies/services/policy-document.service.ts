@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma, DocumentStatus, DocumentType } from '@prisma/client';
+import { Prisma, DocumentStatus, DocumentType, PolicyAuditAction } from '@prisma/client';
 import { PolicyAuditService } from './policy-audit.service';
 
 @Injectable()
@@ -235,7 +235,7 @@ export class PolicyDocumentService {
 
       await this.auditService.log({
         documentId: document.id,
-        action: actionMap[status] as any,
+        action: actionMap[status] as PolicyAuditAction,
         description: `Document status changed from ${existing.status} to ${status}`,
         performedById: userId,
         previousValue: { status: existing.status },
@@ -282,7 +282,8 @@ export class PolicyDocumentService {
     });
 
     // Build hierarchy tree
-    const buildTree = (parentId: string | null): any[] => {
+    interface DocumentTreeNode extends Record<string, unknown> { children: DocumentTreeNode[] }
+    const buildTree = (parentId: string | null): DocumentTreeNode[] => {
       return documents
         .filter(doc => doc.parentDocumentId === parentId)
         .map(doc => ({

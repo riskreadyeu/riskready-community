@@ -27,12 +27,14 @@ import {
   Target,
   X,
   Loader2,
+  type LucideIcon,
 } from "lucide-react";
 import {
   type Risk,
   type RiskStatus,
   type TreatmentPlan,
   type TreatmentAction,
+  type TreatmentType,
   updateRisk,
   getTreatmentPlansByRisk,
   createTreatmentPlan,
@@ -43,7 +45,7 @@ import {
 } from "@/lib/risks-api";
 import { cn } from "@/lib/utils";
 
-const STATUS_WORKFLOW: { status: RiskStatus; label: string; icon: any; color: string }[] = [
+const STATUS_WORKFLOW: { status: RiskStatus; label: string; icon: LucideIcon; color: string }[] = [
   { status: "IDENTIFIED", label: "Identified", icon: AlertCircle, color: "text-gray-600" },
   { status: "ASSESSED", label: "Assessed", icon: BarChart3, color: "text-blue-600" },
   { status: "TREATING", label: "Treating", icon: Clock, color: "text-amber-600" },
@@ -119,7 +121,7 @@ export function RiskTreatmentPanel({ risk, onUpdate }: RiskTreatmentPanelProps) 
         await updateTreatmentPlan(activePlan.id, {
           description: planDescription,
           acceptanceCriteria: acceptanceCriteria,
-          treatmentType: treatmentType as any,
+          treatmentType: treatmentType as TreatmentType,
         });
         toast.success("Treatment plan updated");
       } else {
@@ -131,7 +133,7 @@ export function RiskTreatmentPanel({ risk, onUpdate }: RiskTreatmentPanelProps) 
           title: `Treatment for ${risk.riskId}`,
           description: planDescription,
           acceptanceCriteria: acceptanceCriteria,
-          treatmentType: treatmentType as any,
+          treatmentType: treatmentType as TreatmentType,
           status: 'DRAFT',
 
         });

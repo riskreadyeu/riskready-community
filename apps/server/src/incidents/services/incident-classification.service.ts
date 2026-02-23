@@ -16,19 +16,19 @@ export class IncidentClassificationService {
     return { incidentId: id, nis2: null, dora: null };
   }
 
-  async assessNIS2(id: string, data: any, userId: string) {
+  async assessNIS2(id: string, data: Record<string, unknown>, userId: string) {
     return { incidentId: id, assessment: null };
   }
 
-  async assessDORA(id: string, data: any, userId: string) {
+  async assessDORA(id: string, data: Record<string, unknown>, userId: string) {
     return { incidentId: id, assessment: null };
   }
 
-  async overrideNIS2Classification(id: string, ...args: any[]) {
+  async overrideNIS2Classification(id: string, ...args: unknown[]) {
     return { incidentId: id, overridden: false };
   }
 
-  async overrideDORAClassification(id: string, ...args: any[]) {
+  async overrideDORAClassification(id: string, ...args: unknown[]) {
     return { incidentId: id, overridden: false };
   }
 }

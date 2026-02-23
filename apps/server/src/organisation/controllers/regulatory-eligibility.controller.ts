@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { RegulatoryEligibilityService } from '../services/regulatory-eligibility.service';
 
 @Controller('organisation/regulatory-eligibility')
@@ -13,7 +14,7 @@ export class RegulatoryEligibilityController {
     @Query('surveyType') surveyType?: string,
     @Query('status') status?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.RegulatoryEligibilitySurveyWhereInput = {};
     if (surveyType) where.surveyType = surveyType;
     if (status) where.status = status;
 
@@ -30,12 +31,12 @@ export class RegulatoryEligibilityController {
   }
 
   @Post('surveys')
-  async createSurvey(@Body() data: any) {
+  async createSurvey(@Body() data: Prisma.RegulatoryEligibilitySurveyCreateInput) {
     return this.service.createSurvey(data);
   }
 
   @Put('surveys/:id')
-  async updateSurvey(@Param('id') id: string, @Body() data: any) {
+  async updateSurvey(@Param('id') id: string, @Body() data: Prisma.RegulatoryEligibilitySurveyUpdateInput) {
     return this.service.updateSurvey(id, data);
   }
 
@@ -56,12 +57,12 @@ export class RegulatoryEligibilityController {
   }
 
   @Post('questions')
-  async createQuestion(@Body() data: any) {
+  async createQuestion(@Body() data: Prisma.SurveyQuestionCreateInput) {
     return this.service.createQuestion(data);
   }
 
   @Put('questions/:id')
-  async updateQuestion(@Param('id') id: string, @Body() data: any) {
+  async updateQuestion(@Param('id') id: string, @Body() data: Prisma.SurveyQuestionUpdateInput) {
     return this.service.updateQuestion(id, data);
   }
 
@@ -76,7 +77,7 @@ export class RegulatoryEligibilityController {
 
   // Seed questions
   @Post('questions/seed')
-  async seedQuestions(@Body() data: { questions: any[] }) {
+  async seedQuestions(@Body() data: { questions: Array<{ surveyType: string; stepNumber: string; stepCategory: string; questionText: string; ifYes?: string; ifNo?: string; legalReference?: string; notes?: string; sortOrder: number }> }) {
     return this.service.seedQuestions(data.questions);
   }
 

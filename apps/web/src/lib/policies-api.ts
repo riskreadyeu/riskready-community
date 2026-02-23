@@ -881,7 +881,7 @@ export interface DocumentSection {
   title: string;
   order: number;
   content?: string;
-  structuredData?: any;
+  structuredData?: Record<string, unknown>;
   isVisible: boolean;
   isCollapsed: boolean;
   createdAt: string;
@@ -914,7 +914,7 @@ export interface DocumentProcessStep {
   inputs: string[];
   outputs: string[];
   isDecisionPoint: boolean;
-  decisionOptions?: any;
+  decisionOptions?: Record<string, unknown>;
   order: number;
   createdAt: string;
   updatedAt: string;
@@ -963,7 +963,7 @@ export interface DocumentSectionTemplate {
   defaultOrder: number;
   defaultTitle?: string;
   defaultContent?: string;
-  schema?: any;
+  schema?: Record<string, unknown>;
   description?: string;
   helpText?: string;
   organisationId?: string;
@@ -995,7 +995,7 @@ export async function createSection(documentId: string, data: {
   title: string;
   order?: number;
   content?: string;
-  structuredData?: any;
+  structuredData?: Record<string, unknown>;
   templateId?: string;
   isVisible?: boolean;
   isCollapsed?: boolean;
@@ -1008,7 +1008,7 @@ export async function updateSection(id: string, data: {
   title?: string;
   order?: number;
   content?: string;
-  structuredData?: any;
+  structuredData?: Record<string, unknown>;
   isVisible?: boolean;
   isCollapsed?: boolean;
 }) {
@@ -1077,7 +1077,7 @@ export async function createProcessStep(documentId: string, data: {
   inputs?: string[];
   outputs?: string[];
   isDecisionPoint?: boolean;
-  decisionOptions?: any;
+  decisionOptions?: Record<string, unknown>;
 }) {
   return api.post<DocumentProcessStep>(`/policies/${documentId}/process-steps`, data);
 }
@@ -1095,7 +1095,7 @@ export async function updateProcessStep(id: string, data: {
   inputs?: string[];
   outputs?: string[];
   isDecisionPoint?: boolean;
-  decisionOptions?: any;
+  decisionOptions?: Record<string, unknown>;
 }) {
   return api.put<DocumentProcessStep>(`/policies/process-steps/${id}`, data);
 }
@@ -1139,7 +1139,7 @@ export async function getDocumentRoles(documentId: string) {
 export async function createDocumentRole(documentId: string, data: {
   role: string;
   responsibilities?: string[];
-  raciMatrix?: any;
+  raciMatrix?: Record<string, string>;
   order?: number;
 }) {
   return api.post<DocumentRole>(`/policies/${documentId}/roles`, data);
@@ -1148,7 +1148,7 @@ export async function createDocumentRole(documentId: string, data: {
 export async function updateDocumentRole(id: string, data: {
   role?: string;
   responsibilities?: string[];
-  raciMatrix?: any;
+  raciMatrix?: Record<string, string>;
   order?: number;
 }) {
   return api.put<DocumentRole>(`/policies/roles/${id}`, data);
@@ -1203,7 +1203,7 @@ export async function createSectionTemplate(data: {
   defaultOrder?: number;
   defaultTitle?: string;
   defaultContent?: string;
-  schema?: any;
+  schema?: Record<string, unknown>;
   description?: string;
   helpText?: string;
   organisationId?: string;
@@ -1218,7 +1218,7 @@ export async function updateSectionTemplate(id: string, data: {
   defaultOrder?: number;
   defaultTitle?: string;
   defaultContent?: string;
-  schema?: any;
+  schema?: Record<string, unknown>;
   description?: string;
   helpText?: string;
 }) {
@@ -1326,7 +1326,7 @@ export async function deleteAttachment(id: string) {
 }
 
 export async function downloadAttachment(id: string): Promise<Blob> {
-  const response = await fetch(`${(api as any).baseUrl}/policies/attachments/${id}/download`, {
+  const response = await fetch(`${api.baseUrl}/policies/attachments/${id}/download`, {
     credentials: 'include',
   });
   if (!response.ok) {
@@ -1367,12 +1367,64 @@ export async function getComplianceStatus() {
   return api.get<ComplianceStatus>(`/policies/dashboard/compliance?organisationId=${ORG_ID}`);
 }
 
+export interface OverdueReview {
+  id: string;
+  documentId: string;
+  title: string;
+}
+
+export interface PendingApproval {
+  id: string;
+  stepName: string;
+  workflow?: {
+    document?: {
+      id: string;
+      documentId: string;
+    };
+  };
+}
+
+export interface ExpiringException {
+  id: string;
+  exceptionId: string;
+  title: string;
+}
+
+export interface ActionsNeeded {
+  overdueReviews: OverdueReview[];
+  pendingApprovals: PendingApproval[];
+  expiringExceptions: ExpiringException[];
+}
+
+export interface RecentActivityItem {
+  id: string;
+  action: string;
+  description: string;
+  performedBy?: {
+    firstName?: string;
+    lastName?: string;
+  };
+  performedAt: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  description?: string;
+  performedBy?: {
+    firstName?: string;
+    lastName?: string;
+  };
+  performedAt: string;
+  [key: string]: unknown;
+}
+
 export async function getActionsNeeded() {
-  return api.get<any>(`/policies/dashboard/actions-needed?organisationId=${ORG_ID}`);
+  return api.get<ActionsNeeded>(`/policies/dashboard/actions-needed?organisationId=${ORG_ID}`);
 }
 
 export async function getRecentActivity(limit = 10) {
-  return api.get<any[]>(`/policies/dashboard/recent-activity?organisationId=${ORG_ID}&limit=${limit}`);
+  return api.get<RecentActivityItem[]>(`/policies/dashboard/recent-activity?organisationId=${ORG_ID}&limit=${limit}`);
 }
 
 export async function getAuditLog(params?: {
@@ -1393,6 +1445,6 @@ export async function getAuditLog(params?: {
   if (params?.startDate) queryParams.set('startDate', params.startDate);
   if (params?.endDate) queryParams.set('endDate', params.endDate);
   if (params?.userId) queryParams.set('userId', params.userId);
-  
-  return api.get<{ results: any[]; count: number }>(`/policies/dashboard/audit-log?${queryParams}`);
+
+  return api.get<{ results: AuditLogEntry[]; count: number }>(`/policies/dashboard/audit-log?${queryParams}`);
 }

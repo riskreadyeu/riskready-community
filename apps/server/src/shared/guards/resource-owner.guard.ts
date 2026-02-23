@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  Logger,
   SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -22,6 +23,8 @@ export const CheckResourceOwner = (options: ResourceOwnerOptions) =>
 
 @Injectable()
 export class ResourceOwnerGuard implements CanActivate {
+  private readonly logger = new Logger(ResourceOwnerGuard.name);
+
   constructor(
     private reflector: Reflector,
     private prisma: PrismaService,
@@ -55,9 +58,9 @@ export class ResourceOwnerGuard implements CanActivate {
     const resourceName = options.resource;
 
     try {
-      const model = (this.prisma as any)[resourceName];
+      const model = (this.prisma as unknown as Record<string, { findUnique: (args: { where: { id: string }; select: Record<string, boolean> }) => Promise<Record<string, unknown> | null> }>)[resourceName];
       if (!model) {
-        console.warn(`Resource model ${resourceName} not found`);
+        this.logger.warn(`Resource model ${resourceName} not found`);
         return true;
       }
 
@@ -81,7 +84,7 @@ export class ResourceOwnerGuard implements CanActivate {
       if (error instanceof ForbiddenException) {
         throw error;
       }
-      console.error('ResourceOwnerGuard error:', error);
+      this.logger.error('ResourceOwnerGuard error', error instanceof Error ? error.stack : String(error));
       return true;
     }
   }

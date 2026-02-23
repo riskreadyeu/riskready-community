@@ -1,47 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-
-async function getDefaultOrganisationId(): Promise<string> {
-  const org = await prisma.organisationProfile.findFirst({ select: { id: true } });
-  if (!org) throw new Error('No organisation found in the database. Please create one first.');
-  return org.id;
-}
-
-async function createPendingAction(params: {
-  actionType: string;
-  summary: string;
-  reason?: string;
-  payload: any;
-  mcpSessionId?: string;
-  mcpToolName: string;
-  organisationId?: string;
-}) {
-  const orgId = params.organisationId || await getDefaultOrganisationId();
-  const action = await prisma.mcpPendingAction.create({
-    data: {
-      actionType: params.actionType as any,
-      summary: params.summary,
-      reason: params.reason,
-      payload: params.payload,
-      mcpSessionId: params.mcpSessionId,
-      mcpToolName: params.mcpToolName,
-      organisationId: orgId,
-    },
-  });
-  return {
-    content: [{
-      type: 'text' as const,
-      text: JSON.stringify({
-        message: `Action proposed successfully. Awaiting human approval.`,
-        actionId: action.id,
-        actionType: action.actionType,
-        status: action.status,
-        summary: action.summary,
-      }, null, 2),
-    }],
-  };
-}
+import { createPendingAction, withErrorHandling } from '#mcp-shared';
 
 function registerEvidenceMutations(server: McpServer) {
   server.tool(
@@ -54,10 +14,10 @@ function registerEvidenceMutations(server: McpServer) {
       evidenceType: z.enum(['DOCUMENT', 'CERTIFICATE', 'REPORT', 'POLICY', 'PROCEDURE', 'SCREENSHOT', 'LOG', 'CONFIGURATION', 'NETWORK_CAPTURE', 'MEMORY_DUMP', 'DISK_IMAGE', 'MALWARE_SAMPLE', 'EMAIL', 'MEETING_NOTES', 'APPROVAL_RECORD', 'AUDIT_REPORT', 'ASSESSMENT_RESULT', 'TEST_RESULT', 'SCAN_RESULT', 'VIDEO', 'AUDIO', 'OTHER']).describe('Evidence type'),
       classification: z.enum(['PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED']).optional().describe('Classification level'),
       category: z.string().optional().describe('Category grouping'),
-      validFrom: z.string().optional().describe('Validity start date (ISO 8601)'),
-      validUntil: z.string().optional().describe('Expiry date (ISO 8601)'),
+      validFrom: z.string().datetime().optional().describe('Validity start date (ISO 8601)'),
+      validUntil: z.string().datetime().optional().describe('Expiry date (ISO 8601)'),
       status: z.enum(['PENDING', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'EXPIRED', 'ARCHIVED']).optional().describe('Initial evidence status'),
-      tags: z.any().optional().describe('Tags (JSON array)'),
+      tags: z.array(z.string()).optional().describe('Tags (JSON array)'),
       subcategory: z.string().optional().describe('Subcategory'),
       sourceType: z.string().optional().describe('Source type'),
       sourceSystem: z.string().optional().describe('Source system'),
@@ -70,7 +30,7 @@ function registerEvidenceMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_evidence', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_EVIDENCE',
         summary: `Create ${params.evidenceType} evidence "${params.title}" (${params.evidenceRef})`,
@@ -80,7 +40,7 @@ function registerEvidenceMutations(server: McpServer) {
         mcpToolName: 'propose_create_evidence',
         organisationId: params.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -92,16 +52,16 @@ function registerEvidenceMutations(server: McpServer) {
       description: z.string().optional().describe('Updated description'),
       status: z.enum(['PENDING', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'EXPIRED', 'ARCHIVED']).optional().describe('Updated status'),
       classification: z.enum(['PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED']).optional().describe('Updated classification'),
-      validFrom: z.string().optional().describe('Updated validity start date (ISO 8601)'),
-      validUntil: z.string().optional().describe('Updated expiry date (ISO 8601)'),
-      tags: z.any().optional().describe('Tags (JSON array)'),
+      validFrom: z.string().datetime().optional().describe('Updated validity start date (ISO 8601)'),
+      validUntil: z.string().datetime().optional().describe('Updated expiry date (ISO 8601)'),
+      tags: z.array(z.string()).optional().describe('Tags (JSON array)'),
       category: z.string().optional().describe('Updated category'),
       subcategory: z.string().optional().describe('Updated subcategory'),
       renewalRequired: z.boolean().optional().describe('Whether renewal is required'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_evidence', async (params) => {
       const evidence = await prisma.evidence.findUnique({
         where: { id: params.evidenceId },
         select: { id: true, evidenceRef: true, title: true },
@@ -118,7 +78,7 @@ function registerEvidenceMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_update_evidence',
       });
-    },
+    }),
   );
 
   server.tool(
@@ -133,7 +93,7 @@ function registerEvidenceMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_link_evidence', async (params) => {
       const evidence = await prisma.evidence.findUnique({
         where: { id: params.evidenceId },
         select: { id: true, evidenceRef: true, title: true },
@@ -150,7 +110,7 @@ function registerEvidenceMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_link_evidence',
       });
-    },
+    }),
   );
 }
 
@@ -164,7 +124,7 @@ function registerRequestMutations(server: McpServer) {
       description: z.string().describe('Request description'),
       evidenceType: z.enum(['DOCUMENT', 'CERTIFICATE', 'REPORT', 'POLICY', 'PROCEDURE', 'SCREENSHOT', 'LOG', 'CONFIGURATION', 'NETWORK_CAPTURE', 'MEMORY_DUMP', 'DISK_IMAGE', 'MALWARE_SAMPLE', 'EMAIL', 'MEETING_NOTES', 'APPROVAL_RECORD', 'AUDIT_REPORT', 'ASSESSMENT_RESULT', 'TEST_RESULT', 'SCAN_RESULT', 'VIDEO', 'AUDIO', 'OTHER']).optional().describe('Required evidence type'),
       priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional().describe('Request priority'),
-      dueDate: z.string().describe('Due date (ISO 8601)'),
+      dueDate: z.string().datetime().describe('Due date (ISO 8601)'),
       assignedToId: z.string().optional().describe('Assigned user UUID'),
       contextType: z.string().optional().describe('Context type (e.g. "Control", "Test")'),
       contextRef: z.string().optional().describe('Context reference (e.g. "A.5.1")'),
@@ -176,7 +136,7 @@ function registerRequestMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_request', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_EVIDENCE_REQUEST',
         summary: `Create evidence request "${params.title}" (${params.requestRef}) due ${params.dueDate}`,
@@ -186,7 +146,7 @@ function registerRequestMutations(server: McpServer) {
         mcpToolName: 'propose_create_request',
         organisationId: params.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -199,7 +159,7 @@ function registerRequestMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_fulfill_request', async (params) => {
       const [request, evidence] = await Promise.all([
         prisma.evidenceRequest.findUnique({ where: { id: params.requestId }, select: { id: true, requestRef: true, title: true } }),
         prisma.evidence.findUnique({ where: { id: params.evidenceId }, select: { id: true, evidenceRef: true, title: true } }),
@@ -219,7 +179,7 @@ function registerRequestMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_fulfill_request',
       });
-    },
+    }),
   );
 
   server.tool(
@@ -232,7 +192,7 @@ function registerRequestMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_close_request', async (params) => {
       const request = await prisma.evidenceRequest.findUnique({
         where: { id: params.requestId },
         select: { id: true, requestRef: true, title: true, status: true },
@@ -249,7 +209,7 @@ function registerRequestMutations(server: McpServer) {
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_close_request',
       });
-    },
+    }),
   );
 }
 

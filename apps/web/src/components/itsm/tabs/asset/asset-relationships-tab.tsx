@@ -1,11 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AssetRelationshipDiagram } from '@/components/itsm/AssetRelationshipDiagram';
-import type { Asset, AssetRelationship } from '@/lib/itsm-api';
+import type { Asset, AssetImpactAnalysis, AssetRelationship } from '@/lib/itsm-api';
 
 interface AssetRelationshipsTabProps {
   asset: Asset;
   relationships: AssetRelationship[];
-  impactAnalysis: any;
+  impactAnalysis: AssetImpactAnalysis | null;
 }
 
 export function AssetRelationshipsTab({ asset, relationships, impactAnalysis }: AssetRelationshipsTabProps) {
@@ -30,7 +30,7 @@ export function AssetRelationshipsTab({ asset, relationships, impactAnalysis }: 
                 <span className="font-bold">{impactAnalysis?.summary?.impactedProcessCount || 0}</span>
               </div>
               <div className="mt-2 text-xs text-red-500 font-medium">
-                {impactAnalysis?.summary?.impactedByBusinessCriticality?.CRITICAL || 0} Critical Assets Affected
+                {impactAnalysis?.summary?.impactedByBusinessCriticality?.['CRITICAL'] || 0} Critical Assets Affected
               </div>
             </div>
           </div>

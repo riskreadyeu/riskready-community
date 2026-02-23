@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
-import { TestResult, RootCauseCategory, RemediationEffort, TestMethod } from '@prisma/client';
+import { TestResult, RootCauseCategory, RemediationEffort, TestMethod, AssessmentTestStatus, Prisma } from '@prisma/client';
 import { AssessmentService } from './assessment.service';
 
 @Injectable()
@@ -16,7 +16,7 @@ export class AssessmentTestService {
     return this.prisma.assessmentTest.findMany({
       where: {
         assessmentId,
-        ...(filters?.status && { status: filters.status as any }),
+        ...(filters?.status && { status: filters.status as AssessmentTestStatus }),
       },
       include: {
         scopeItem: { select: { id: true, code: true, name: true, scopeType: true, criticality: true } },
@@ -213,17 +213,17 @@ export class AssessmentTestService {
     testMethod?: string;
     role?: 'owner' | 'tester' | 'assessor';
   }) {
-    const roleConditions: any[] = [];
+    const roleConditions: Prisma.AssessmentTestWhereInput[] = [];
     if (!filters?.role || filters.role === 'owner') roleConditions.push({ ownerId: userId });
     if (!filters?.role || filters.role === 'tester') roleConditions.push({ assignedTesterId: userId });
     if (!filters?.role || filters.role === 'assessor') roleConditions.push({ assessorId: userId });
 
-    const where: any = {
+    const where: Prisma.AssessmentTestWhereInput = {
       OR: roleConditions,
       assessment: { status: { in: ['IN_PROGRESS', 'UNDER_REVIEW'] } },
     };
-    if (filters?.status) where.status = filters.status;
-    if (filters?.testMethod) where.testMethod = filters.testMethod;
+    if (filters?.status) where.status = filters.status as Prisma.AssessmentTestWhereInput['status'];
+    if (filters?.testMethod) where.testMethod = filters.testMethod as Prisma.AssessmentTestWhereInput['testMethod'];
 
     return this.prisma.assessmentTest.findMany({
       where,

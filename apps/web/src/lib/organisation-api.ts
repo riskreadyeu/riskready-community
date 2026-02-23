@@ -344,6 +344,9 @@ export interface BusinessProcess {
   performanceIndicators?: Record<string, string>;
   seasonalVariations?: Record<string, string>;
 
+  // BIA Status
+  biaStatus?: string;
+
   // Process Hierarchy
   parentProcessId?: string;
   parentProcess?: BusinessProcess;
@@ -549,6 +552,10 @@ export interface CommitteeMeeting {
   // Cancellation
   cancellationReason?: string;
   postponedToDate?: string;
+
+  // Related Records
+  decisions?: MeetingDecision[];
+  actionItems?: MeetingActionItem[];
 
   _count?: { attendances: number; decisions: number; actionItems: number };
 }

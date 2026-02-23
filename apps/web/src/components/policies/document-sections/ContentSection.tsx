@@ -89,7 +89,7 @@ export function ContentSection({
               <ol className="my-4 space-y-2 pl-0 list-none counter-reset-[item]">{children}</ol>
             ),
             // List items - with bullet styling
-            li: ({ children }: any) => (
+            li: ({ children }: { children?: React.ReactNode }) => (
               <li className="text-sm leading-7 text-foreground/90 flex items-start gap-3 pl-1">
                 <span className="text-primary shrink-0 select-none">•</span>
                 <span className="flex-1">{children}</span>

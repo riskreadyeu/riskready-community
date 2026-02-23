@@ -137,9 +137,9 @@ export function AssessmentDialog({
       await updateRiskScenario(scenario.id, payload);
       onSuccess?.();
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error saving assessment:", err);
-      setError(err.message || "Failed to save assessment");
+      setError(err instanceof Error ? err.message : "Failed to save assessment");
     } finally {
       setSaving(false);
     }

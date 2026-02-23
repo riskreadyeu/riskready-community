@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerCapacityTools(server: McpServer) {
   server.tool(
@@ -8,12 +9,12 @@ export function registerCapacityTools(server: McpServer) {
     'List capacity utilization records for an asset with optional date range filter. Sorted by recorded date descending.',
     {
       assetId: z.string().describe('Asset UUID'),
-      fromDate: z.string().optional().describe('Start date filter (ISO 8601)'),
-      toDate: z.string().optional().describe('End date filter (ISO 8601)'),
+      fromDate: z.string().datetime().optional().describe('Start date filter (ISO 8601)'),
+      toDate: z.string().datetime().optional().describe('End date filter (ISO 8601)'),
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ assetId, fromDate, toDate, skip, take }) => {
+    withErrorHandling('get_capacity_records', async ({ assetId, fromDate, toDate, skip, take }) => {
       const asset = await prisma.asset.findUnique({
         where: { id: assetId },
         select: { id: true, assetTag: true, name: true },
@@ -22,7 +23,7 @@ export function registerCapacityTools(server: McpServer) {
         return { content: [{ type: 'text' as const, text: `Asset with ID ${assetId} not found` }], isError: true };
       }
 
-      const where: any = { assetId };
+      const where: Record<string, unknown> = { assetId };
       if (fromDate || toDate) {
         where.recordedAt = {};
         if (fromDate) where.recordedAt.gte = new Date(fromDate);
@@ -49,7 +50,7 @@ export function registerCapacityTools(server: McpServer) {
         prisma.capacityRecord.count({ where }),
       ]);
 
-      const response: any = {
+      const response: Record<string, unknown> = {
         asset: { id: asset.id, assetTag: asset.assetTag, name: asset.name },
         results,
         total: count,
@@ -63,7 +64,7 @@ export function registerCapacityTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -75,8 +76,8 @@ export function registerCapacityTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ status, assetId, skip, take }) => {
-      const where: any = {};
+    withErrorHandling('list_capacity_plans', async ({ status, assetId, skip, take }) => {
+      const where: Record<string, unknown> = {};
       if (status) where.status = status;
       if (assetId) where.assetId = assetId;
 
@@ -109,7 +110,7 @@ export function registerCapacityTools(server: McpServer) {
         prisma.capacityPlan.count({ where }),
       ]);
 
-      const response: any = { results, total: count, skip, take };
+      const response: Record<string, unknown> = { results, total: count, skip, take };
       if (count === 0) {
         response.note = 'No capacity plans found matching the specified filters.';
       }
@@ -117,7 +118,7 @@ export function registerCapacityTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -126,7 +127,7 @@ export function registerCapacityTools(server: McpServer) {
     {
       id: z.string().describe('Capacity plan UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_capacity_plan', async ({ id }) => {
       const plan = await prisma.capacityPlan.findUnique({
         where: { id },
         include: {
@@ -158,14 +159,14 @@ export function registerCapacityTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(plan, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_capacity_alerts',
     'Find assets where resource utilization exceeds configured thresholds. Returns assets with usage vs threshold details for CPU, memory, and storage.',
     {},
-    async () => {
+    withErrorHandling('get_capacity_alerts', async () => {
       // Find assets where any usage exceeds its threshold
       const assets = await prisma.asset.findMany({
         where: {
@@ -211,13 +212,13 @@ export function registerCapacityTools(server: McpServer) {
 
       // Filter to only those actually exceeding thresholds
       const alerts = assets
-        .filter((a: any) => {
+        .filter(a => {
           const cpuExceeded = a.cpuUsagePercent != null && a.cpuThresholdPercent != null && a.cpuUsagePercent > a.cpuThresholdPercent;
           const memExceeded = a.memoryUsagePercent != null && a.memoryThresholdPercent != null && a.memoryUsagePercent > a.memoryThresholdPercent;
           const storExceeded = a.storageUsagePercent != null && a.storageThresholdPercent != null && a.storageUsagePercent > a.storageThresholdPercent;
           return cpuExceeded || memExceeded || storExceeded;
         })
-        .map((a: any) => ({
+        .map(a => ({
           id: a.id,
           assetTag: a.assetTag,
           name: a.name,
@@ -236,7 +237,7 @@ export function registerCapacityTools(server: McpServer) {
           projectedExhaustionDate: a.projectedExhaustionDate,
         }));
 
-      const response: any = { alerts, count: alerts.length };
+      const response: Record<string, unknown> = { alerts, count: alerts.length };
       if (alerts.length === 0) {
         response.note = 'No assets currently exceeding capacity thresholds.';
       }
@@ -244,6 +245,6 @@ export function registerCapacityTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 }

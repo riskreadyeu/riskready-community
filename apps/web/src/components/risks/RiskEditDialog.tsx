@@ -90,9 +90,9 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
       await updateRisk(risk.id, form);
       onSuccess?.();
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error updating risk:", err);
-      setError(err.message || "Failed to update risk");
+      setError(err instanceof Error ? err.message : "Failed to update risk");
     } finally {
       setSaving(false);
     }

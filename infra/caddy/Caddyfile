@@ -1,6 +1,19 @@
 :80 {
   encode gzip
 
+  log {
+    output stdout
+  }
+
+  header {
+    X-Frame-Options "DENY"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    # Enable HSTS when using HTTPS (remove or comment out for plain HTTP)
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  }
+
   handle /api/* {
     reverse_proxy server:3000
   }

@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
@@ -9,7 +10,7 @@ export function registerAnalysisTools(server: McpServer) {
     {
       assessmentId: z.string().optional().describe('Assessment UUID (if omitted, uses latest completed assessment)'),
     },
-    async ({ assessmentId }) => {
+    withErrorHandling('get_gap_analysis', async ({ assessmentId }) => {
       // If no assessment specified, find the latest completed one
       let targetAssessmentId = assessmentId;
       if (!targetAssessmentId) {
@@ -28,6 +29,7 @@ export function registerAnalysisTools(server: McpServer) {
             assessmentId: targetAssessmentId,
             result: { in: ['FAIL', 'PARTIAL'] },
           },
+          take: 1000,
           select: {
             id: true,
             testCode: true,
@@ -66,6 +68,7 @@ export function registerAnalysisTools(server: McpServer) {
       // Fallback: implementation-status-based gap analysis (no completed assessments)
       const controls = await prisma.control.findMany({
         where: { applicable: true, enabled: true },
+        take: 1000,
         select: {
           id: true,
           controlId: true,
@@ -102,7 +105,7 @@ export function registerAnalysisTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -112,7 +115,7 @@ export function registerAnalysisTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ skip, take }) => {
+    withErrorHandling('get_overdue_tests', async ({ skip, take }) => {
       const now = new Date();
 
       // Find assessments past their due date with incomplete tests
@@ -146,7 +149,7 @@ export function registerAnalysisTools(server: McpServer) {
         },
       });
 
-      const response: any = {
+      const response: Record<string, unknown> = {
         overdueTests: overdueTests.map(t => ({
           ...t,
           daysOverdue: t.assessment.dueDate
@@ -167,7 +170,7 @@ export function registerAnalysisTools(server: McpServer) {
           text: JSON.stringify(response, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -176,7 +179,7 @@ export function registerAnalysisTools(server: McpServer) {
     {
       assessmentId: z.string().describe('Assessment UUID'),
     },
-    async ({ assessmentId }) => {
+    withErrorHandling('get_assessment_completion_summary', async ({ assessmentId }) => {
       const assessment = await prisma.assessment.findUnique({
         where: { id: assessmentId },
         select: { id: true, assessmentRef: true, title: true, status: true, dueDate: true, totalTests: true, completedTests: true, passedTests: true, failedTests: true },
@@ -226,7 +229,7 @@ export function registerAnalysisTools(server: McpServer) {
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -235,12 +238,13 @@ export function registerAnalysisTools(server: McpServer) {
     {
       organisationId: z.string().optional().describe('Organisation UUID (all orgs if omitted)'),
     },
-    async ({ organisationId }) => {
-      const where: any = { applicable: true, enabled: true };
+    withErrorHandling('get_control_coverage_matrix', async ({ organisationId }) => {
+      const where: Record<string, unknown> = { applicable: true, enabled: true };
       if (organisationId) where.organisationId = organisationId;
 
       const controls = await prisma.control.findMany({
         where,
+        take: 1000,
         orderBy: { controlId: 'asc' },
         select: {
           id: true,
@@ -302,26 +306,27 @@ export function registerAnalysisTools(server: McpServer) {
           text: JSON.stringify({ controls: matrix, total: matrix.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_tester_workload',
     'Get per-tester breakdown of assigned, pending, and completed tests across active assessments.',
     {},
-    async () => {
+    withErrorHandling('get_tester_workload', async () => {
       const tests = await prisma.assessmentTest.findMany({
         where: {
           assessment: { status: { in: ['IN_PROGRESS', 'UNDER_REVIEW'] } },
           assignedTesterId: { not: null },
         },
+        take: 1000,
         select: {
           status: true,
           assignedTester: { select: { id: true, email: true, firstName: true, lastName: true } },
         },
       });
 
-      const workloadMap = new Map<string, { tester: any; pending: number; inProgress: number; completed: number; skipped: number; total: number }>();
+      const workloadMap = new Map<string, { tester: { id: string; email: string; firstName: string | null; lastName: string | null }; pending: number; inProgress: number; completed: number; skipped: number; total: number }>();
 
       for (const t of tests) {
         if (!t.assignedTester) continue;
@@ -339,7 +344,7 @@ export function registerAnalysisTools(server: McpServer) {
 
       const workload = Array.from(workloadMap.values()).sort((a, b) => b.total - a.total);
 
-      const response: any = { testers: workload, totalTesters: workload.length };
+      const response: Record<string, unknown> = { testers: workload, totalTesters: workload.length };
       if (workload.length === 0) {
         response.note = 'No testers have assigned tests in active assessments.';
       }
@@ -350,6 +355,6 @@ export function registerAnalysisTools(server: McpServer) {
           text: JSON.stringify(response, null, 2),
         }],
       };
-    },
+    }),
   );
 }

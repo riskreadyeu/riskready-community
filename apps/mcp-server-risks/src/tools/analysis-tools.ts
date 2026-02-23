@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
@@ -9,14 +10,15 @@ export function registerAnalysisTools(server: McpServer) {
     {
       organisationId: z.string().optional().describe('Organisation UUID'),
     },
-    async ({ organisationId }) => {
-      const where: any = {};
+    withErrorHandling('get_risk_heatmap', async ({ organisationId }) => {
+      const where: Record<string, unknown> = {};
       if (organisationId) {
         where.risk = { organisationId };
       }
 
       const scenarios = await prisma.riskScenario.findMany({
         where: { ...where, inherentScore: { not: null } },
+        take: 1000,
         select: {
           id: true,
           scenarioId: true,
@@ -38,18 +40,19 @@ export function registerAnalysisTools(server: McpServer) {
           text: JSON.stringify({ scenarios, count: scenarios.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_tolerance_breaches',
     'Get scenarios exceeding their Risk Tolerance Statement thresholds.',
     {},
-    async () => {
+    withErrorHandling('get_tolerance_breaches', async () => {
       const breaches = await prisma.riskScenario.findMany({
         where: {
           toleranceStatus: { in: ['EXCEEDS', 'CRITICAL'] },
         },
+        take: 1000,
         select: {
           id: true,
           scenarioId: true,
@@ -65,7 +68,7 @@ export function registerAnalysisTools(server: McpServer) {
         orderBy: { toleranceGap: 'desc' },
       });
 
-      const response: any = { breaches, count: breaches.length };
+      const response: Record<string, unknown> = { breaches, count: breaches.length };
       if (breaches.length === 0) {
         response.note = 'No scenarios exceeding tolerance thresholds. All risks are within tolerance.';
       }
@@ -73,17 +76,18 @@ export function registerAnalysisTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_treatment_progress',
     'Get overall treatment completion rates and overdue treatments.',
     {},
-    async () => {
+    withErrorHandling('get_treatment_progress', async () => {
       const [active, overdue] = await Promise.all([
         prisma.treatmentPlan.findMany({
           where: { status: { in: ['APPROVED', 'IN_PROGRESS'] } },
+          take: 1000,
           select: {
             id: true,
             treatmentId: true,
@@ -102,6 +106,7 @@ export function registerAnalysisTools(server: McpServer) {
             status: { in: ['APPROVED', 'IN_PROGRESS'] },
             targetEndDate: { lt: new Date() },
           },
+          take: 1000,
           select: {
             id: true,
             treatmentId: true,
@@ -114,7 +119,7 @@ export function registerAnalysisTools(server: McpServer) {
         }),
       ]);
 
-      const response: any = {
+      const response: Record<string, unknown> = {
         activeTreatments: active,
         activeCount: active.length,
         overdueTreatments: overdue,
@@ -127,14 +132,14 @@ export function registerAnalysisTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'get_kri_alerts',
     'Get KRIs in RED status or with DECLINING trend that need attention.',
     {},
-    async () => {
+    withErrorHandling('get_kri_alerts', async () => {
       const alerts = await prisma.keyRiskIndicator.findMany({
         where: {
           OR: [
@@ -142,6 +147,7 @@ export function registerAnalysisTools(server: McpServer) {
             { trend: 'DECLINING' },
           ],
         },
+        take: 1000,
         select: {
           id: true,
           kriId: true,
@@ -157,7 +163,7 @@ export function registerAnalysisTools(server: McpServer) {
         orderBy: [{ status: 'asc' }, { kriId: 'asc' }],
       });
 
-      const response: any = { alerts, count: alerts.length };
+      const response: Record<string, unknown> = { alerts, count: alerts.length };
       if (alerts.length === 0) {
         response.note = 'No KRI alerts. All KRIs are within acceptable thresholds and trends.';
       }
@@ -165,7 +171,7 @@ export function registerAnalysisTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -174,8 +180,8 @@ export function registerAnalysisTools(server: McpServer) {
     {
       organisationId: z.string().optional().describe('Organisation UUID'),
     },
-    async ({ organisationId }) => {
-      const riskWhere: any = {};
+    withErrorHandling('get_risk_dashboard', async ({ organisationId }) => {
+      const riskWhere: Record<string, unknown> = {};
       if (organisationId) riskWhere.organisationId = organisationId;
 
       const [
@@ -206,25 +212,25 @@ export function registerAnalysisTools(server: McpServer) {
           text: JSON.stringify({
             risks: {
               total: totalRisks,
-              byStatus: Object.fromEntries(risksByStatus.map((s: any) => [s.status, s._count])),
+              byStatus: Object.fromEntries(risksByStatus.map((s: Record<string, unknown>) => [s.status, s._count])),
             },
             scenarios: {
               total: totalScenarios,
-              byStatus: Object.fromEntries(scenariosByStatus.map((s: any) => [s.status, s._count])),
-              byTolerance: Object.fromEntries(scenariosByTolerance.map((t: any) => [t.toleranceStatus ?? 'NOT_EVALUATED', t._count])),
+              byStatus: Object.fromEntries(scenariosByStatus.map((s: Record<string, unknown>) => [s.status, s._count])),
+              byTolerance: Object.fromEntries(scenariosByTolerance.map((t: Record<string, unknown>) => [t.toleranceStatus ?? 'NOT_EVALUATED', t._count])),
             },
             kris: {
               total: totalKRIs,
-              byRAG: Object.fromEntries(krisByStatus.map((s: any) => [s.status ?? 'NOT_MEASURED', s._count])),
+              byRAG: Object.fromEntries(krisByStatus.map((s: Record<string, unknown>) => [s.status ?? 'NOT_MEASURED', s._count])),
             },
             treatments: {
               total: totalTreatments,
-              byStatus: Object.fromEntries(treatmentsByStatus.map((s: any) => [s.status, s._count])),
+              byStatus: Object.fromEntries(treatmentsByStatus.map((s: Record<string, unknown>) => [s.status, s._count])),
             },
           }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -234,7 +240,7 @@ export function registerAnalysisTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ skip, take }) => {
+    withErrorHandling('get_overdue_treatments', async ({ skip, take }) => {
       const [results, count] = await Promise.all([
         prisma.treatmentPlan.findMany({
           where: {
@@ -263,7 +269,7 @@ export function registerAnalysisTools(server: McpServer) {
         }),
       ]);
 
-      const response: any = { results, total: count, skip, take };
+      const response: Record<string, unknown> = { results, total: count, skip, take };
       if (count === 0) {
         response.note = 'No overdue treatment plans. All active treatments are on track.';
       }
@@ -271,6 +277,6 @@ export function registerAnalysisTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 }

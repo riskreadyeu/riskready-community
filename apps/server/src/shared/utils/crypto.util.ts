@@ -1,9 +1,11 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
+import { Logger } from '@nestjs/common';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;
 const SALT_LENGTH = 32;
+const logger = new Logger('CryptoUtil');
 
 /**
  * Derive encryption key using scrypt with a salt.
@@ -69,7 +71,9 @@ export function decryptCredential(encryptedData: string): string {
     }
 
     // Legacy format: hardcoded salt
+    // Migration: Re-encrypt all values using the new salt format. See docs/crypto-migration.md
     try {
+        logger.warn('[DEPRECATION] Legacy encryption salt detected. Please rotate credentials using the new encryption method.');
         const legacyKey = process.env['ENCRYPTION_KEY'] || process.env['JWT_SECRET'];
         if (!legacyKey) throw new Error('No encryption key');
         const key = scryptSync(legacyKey, 'riskready-credential-salt', 32);

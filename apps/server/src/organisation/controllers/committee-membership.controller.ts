@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { CommitteeMembershipService } from '../services/committee-membership.service';
 
 @Controller('organisation/committee-memberships')
@@ -13,7 +14,7 @@ export class CommitteeMembershipController {
     @Query('userId') userId?: string,
     @Query('isActive') isActive?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.CommitteeMembershipWhereInput = {};
     if (committeeId) where.committeeId = committeeId;
     if (userId) where.userId = userId;
     if (isActive !== undefined) where.isActive = isActive === 'true';
@@ -31,12 +32,12 @@ export class CommitteeMembershipController {
   }
 
   @Post()
-  async create(@Body() data: any) {
+  async create(@Body() data: Prisma.CommitteeMembershipCreateInput) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Prisma.CommitteeMembershipUpdateInput) {
     return this.service.update(id, data);
   }
 

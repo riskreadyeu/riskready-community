@@ -134,8 +134,8 @@ export function ChangeOverviewTab({ change }: ChangeOverviewTabProps) {
           <div className="flex flex-wrap gap-2">
             {change.cabRequired && <Badge>CAB Required</Badge>}
             {change.pirRequired && <Badge>PIR Required</Badge>}
-            {(change as any).maintenanceWindow && <Badge variant="outline">Maintenance Window</Badge>}
-            {(change as any).outageRequired && (
+            {change.maintenanceWindow && <Badge variant="outline">Maintenance Window</Badge>}
+            {change.outageRequired && (
               <Badge variant="destructive">Outage Required</Badge>
             )}
           </div>
@@ -143,7 +143,7 @@ export function ChangeOverviewTab({ change }: ChangeOverviewTabProps) {
       </Card>
 
       {/* Parent/Child Change Hierarchy */}
-      {((change as any).parentChangeId || (change as any).childChanges?.length > 0) && (
+      {(change.parentChangeId || (change.childChanges && change.childChanges.length > 0)) && (
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -151,22 +151,22 @@ export function ChangeOverviewTab({ change }: ChangeOverviewTabProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {(change as any).parentChangeId && (change as any).parentChange && (
+            {change.parentChangeId && change.parentChange && (
               <div>
                 <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Parent Change</div>
                 <Link
-                  to={`/itsm/changes/${(change as any).parentChangeId}`}
+                  to={`/itsm/changes/${change.parentChangeId}`}
                   className="text-sm text-primary hover:underline"
                 >
-                  {(change as any).parentChange.changeRef} — {(change as any).parentChange.title}
+                  {change.parentChange.changeRef} — {change.parentChange.title}
                 </Link>
               </div>
             )}
-            {(change as any).childChanges?.length > 0 && (
+            {change.childChanges && change.childChanges.length > 0 && (
               <div>
                 <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Child Changes</div>
                 <div className="space-y-1">
-                  {(change as any).childChanges.map((child: any) => (
+                  {change.childChanges.map((child) => (
                     <Link
                       key={child.id}
                       to={`/itsm/changes/${child.id}`}
@@ -183,7 +183,7 @@ export function ChangeOverviewTab({ change }: ChangeOverviewTabProps) {
       )}
 
       {/* Attachments */}
-      {(change as any).attachments?.length > 0 && (
+      {change.attachments && change.attachments.length > 0 && (
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -192,7 +192,7 @@ export function ChangeOverviewTab({ change }: ChangeOverviewTabProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {(change as any).attachments.map((att: any) => (
+              {change.attachments.map((att) => (
                 <div key={att.id} className="flex items-center justify-between text-sm border-b pb-2 last:border-0">
                   <span>{att.fileName || att.name}</span>
                   <Badge variant="outline" className="text-xs">{att.fileSize ? `${Math.round(att.fileSize / 1024)} KB` : ''}</Badge>

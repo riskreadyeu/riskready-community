@@ -1,7 +1,12 @@
-import { Controller, Get, Put, Body, Query, Request } from '@nestjs/common';
+import { Controller, Get, Put, Body, Query, Request, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AdminOnly, AdminOnlyGuard } from '../shared/guards/admin-only.guard';
 import { GatewayConfigService } from './gateway-config.service';
+import { AuthenticatedRequest } from '../shared/types';
 
 @Controller('gateway-config')
+@UseGuards(JwtAuthGuard, AdminOnlyGuard)
+@AdminOnly()
 export class GatewayConfigController {
   constructor(private readonly service: GatewayConfigService) {}
 
@@ -19,7 +24,7 @@ export class GatewayConfigController {
       gatewayUrl?: string;
       maxAgentTurns?: number;
     },
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.service.upsertConfig(organisationId, dto, req.user?.id);
   }

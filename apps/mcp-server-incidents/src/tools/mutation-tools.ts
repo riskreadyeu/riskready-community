@@ -1,47 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-
-async function getDefaultOrganisationId(): Promise<string> {
-  const org = await prisma.organisationProfile.findFirst({ select: { id: true } });
-  if (!org) throw new Error('No organisation found in the database. Please create one first.');
-  return org.id;
-}
-
-async function createPendingAction(params: {
-  actionType: string;
-  summary: string;
-  reason?: string;
-  payload: any;
-  mcpSessionId?: string;
-  mcpToolName: string;
-  organisationId?: string;
-}) {
-  const orgId = params.organisationId || await getDefaultOrganisationId();
-  const action = await prisma.mcpPendingAction.create({
-    data: {
-      actionType: params.actionType as any,
-      summary: params.summary,
-      reason: params.reason,
-      payload: params.payload,
-      mcpSessionId: params.mcpSessionId,
-      mcpToolName: params.mcpToolName,
-      organisationId: orgId,
-    },
-  });
-  return {
-    content: [{
-      type: 'text' as const,
-      text: JSON.stringify({
-        message: `Action proposed successfully. Awaiting human approval.`,
-        actionId: action.id,
-        actionType: action.actionType,
-        status: action.status,
-        summary: action.summary,
-      }, null, 2),
-    }],
-  };
-}
+import { createPendingAction, withErrorHandling } from '#mcp-shared';
 
 function registerIncidentMutations(server: McpServer) {
   server.tool(
@@ -54,7 +14,7 @@ function registerIncidentMutations(server: McpServer) {
       severity: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).describe('Incident severity'),
       category: z.enum(['MALWARE', 'PHISHING', 'DENIAL_OF_SERVICE', 'DATA_BREACH', 'UNAUTHORIZED_ACCESS', 'INSIDER_THREAT', 'PHYSICAL', 'SUPPLY_CHAIN', 'SYSTEM_FAILURE', 'CONFIGURATION_ERROR', 'OTHER']).optional().describe('Incident category'),
       source: z.enum(['SIEM', 'USER_REPORT', 'THREAT_INTEL', 'AUTOMATED', 'THIRD_PARTY', 'REGULATOR', 'VULNERABILITY_SCAN', 'PENETRATION_TEST', 'OTHER']).describe('Detection source'),
-      detectedAt: z.string().optional().describe('Detection timestamp (ISO 8601, defaults to now)'),
+      detectedAt: z.string().datetime().optional().describe('Detection timestamp (ISO 8601, defaults to now)'),
       isConfirmed: z.boolean().optional().describe('Whether the incident is confirmed'),
       reporterId: z.string().optional().describe('Reporter user UUID'),
       handlerId: z.string().optional().describe('Handler user UUID'),
@@ -64,7 +24,7 @@ function registerIncidentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_incident', async (params) => {
       return createPendingAction({
         actionType: 'CREATE_INCIDENT',
         summary: `Create ${params.severity} incident "${params.title}" (${params.referenceNumber}) from ${params.source}`,
@@ -74,7 +34,7 @@ function registerIncidentMutations(server: McpServer) {
         mcpToolName: 'propose_create_incident',
         organisationId: params.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -98,7 +58,7 @@ function registerIncidentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_update_incident', async (params) => {
       const incident = await prisma.incident.findUnique({
         where: { id: params.incidentId },
         select: { id: true, referenceNumber: true, title: true, organisationId: true },
@@ -116,7 +76,7 @@ function registerIncidentMutations(server: McpServer) {
         mcpToolName: 'propose_update_incident',
         organisationId: incident.organisationId || undefined,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -129,7 +89,7 @@ function registerIncidentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this transition is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_transition_incident', async (params) => {
       const incident = await prisma.incident.findUnique({
         where: { id: params.incidentId },
         select: { id: true, referenceNumber: true, status: true, organisationId: true },
@@ -147,7 +107,7 @@ function registerIncidentMutations(server: McpServer) {
         mcpToolName: 'propose_transition_incident',
         organisationId: incident.organisationId || undefined,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -161,7 +121,7 @@ function registerIncidentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_add_incident_asset', async (params) => {
       const [incident, asset] = await Promise.all([
         prisma.incident.findUnique({ where: { id: params.incidentId }, select: { id: true, referenceNumber: true, organisationId: true } }),
         prisma.asset.findUnique({ where: { id: params.assetId }, select: { id: true, assetTag: true, name: true } }),
@@ -182,7 +142,7 @@ function registerIncidentMutations(server: McpServer) {
         mcpToolName: 'propose_add_incident_asset',
         organisationId: incident.organisationId || undefined,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -196,7 +156,7 @@ function registerIncidentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_link_incident_control', async (params) => {
       const [incident, control] = await Promise.all([
         prisma.incident.findUnique({ where: { id: params.incidentId }, select: { id: true, referenceNumber: true, organisationId: true } }),
         prisma.control.findUnique({ where: { id: params.controlId }, select: { id: true, controlId: true, name: true } }),
@@ -217,7 +177,7 @@ function registerIncidentMutations(server: McpServer) {
         mcpToolName: 'propose_link_incident_control',
         organisationId: incident.organisationId || undefined,
       });
-    },
+    }),
   );
 
   server.tool(
@@ -233,7 +193,7 @@ function registerIncidentMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_close_incident', async (params) => {
       const incident = await prisma.incident.findUnique({
         where: { id: params.incidentId },
         select: { id: true, referenceNumber: true, status: true, organisationId: true },
@@ -251,7 +211,7 @@ function registerIncidentMutations(server: McpServer) {
         mcpToolName: 'propose_close_incident',
         organisationId: incident.organisationId || undefined,
       });
-    },
+    }),
   );
 }
 
@@ -261,7 +221,7 @@ function registerTimelineMutations(server: McpServer) {
     'Propose adding a timeline entry to an incident. Requires human approval.',
     {
       incidentId: z.string().describe('Incident UUID'),
-      timestamp: z.string().describe('Event timestamp (ISO 8601)'),
+      timestamp: z.string().datetime().describe('Event timestamp (ISO 8601)'),
       entryType: z.enum(['STATUS_CHANGE', 'ACTION_TAKEN', 'COMMUNICATION', 'EVIDENCE_COLLECTED', 'ESCALATION', 'FINDING', 'CLASSIFICATION_CHANGE', 'NOTIFICATION_SENT', 'OTHER']).describe('Timeline entry type'),
       title: z.string().describe('Entry title'),
       description: z.string().optional().describe('Entry description'),
@@ -270,7 +230,7 @@ function registerTimelineMutations(server: McpServer) {
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_add_timeline_entry', async (params) => {
       const incident = await prisma.incident.findUnique({
         where: { id: params.incidentId },
         select: { id: true, referenceNumber: true, organisationId: true },
@@ -288,7 +248,7 @@ function registerTimelineMutations(server: McpServer) {
         mcpToolName: 'propose_add_timeline_entry',
         organisationId: incident.organisationId || undefined,
       });
-    },
+    }),
   );
 }
 
@@ -302,14 +262,14 @@ function registerLessonMutations(server: McpServer) {
       observation: z.string().describe('What was observed'),
       recommendation: z.string().describe('Recommended improvement'),
       priority: z.number().int().min(1).max(5).optional().describe('Priority (1=highest, 5=lowest)'),
-      targetDate: z.string().optional().describe('Target completion date (ISO 8601)'),
+      targetDate: z.string().datetime().optional().describe('Target completion date (ISO 8601)'),
       status: z.string().optional().describe('Initial lesson status'),
       assignedToId: z.string().optional().describe('Assigned user UUID'),
-      completedDate: z.string().optional().describe('Completed date (ISO 8601)'),
+      completedDate: z.string().datetime().optional().describe('Completed date (ISO 8601)'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
-    async (params) => {
+    withErrorHandling('propose_create_lesson', async (params) => {
       const incident = await prisma.incident.findUnique({
         where: { id: params.incidentId },
         select: { id: true, referenceNumber: true, organisationId: true },
@@ -327,7 +287,7 @@ function registerLessonMutations(server: McpServer) {
         mcpToolName: 'propose_create_lesson',
         organisationId: incident.organisationId || undefined,
       });
-    },
+    }),
   );
 }
 

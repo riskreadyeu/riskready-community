@@ -1,0 +1,24 @@
+{
+  "name": "@riskready/mcp-shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "postinstall": "node -e \"const fs=require('fs');const src='../../apps/server/node_modules/.prisma';const dst='node_modules/.prisma';if(fs.existsSync(src)&&!fs.existsSync(dst)){fs.mkdirSync('node_modules',{recursive:true});fs.symlinkSync(require('path').resolve(src),dst)}\""
+  },
+  "imports": {
+    "#src/*": "./src/*"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.12.1",
+    "@prisma/client": "5.19.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.33",
+    "typescript": "5.5.4"
+  }
+}

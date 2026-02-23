@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import {
   Clock,
   Plus,
@@ -199,9 +200,8 @@ export default function ChangeRequestsPage() {
     {
       label: "View Details",
       icon: <Eye className="w-4 h-4" />,
-      onClick: (cr) => {
-        // TODO: Navigate to detail page or open dialog
-        console.log("View:", cr.id);
+      onClick: () => {
+        toast.info("This feature is not yet available");
       },
     },
     {

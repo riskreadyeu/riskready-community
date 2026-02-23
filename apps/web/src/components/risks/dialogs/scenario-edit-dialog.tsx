@@ -75,9 +75,9 @@ export function ScenarioEditDialog({
       await updateRiskScenario(scenario.id, form);
       onSuccess?.();
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error saving scenario:", err);
-      setError(err.message || "Failed to save scenario");
+      setError(err instanceof Error ? err.message : "Failed to save scenario");
     } finally {
       setSaving(false);
     }

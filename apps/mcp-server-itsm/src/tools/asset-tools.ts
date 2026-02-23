@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerAssetTools(server: McpServer) {
   server.tool(
@@ -27,8 +28,8 @@ export function registerAssetTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    async ({ assetType, status, businessCriticality, dataClassification, departmentId, inIsmsScope, skip, take }) => {
-      const where: any = {};
+    withErrorHandling('list_assets', async ({ assetType, status, businessCriticality, dataClassification, departmentId, inIsmsScope, skip, take }) => {
+      const where: Record<string, unknown> = {};
       if (assetType) where.assetType = assetType;
       if (status) where.status = status;
       if (businessCriticality) where.businessCriticality = businessCriticality;
@@ -66,7 +67,7 @@ export function registerAssetTools(server: McpServer) {
         prisma.asset.count({ where }),
       ]);
 
-      const response: any = { results, total: count, skip, take };
+      const response: Record<string, unknown> = { results, total: count, skip, take };
       if (count === 0) {
         response.note = 'No assets found matching the specified filters.';
       }
@@ -77,7 +78,7 @@ export function registerAssetTools(server: McpServer) {
           text: JSON.stringify(response, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -86,7 +87,7 @@ export function registerAssetTools(server: McpServer) {
     {
       id: z.string().describe('Asset UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_asset', async ({ id }) => {
       const asset = await prisma.asset.findUnique({
         where: { id },
         include: {
@@ -138,14 +139,14 @@ export function registerAssetTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(asset, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
     'search_assets',
     'Search assets by name, asset tag, or FQDN. Returns matching assets with basic info.',
     {
-      query: z.string().describe('Search term (matches against name, assetTag, and fqdn)'),
+      query: z.string().max(200).describe('Search term (matches against name, assetTag, and fqdn)'),
       assetType: z.enum([
         'SERVER', 'WORKSTATION', 'LAPTOP', 'MOBILE_DEVICE', 'NETWORK_DEVICE', 'STORAGE_DEVICE',
         'SECURITY_APPLIANCE', 'IOT_DEVICE', 'PRINTER', 'OTHER_HARDWARE',
@@ -156,8 +157,8 @@ export function registerAssetTools(server: McpServer) {
         'DATA_STORE', 'DATA_FLOW', 'OTHER',
       ]).optional().describe('Limit search to a specific asset type'),
     },
-    async ({ query, assetType }) => {
-      const where: any = {
+    withErrorHandling('search_assets', async ({ query, assetType }) => {
+      const where: Record<string, unknown> = {
         OR: [
           { name: { contains: query, mode: 'insensitive' } },
           { assetTag: { contains: query, mode: 'insensitive' } },
@@ -188,7 +189,7 @@ export function registerAssetTools(server: McpServer) {
         },
       });
 
-      const response: any = { results, count: results.length };
+      const response: Record<string, unknown> = { results, count: results.length };
       if (results.length === 0) {
         response.note = `No assets matched the search query '${query}'.`;
       }
@@ -196,7 +197,7 @@ export function registerAssetTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response, null, 2) }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -205,7 +206,7 @@ export function registerAssetTools(server: McpServer) {
     {
       id: z.string().describe('Asset UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_asset_security_posture', async ({ id }) => {
       const asset = await prisma.asset.findUnique({
         where: { id },
         select: {
@@ -267,6 +268,6 @@ export function registerAssetTools(server: McpServer) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(asset, null, 2) }],
       };
-    },
+    }),
   );
 }

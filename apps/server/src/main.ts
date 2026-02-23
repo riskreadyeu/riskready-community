@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -18,7 +18,11 @@ async function bootstrap() {
 
   // Security headers
   app.use(helmet({
-    contentSecurityPolicy: false, // Disable CSP for API-only server
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+      },
+    },
     crossOriginEmbedderPolicy: false,
   }));
 
@@ -42,21 +46,22 @@ async function bootstrap() {
 
   // CORS configuration
   // When CORS_ORIGIN is set, only those origins are allowed.
-  // When CORS_ORIGIN is not set, all origins are allowed (suitable for
-  // single-server Docker deployments accessed via localhost, IP, or hostname).
+  // When CORS_ORIGIN is not set, CORS is disabled (origin: false).
+  // Single-origin Caddy deployments don't need CORS since all requests
+  // are same-origin through the reverse proxy.
   const corsOriginEnv = process.env['CORS_ORIGIN']?.trim();
   const allowedOrigins = corsOriginEnv ? corsOriginEnv.split(',').map(o => o.trim()) : [];
 
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      // Allow requests with no origin (like mobile apps or curl)
-      if (!origin) return callback(null, true);
-      // If no CORS_ORIGIN configured, allow all origins
-      if (allowedOrigins.length === 0) return callback(null, true);
-      // Check against allowed list
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error('Not allowed by CORS'), false);
-    },
+    origin: allowedOrigins.length === 0
+      ? false
+      : (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+          // Allow requests with no origin (like mobile apps or curl)
+          if (!origin) return callback(null, true);
+          // Check against allowed list
+          if (allowedOrigins.includes(origin)) return callback(null, true);
+          return callback(new Error('Not allowed by CORS'), false);
+        },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -65,10 +70,12 @@ async function bootstrap() {
 
   const port = Number(process.env['PORT'] ?? 4000);
   await app.listen(port, '0.0.0.0');
-  console.log(`Server listening on http://localhost:${port}`);
+  const logger = new Logger('Bootstrap');
+  logger.log(`Server listening on http://localhost:${port}`);
 }
 
 bootstrap().catch((err) => {
-  console.error('❌ Failed to start server:', err);
+  const logger = new Logger('Bootstrap');
+  logger.error('Failed to start server', err instanceof Error ? err.stack : String(err));
   process.exit(1);
 });

@@ -7,6 +7,7 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { CapacityService } from '../services/capacity.service';
 import { RecordCapacityDto, CreateCapacityPlanDto, UpdateCapacityPlanDto } from '../dto/capacity.dto';
 
@@ -53,8 +54,8 @@ export class CapacityController {
     @Query('status') status?: string,
     @Query('assetId') assetId?: string,
   ) {
-    const where: any = {};
-    if (status) where.status = status;
+    const where: Prisma.CapacityPlanWhereInput = {};
+    if (status) where.status = status as Prisma.CapacityPlanWhereInput['status'];
     if (assetId) where.assetId = assetId;
 
     return this.service.findCapacityPlans({

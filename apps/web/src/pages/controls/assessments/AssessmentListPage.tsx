@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   ClipboardList,
   Plus,
@@ -146,12 +147,12 @@ export default function AssessmentListPage() {
     { key: "totalTests", label: "Total Tests" },
     { key: "completedTests", label: "Completed" },
     { key: "passedTests", label: "Passed" },
-    { key: "dueDate", label: "Due Date", format: (v: any) => formatDate(v) },
-    { key: "createdAt", label: "Created", format: (v: any) => formatDate(v) },
+    { key: "dueDate", label: "Due Date", format: (v: unknown) => formatDate(v as string) },
+    { key: "createdAt", label: "Created", format: (v: unknown) => formatDate(v as string) },
   ] : [];
 
   const handleExport = (format: "excel" | "csv" | "pdf") => {
-    console.log(`Exporting ${assessments.length} assessments to ${format}`);
+    toast.info("Export is not yet available");
   };
 
   // DataTable columns

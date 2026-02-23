@@ -89,9 +89,9 @@ export function TransitionDialog({
         const plans = await getTreatmentPlansByRisk(riskId);
         setTreatmentPlans(plans);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error loading transitions:", err);
-      setError(err.message || "Failed to load available transitions");
+      setError(err instanceof Error ? err.message : "Failed to load available transitions");
     } finally {
       setLoading(false);
     }
@@ -144,9 +144,9 @@ export function TransitionDialog({
       onSuccess?.();
       onOpenChange(false);
       resetForm();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error executing transition:", err);
-      setError(err.message || "Failed to execute transition");
+      setError(err instanceof Error ? err.message : "Failed to execute transition");
     } finally {
       setSaving(false);
     }

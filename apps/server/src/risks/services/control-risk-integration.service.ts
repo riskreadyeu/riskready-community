@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   aggregateControlEffectiveness,
@@ -20,6 +20,7 @@ import { LikelihoodLevel, ImpactLevel } from '@prisma/client';
  */
 @Injectable()
 export class ControlRiskIntegrationService {
+  private readonly logger = new Logger(ControlRiskIntegrationService.name);
   constructor(private prisma: PrismaService) {}
 
   /**
@@ -65,7 +66,7 @@ export class ControlRiskIntegrationService {
     // DEPRECATED: Risk-level control linking has been removed.
     // Controls should be linked at the scenario level using RiskScenarioControl.
     // This method now returns empty results. Use getControlEffectivenessForScenario instead.
-    console.warn(
+    this.logger.warn(
       `[DEPRECATED] getControlEffectivenessForRisk called for risk ${riskId}. ` +
       `Risk-level control linking has been removed. Use getControlEffectivenessForScenario instead.`
     );
@@ -226,7 +227,10 @@ export class ControlRiskIntegrationService {
 
   /**
    * Recalculate all scenario residuals for a risk based on controls
-   * 
+   *
+   * @deprecated This method uses the deprecated getControlEffectivenessForRisk internally.
+   * Prefer calling calculateResidualFromControls per scenario instead.
+   *
    * @param riskId - The risk ID
    * @param userId - User performing the update
    * @returns Updated scenarios

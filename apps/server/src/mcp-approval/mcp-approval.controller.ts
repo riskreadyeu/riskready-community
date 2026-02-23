@@ -12,6 +12,7 @@ import { McpActionStatus, McpActionType } from '@prisma/client';
 import { McpApprovalService } from './mcp-approval.service';
 import { McpApprovalExecutorService } from './mcp-approval-executor.service';
 import { ApproveActionDto, RejectActionDto } from './dto/review-action.dto';
+import { AuthenticatedRequest } from '../shared/types';
 
 @Controller('mcp-approvals')
 export class McpApprovalController {
@@ -53,7 +54,7 @@ export class McpApprovalController {
   async approve(
     @Param('id') id: string,
     @Body() dto: ApproveActionDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     const reviewedById = req.user?.id;
 
@@ -65,7 +66,7 @@ export class McpApprovalController {
       try {
         const payload = {
           organisationId: action.organisationId,
-          ...(action.payload as any),
+          ...(action.payload as Record<string, unknown>),
         };
         const result = await this.executorService.execute(
           action.actionType,
@@ -74,12 +75,14 @@ export class McpApprovalController {
         );
         await this.approvalService.markExecuted(id, result);
         return this.approvalService.findOne(id);
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        const errorStack = err instanceof Error ? err.stack : undefined;
         this.logger.error(
-          `Failed to execute action ${id} (${action.actionType}): ${err.message}`,
-          err.stack,
+          `Failed to execute action ${id} (${action.actionType}): ${errorMessage}`,
+          errorStack,
         );
-        await this.approvalService.markFailed(id, err.message || 'Unknown execution error');
+        await this.approvalService.markFailed(id, errorMessage || 'Unknown execution error');
         return this.approvalService.findOne(id);
       }
     }
@@ -97,7 +100,7 @@ export class McpApprovalController {
   reject(
     @Param('id') id: string,
     @Body() dto: RejectActionDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     const reviewedById = req.user?.id;
     return this.approvalService.reject(id, reviewedById, dto.reviewNotes);

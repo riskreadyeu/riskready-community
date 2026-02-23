@@ -513,7 +513,7 @@ export class PolicySchedulerService {
   // HELPER METHODS
   // ============================================
 
-  private async startJob(jobName: string, jobType: string): Promise<any> {
+  private async startJob(jobName: string, jobType: string): Promise<{ id: string }> {
     // ScheduledJobLog removed in community edition — return stub
     return { id: 'stub' };
   }
@@ -530,7 +530,7 @@ export class PolicySchedulerService {
     );
   }
 
-  private async failJob(jobId: string, error: any): Promise<void> {
+  private async failJob(jobId: string, error: unknown): Promise<void> {
     // ScheduledJobLog removed in community edition — no-op
     this.logger.error(`Job ${jobId} failed:`, error);
   }
@@ -539,7 +539,7 @@ export class PolicySchedulerService {
   // MANUAL TRIGGER METHODS (for testing/admin)
   // ============================================
 
-  async runJob(jobName: string): Promise<any> {
+  async runJob(jobName: string): Promise<unknown> {
     switch (jobName) {
       case 'POLICY_REVIEW_OVERDUE':
         return this.checkOverdueDocumentReviews();
@@ -558,7 +558,7 @@ export class PolicySchedulerService {
     }
   }
 
-  async getJobHistory(limit: number = 50): Promise<any[]> {
+  async getJobHistory(limit: number = 50): Promise<unknown[]> {
     // ScheduledJobLog removed in community edition — return empty
     return [];
   }

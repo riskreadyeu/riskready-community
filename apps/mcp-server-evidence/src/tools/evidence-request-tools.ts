@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
+import { withErrorHandling } from '#mcp-shared';
 
 export function registerEvidenceRequestTools(server: McpServer) {
   server.tool(
@@ -12,8 +13,8 @@ export function registerEvidenceRequestTools(server: McpServer) {
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
     },
-    async (params) => {
-      const where: any = {};
+    withErrorHandling('list_evidence_requests', async (params) => {
+      const where: Record<string, unknown> = {};
       if (params.status) where.status = params.status;
       if (params.priority) where.priority = params.priority;
 
@@ -48,7 +49,7 @@ export function registerEvidenceRequestTools(server: McpServer) {
           text: JSON.stringify({ requests, total, skip: params.skip || 0, take: params.take || 50 }, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -57,7 +58,7 @@ export function registerEvidenceRequestTools(server: McpServer) {
     {
       id: z.string().describe('EvidenceRequest UUID'),
     },
-    async ({ id }) => {
+    withErrorHandling('get_evidence_request', async ({ id }) => {
       const request = await prisma.evidenceRequest.findUnique({
         where: { id },
         include: {
@@ -85,7 +86,7 @@ export function registerEvidenceRequestTools(server: McpServer) {
           text: JSON.stringify(request, null, 2),
         }],
       };
-    },
+    }),
   );
 
   server.tool(
@@ -95,12 +96,13 @@ export function registerEvidenceRequestTools(server: McpServer) {
       userId: z.string().describe('User UUID of the assignee'),
       status: z.enum(['OPEN', 'IN_PROGRESS', 'SUBMITTED', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'OVERDUE']).optional().describe('Filter by status'),
     },
-    async ({ userId, status }) => {
-      const where: any = { assignedToId: userId };
+    withErrorHandling('get_my_requests', async ({ userId, status }) => {
+      const where: Record<string, unknown> = { assignedToId: userId };
       if (status) where.status = status;
 
       const requests = await prisma.evidenceRequest.findMany({
         where,
+        take: 1000,
         orderBy: { dueDate: 'asc' },
         select: {
           id: true,
@@ -121,6 +123,6 @@ export function registerEvidenceRequestTools(server: McpServer) {
           text: JSON.stringify({ requests, count: requests.length }, null, 2),
         }],
       };
-    },
+    }),
   );
 }

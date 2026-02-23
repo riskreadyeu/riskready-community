@@ -14,8 +14,9 @@ import { RiskService } from '../services/risk.service';
 import { RiskAuditService } from '../services/risk-audit.service';
 import { RiskExportService } from '../services/risk-export.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { RiskStatus, RiskTier, ControlFramework, LikelihoodLevel, ImpactLevel } from '@prisma/client';
+import { RiskStatus, RiskTier, ControlFramework, LikelihoodLevel, ImpactLevel, Prisma } from '@prisma/client';
 import { CreateRiskDto, UpdateRiskDto } from '../dto/risk.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('risks')
 export class RiskController {
@@ -36,7 +37,7 @@ export class RiskController {
     @Query('organisationId') organisationId?: string,
     @Query('search') search?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.RiskWhereInput = {};
     if (tier) where.tier = tier;
     if (status) where.status = status;
     if (framework) where.framework = framework;
@@ -64,7 +65,7 @@ export class RiskController {
 
   @Post()
   async create(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() data: CreateRiskDto,
   ) {
     // Get organisation ID from request, user, or fallback to first org
@@ -114,7 +115,7 @@ export class RiskController {
   async disableRisk(
     @Param('id') id: string,
     @Body() data: { reason: string },
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.service.disableRisk(id, data.reason, req.user.id);
   }
@@ -126,7 +127,7 @@ export class RiskController {
   @Post(':id/enable')
   async enableRisk(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.service.enableRisk(id, req.user.id);
   }

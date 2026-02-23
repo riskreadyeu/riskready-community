@@ -1,4 +1,6 @@
-import { Controller, Post, Query, Get } from '@nestjs/common';
+import { Controller, Post, Query, Get, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { AdminOnly, AdminOnlyGuard } from '../../shared/guards/admin-only.guard';
 import { EvidenceMigrationService } from '../services/evidence-migration.service';
 
 /**
@@ -6,6 +8,8 @@ import { EvidenceMigrationService } from '../services/evidence-migration.service
  * These endpoints should be protected and only accessible by administrators.
  */
 @Controller('evidence-migration')
+@UseGuards(JwtAuthGuard, AdminOnlyGuard)
+@AdminOnly()
 export class EvidenceMigrationController {
   constructor(private readonly migrationService: EvidenceMigrationService) {}
 

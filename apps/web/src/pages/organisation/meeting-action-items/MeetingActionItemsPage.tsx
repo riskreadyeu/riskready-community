@@ -109,10 +109,8 @@ export default function MeetingActionItemsPage() {
     try {
       setIsSubmitting(true);
       // TODO: Implement API call when backend is ready
-      console.log(formMode === "create" ? "Creating:" : "Updating:", formData);
-      toast.success("Action item updated successfully");
+      toast.info("Save functionality not yet available");
       setFormOpen(false);
-      await loadData();
     } catch (err) {
       console.error("Error saving action item:", err);
       toast.error("Failed to save action item");
@@ -131,11 +129,9 @@ export default function MeetingActionItemsPage() {
     try {
       setIsDeleting(true);
       // TODO: Implement API call when backend is ready
-      console.log("Deleting:", deletingItem.id);
-      toast.success("Action item deleted successfully");
+      toast.info("Delete functionality not yet available");
       setDeleteOpen(false);
       setDeletingItem(null);
-      await loadData();
     } catch (err) {
       console.error("Error deleting action item:", err);
       toast.error("Failed to delete action item");
