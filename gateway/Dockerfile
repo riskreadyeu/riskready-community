@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 
 RUN apk add --no-cache openssl
 
@@ -71,7 +71,7 @@ RUN for srv in controls risks evidence policies organisation itsm audits inciden
     done
 
 # --- Production stage ---
-FROM node:20-alpine
+FROM node:25-alpine
 
 RUN apk add --no-cache openssl
 
