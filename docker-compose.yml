@@ -23,7 +23,7 @@ services:
   migrate:
     build:
       context: ./apps/server
-    command: ["sh", "-c", "npx prisma db push"]
+      target: migrate
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-riskready}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-riskready}?schema=public
