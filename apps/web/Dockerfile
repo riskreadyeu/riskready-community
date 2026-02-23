@@ -18,8 +18,8 @@ RUN mkdir -p /var/cache/nginx/client_temp \
              /var/cache/nginx/uwsgi_temp \
              /var/cache/nginx/scgi_temp \
     && chown -R nginx:nginx /var/cache/nginx \
-    && chown -R nginx:nginx /var/run \
-    && chown -R nginx:nginx /var/log/nginx
+    && chown -R nginx:nginx /var/log/nginx \
+    && touch /run/nginx.pid && chown nginx:nginx /run/nginx.pid
 
 EXPOSE 80
 USER nginx
