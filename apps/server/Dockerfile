@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim AS build
+FROM node:25-bookworm-slim AS build
 WORKDIR /app
 
 RUN apt-get update -y \
@@ -19,7 +19,7 @@ RUN npm run build
 FROM build AS migrate
 CMD ["npx", "prisma", "db", "push", "--schema=prisma/schema", "--skip-generate"]
 
-FROM node:20-bookworm-slim
+FROM node:25-bookworm-slim
 WORKDIR /app
 
 RUN apt-get update -y \
