@@ -17,7 +17,7 @@ RUN npx prisma generate --schema=prisma/schema
 RUN npm run build
 
 FROM build AS migrate
-CMD ["npx", "prisma", "db", "push", "--schema=prisma/schema"]
+CMD ["npx", "prisma", "db", "push", "--schema=prisma/schema", "--skip-generate"]
 
 FROM node:20-bookworm-slim
 WORKDIR /app
