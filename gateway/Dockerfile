@@ -22,42 +22,42 @@ RUN sed -i 's|\.\./mcp-server-|./mcp-servers/mcp-server-|g' skills.yaml
 
 # --- MCP servers ---
 # controls
-COPY apps/mcp-server-controls/package.json ./mcp-servers/mcp-server-controls/package.json
+COPY apps/mcp-server-controls/package.json apps/mcp-server-controls/package-lock.json ./mcp-servers/mcp-server-controls/
 COPY apps/mcp-server-controls/src ./mcp-servers/mcp-server-controls/src
 COPY apps/mcp-server-controls/tsconfig.json ./mcp-servers/mcp-server-controls/tsconfig.json
 
 # risks
-COPY apps/mcp-server-risks/package.json ./mcp-servers/mcp-server-risks/package.json
+COPY apps/mcp-server-risks/package.json apps/mcp-server-risks/package-lock.json ./mcp-servers/mcp-server-risks/
 COPY apps/mcp-server-risks/src ./mcp-servers/mcp-server-risks/src
 COPY apps/mcp-server-risks/tsconfig.json ./mcp-servers/mcp-server-risks/tsconfig.json
 
 # evidence
-COPY apps/mcp-server-evidence/package.json ./mcp-servers/mcp-server-evidence/package.json
+COPY apps/mcp-server-evidence/package.json apps/mcp-server-evidence/package-lock.json ./mcp-servers/mcp-server-evidence/
 COPY apps/mcp-server-evidence/src ./mcp-servers/mcp-server-evidence/src
 COPY apps/mcp-server-evidence/tsconfig.json ./mcp-servers/mcp-server-evidence/tsconfig.json
 
 # policies
-COPY apps/mcp-server-policies/package.json ./mcp-servers/mcp-server-policies/package.json
+COPY apps/mcp-server-policies/package.json apps/mcp-server-policies/package-lock.json ./mcp-servers/mcp-server-policies/
 COPY apps/mcp-server-policies/src ./mcp-servers/mcp-server-policies/src
 COPY apps/mcp-server-policies/tsconfig.json ./mcp-servers/mcp-server-policies/tsconfig.json
 
 # organisation
-COPY apps/mcp-server-organisation/package.json ./mcp-servers/mcp-server-organisation/package.json
+COPY apps/mcp-server-organisation/package.json apps/mcp-server-organisation/package-lock.json ./mcp-servers/mcp-server-organisation/
 COPY apps/mcp-server-organisation/src ./mcp-servers/mcp-server-organisation/src
 COPY apps/mcp-server-organisation/tsconfig.json ./mcp-servers/mcp-server-organisation/tsconfig.json
 
 # itsm
-COPY apps/mcp-server-itsm/package.json ./mcp-servers/mcp-server-itsm/package.json
+COPY apps/mcp-server-itsm/package.json apps/mcp-server-itsm/package-lock.json ./mcp-servers/mcp-server-itsm/
 COPY apps/mcp-server-itsm/src ./mcp-servers/mcp-server-itsm/src
 COPY apps/mcp-server-itsm/tsconfig.json ./mcp-servers/mcp-server-itsm/tsconfig.json
 
 # audits
-COPY apps/mcp-server-audits/package.json ./mcp-servers/mcp-server-audits/package.json
+COPY apps/mcp-server-audits/package.json apps/mcp-server-audits/package-lock.json ./mcp-servers/mcp-server-audits/
 COPY apps/mcp-server-audits/src ./mcp-servers/mcp-server-audits/src
 COPY apps/mcp-server-audits/tsconfig.json ./mcp-servers/mcp-server-audits/tsconfig.json
 
 # incidents
-COPY apps/mcp-server-incidents/package.json ./mcp-servers/mcp-server-incidents/package.json
+COPY apps/mcp-server-incidents/package.json apps/mcp-server-incidents/package-lock.json ./mcp-servers/mcp-server-incidents/
 COPY apps/mcp-server-incidents/src ./mcp-servers/mcp-server-incidents/src
 COPY apps/mcp-server-incidents/tsconfig.json ./mcp-servers/mcp-server-incidents/tsconfig.json
 
