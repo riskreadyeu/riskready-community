@@ -20,14 +20,10 @@ interface AuthContextType {
   logout: () => void;
 }
 
-// Default organisation ID for development/demo
-// Must match the seeded OrganisationProfile ID
-const DEFAULT_ORG_ID = "cmkrijggm000714kc4ger8tno";
-
 // Create context with default values
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  organisationId: DEFAULT_ORG_ID,
+  organisationId: "",
   isAuthenticated: false,
   isLoading: true,
   login: async () => {},
@@ -46,16 +42,43 @@ export function useAuth(): AuthContextType {
 // Auth provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [orgId, setOrgId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
+
+  // Resolve the organisation ID - fetch from API if not on user object
+  const resolveOrgId = async (userData: AuthUser | null) => {
+    if (userData?.organisationId) {
+      setOrgId(userData.organisationId);
+      return;
+    }
+    // Fallback: fetch the first available organisation
+    try {
+      const res = await fetch("/api/organisation");
+      if (res.ok) {
+        const data = await res.json();
+        const id = data?.id || data?.[0]?.id || "";
+        setOrgId(id);
+        // Update stored user with org ID
+        if (userData && id) {
+          const updatedUser = { ...userData, organisationId: id };
+          setUser(updatedUser);
+          localStorage.setItem("auth_user", JSON.stringify(updatedUser));
+        }
+      }
+    } catch {
+      // Non-critical
+    }
+  };
 
   // Check for existing session on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // In a real app, this would validate the JWT token
         const storedUser = localStorage.getItem("auth_user");
         if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          const parsed = JSON.parse(storedUser);
+          setUser(parsed);
+          await resolveOrgId(parsed);
         }
       } catch (err) {
         console.error("Auth check failed:", err);
@@ -69,7 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login function
   const login = async (email: string, password: string) => {
     try {
-      // In a real app, this would call the auth API
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -83,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
       setUser(data.user);
       localStorage.setItem("auth_user", JSON.stringify(data.user));
+      await resolveOrgId(data.user);
     } catch (err) {
       console.error("Login error:", err);
       throw err;
@@ -92,11 +115,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Logout function
   const logout = () => {
     setUser(null);
+    setOrgId("");
     localStorage.removeItem("auth_user");
   };
 
-  // Derive organisation ID from user or use default
-  const organisationId = user?.organisationId ?? DEFAULT_ORG_ID;
+  // Derive organisation ID from user or resolved value
+  const organisationId = user?.organisationId || orgId;
 
   return (
     <AuthContext.Provider

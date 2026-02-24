@@ -3,15 +3,8 @@ import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-// Seed functions for Incidents module
-import { seedIncidents } from './seed/incidents/seed-incidents';
-
-// Seed functions for Risks module
-import { seedRisks } from './seed/risks/seed-risks';
-
-// Seed functions for Control Framework
-import { seedControlTestingDemo } from './seed/controls/seed-control-testing-demo';
-import { seedControlActivities } from './seed/controls/seed-control-activities';
+// Demo data seed (ClearStream Payments)
+import { seedDemo } from './seed/demo/index';
 
 async function main() {
   console.log('🌱 Starting database seed...');
@@ -89,6 +82,17 @@ async function main() {
   ]);
 
   console.log(`✅ Created ${users.length} users`);
+
+  // Guard: skip Acme seed if org already exists (idempotent re-run)
+  const existingAcme = await prisma.organisationProfile.findFirst({
+    where: { name: 'Acme Corporation' },
+  });
+  if (existingAcme) {
+    console.log('⏭️  Acme data already exists, skipping to demo seed...');
+    await seedDemo();
+    console.log('\n🎉 Database seed completed successfully!');
+    return;
+  }
 
   // Create Organisation Profile
   const orgProfile = await prisma.organisationProfile.create({
@@ -2026,13 +2030,24 @@ async function main() {
   console.log(`✅ Created ${platforms.length} technology platforms`);
 
   // Seed Incident Management Reference Data
-  await seedIncidents();
+  try {
+    const { seedIncidents } = await import('./seed/incidents/seed-incidents');
+    await seedIncidents();
+  } catch (e) {
+    console.warn('⚠️  Incidents seed skipped:', (e as Error).message);
+  }
 
   // Seed control testing demo data (layers, tests from templates, sample executions)
-  await seedControlTestingDemo();
+  try {
+    const { seedControlTestingDemo } = await import('./seed/controls/seed-control-testing-demo');
+    await seedControlTestingDemo();
+  } catch (e) {
+    console.warn('⚠️  Control testing demo seed skipped:', (e as Error).message);
+  }
 
   // Seed control activities
   try {
+    const { seedControlActivities } = await import('./seed/controls/seed-control-activities');
     await seedControlActivities(prisma);
     console.log('✅ Seeded control activities');
   } catch (e) {
@@ -2040,7 +2055,15 @@ async function main() {
   }
 
   // Seed Risks, Scenarios, and KRIs
-  await seedRisks();
+  try {
+    const { seedRisks } = await import('./seed/risks/seed-risks');
+    await seedRisks();
+  } catch (e) {
+    console.warn('⚠️  Risks seed skipped:', (e as Error).message);
+  }
+
+  // Seed ClearStream Payments demo data
+  await seedDemo();
 
   console.log('\n🎉 Database seed completed successfully!');
   console.log('\n📋 Summary:');

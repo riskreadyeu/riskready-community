@@ -1,4 +1,4 @@
-import { PrismaClient, IncidentCategory, IncidentSeverity, RegulatoryAuthorityType } from '@prisma/client';
+import { PrismaClient, IncidentCategory, IncidentSeverity } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -197,32 +197,7 @@ export async function seedIncidents() {
   }
   console.log(`    ✓ ${attackVectors.length} attack vectors seeded`);
 
-  // Seed Regulatory Authorities
-  console.log('  → Seeding regulatory authorities...');
-  for (const authority of regulatoryAuthorities) {
-    await prisma.regulatoryAuthority.upsert({
-      where: {
-        countryCode_authorityType_shortName: {
-          countryCode: authority.countryCode,
-          authorityType: authority.authorityType as RegulatoryAuthorityType,
-          shortName: authority.shortName,
-        },
-      },
-      update: {},
-      create: {
-        name: authority.name,
-        shortName: authority.shortName,
-        countryCode: authority.countryCode,
-        authorityType: authority.authorityType as RegulatoryAuthorityType,
-        frameworks: authority.frameworks,
-        submissionPortalUrl: authority.submissionPortalUrl,
-        submissionEmail: authority.submissionEmail,
-        timezone: authority.timezone,
-        isActive: true,
-      },
-    });
-  }
-  console.log(`    ✓ ${regulatoryAuthorities.length} regulatory authorities seeded`);
+  // Note: Regulatory authorities removed (model no longer in schema)
 
   console.log('✅ Incident Management seed complete!\n');
 }

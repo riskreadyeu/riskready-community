@@ -384,7 +384,17 @@ export interface ComplianceStatus {
 // API FUNCTIONS
 // =============================================
 
-const ORG_ID = 'cmkrijggm000714kc4ger8tno'; // Default org ID (Acme Corporation)
+// Resolve the current organisation ID from the logged-in user's stored session
+function ORG_ID(): string {
+  try {
+    const stored = localStorage.getItem('auth_user');
+    if (stored) {
+      const user = JSON.parse(stored);
+      if (user.organisationId) return user.organisationId;
+    }
+  } catch { /* ignore */ }
+  return '';
+}
 
 // Policy Documents
 export async function getPolicies(params?: {
@@ -396,7 +406,7 @@ export async function getPolicies(params?: {
   parentDocumentId?: string;
 }) {
   const queryParams = new URLSearchParams();
-  queryParams.set('organisationId', ORG_ID);
+  queryParams.set('organisationId', ORG_ID());
   if (params?.skip) queryParams.set('skip', params.skip.toString());
   if (params?.take) queryParams.set('take', params.take.toString());
   if (params?.documentType) queryParams.set('documentType', params.documentType);
@@ -414,7 +424,7 @@ export async function getPolicy(id: string) {
 export async function createPolicy(data: Partial<PolicyDocument>) {
   return api.post<PolicyDocument>('/policies', {
     ...data,
-    organisationId: ORG_ID,
+    organisationId: ORG_ID(),
   });
 }
 
@@ -431,16 +441,16 @@ export async function deletePolicy(id: string, hard = false) {
 }
 
 export async function getPolicyStats() {
-  return api.get<any>(`/policies/stats?organisationId=${ORG_ID}`);
+  return api.get<any>(`/policies/stats?organisationId=${ORG_ID()}`);
 }
 
 export async function getPolicyHierarchy() {
-  return api.get<PolicyDocument[]>(`/policies/hierarchy?organisationId=${ORG_ID}`);
+  return api.get<PolicyDocument[]>(`/policies/hierarchy?organisationId=${ORG_ID()}`);
 }
 
 export async function generateDocumentId(documentType: DocumentType, parentDocumentId?: string) {
   const params = new URLSearchParams();
-  params.set('organisationId', ORG_ID);
+  params.set('organisationId', ORG_ID());
   params.set('documentType', documentType);
   if (parentDocumentId) params.set('parentDocumentId', parentDocumentId);
   return api.get<{ documentId: string }>(`/policies/generate-id?${params}`);
@@ -457,7 +467,7 @@ export async function searchPolicies(params: {
   take?: number;
 }) {
   const queryParams = new URLSearchParams();
-  queryParams.set('organisationId', ORG_ID);
+  queryParams.set('organisationId', ORG_ID());
   if (params.query) queryParams.set('query', params.query);
   if (params.documentType) queryParams.set('documentType', params.documentType);
   if (params.status) queryParams.set('status', params.status);
@@ -512,15 +522,15 @@ export async function createReview(documentId: string, data: {
 }
 
 export async function getUpcomingReviews(days = 30) {
-  return api.get<PolicyDocument[]>(`/policies/reviews/upcoming?organisationId=${ORG_ID}&days=${days}`);
+  return api.get<PolicyDocument[]>(`/policies/reviews/upcoming?organisationId=${ORG_ID()}&days=${days}`);
 }
 
 export async function getOverdueReviews() {
-  return api.get<PolicyDocument[]>(`/policies/reviews/overdue?organisationId=${ORG_ID}`);
+  return api.get<PolicyDocument[]>(`/policies/reviews/overdue?organisationId=${ORG_ID()}`);
 }
 
 export async function getReviewStats() {
-  return api.get<any>(`/policies/reviews/stats?organisationId=${ORG_ID}`);
+  return api.get<any>(`/policies/reviews/stats?organisationId=${ORG_ID()}`);
 }
 
 // Approval Workflows
@@ -621,7 +631,7 @@ export async function getChangeRequests(params?: {
   status?: ChangeRequestStatus;
 }) {
   const queryParams = new URLSearchParams();
-  queryParams.set('organisationId', ORG_ID);
+  queryParams.set('organisationId', ORG_ID());
   if (params?.skip) queryParams.set('skip', params.skip.toString());
   if (params?.take) queryParams.set('take', params.take.toString());
   if (params?.documentId) queryParams.set('documentId', params.documentId);
@@ -637,7 +647,7 @@ export async function getChangeRequest(id: string) {
 export async function createChangeRequest(data: Omit<ChangeRequest, 'id' | 'changeRequestId' | 'status' | 'createdAt' | 'updatedAt'>) {
   return api.post<ChangeRequest>('/change-requests', {
     ...data,
-    organisationId: ORG_ID,
+    organisationId: ORG_ID(),
   });
 }
 
@@ -650,7 +660,7 @@ export async function rejectChangeRequest(id: string, data: { approvedById: stri
 }
 
 export async function getChangeRequestStats() {
-  return api.get<any>(`/change-requests/stats?organisationId=${ORG_ID}`);
+  return api.get<any>(`/change-requests/stats?organisationId=${ORG_ID()}`);
 }
 
 // Exceptions
@@ -661,7 +671,7 @@ export async function getExceptions(params?: {
   status?: ExceptionStatus;
 }) {
   const queryParams = new URLSearchParams();
-  queryParams.set('organisationId', ORG_ID);
+  queryParams.set('organisationId', ORG_ID());
   if (params?.skip) queryParams.set('skip', params.skip.toString());
   if (params?.take) queryParams.set('take', params.take.toString());
   if (params?.documentId) queryParams.set('documentId', params.documentId);
@@ -677,7 +687,7 @@ export async function getException(id: string) {
 export async function createException(data: Omit<DocumentException, 'id' | 'exceptionId' | 'status' | 'createdAt' | 'updatedAt'>) {
   return api.post<DocumentException>('/exceptions', {
     ...data,
-    organisationId: ORG_ID,
+    organisationId: ORG_ID(),
   });
 }
 
@@ -686,11 +696,11 @@ export async function approveException(id: string, data: { approvedById: string;
 }
 
 export async function getExpiringExceptions(days = 30) {
-  return api.get<DocumentException[]>(`/exceptions/expiring?organisationId=${ORG_ID}&days=${days}`);
+  return api.get<DocumentException[]>(`/exceptions/expiring?organisationId=${ORG_ID()}&days=${days}`);
 }
 
 export async function getExceptionStats() {
-  return api.get<any>(`/exceptions/stats?organisationId=${ORG_ID}`);
+  return api.get<any>(`/exceptions/stats?organisationId=${ORG_ID()}`);
 }
 
 // Acknowledgments
@@ -716,7 +726,7 @@ export async function getPendingAcknowledgments(userId: string) {
 }
 
 export async function getOverdueAcknowledgments() {
-  return api.get<DocumentAcknowledgment[]>(`/acknowledgments/overdue?organisationId=${ORG_ID}`);
+  return api.get<DocumentAcknowledgment[]>(`/acknowledgments/overdue?organisationId=${ORG_ID()}`);
 }
 
 export async function acknowledgeDocument(id: string, data: {
@@ -736,7 +746,7 @@ export async function requestAcknowledgments(documentId: string, userIds: string
 }
 
 export async function getAcknowledgmentStats() {
-  return api.get<any>(`/acknowledgments/stats?organisationId=${ORG_ID}`);
+  return api.get<any>(`/acknowledgments/stats?organisationId=${ORG_ID()}`);
 }
 
 // Mappings
@@ -778,11 +788,11 @@ export async function removeRiskMapping(id: string) {
 }
 
 export async function getControlCoverageReport() {
-  return api.get<any>(`/policies/reports/control-coverage?organisationId=${ORG_ID}`);
+  return api.get<any>(`/policies/reports/control-coverage?organisationId=${ORG_ID()}`);
 }
 
 export async function getGapAnalysis() {
-  return api.get<any[]>(`/policies/reports/gap-analysis?organisationId=${ORG_ID}`);
+  return api.get<any[]>(`/policies/reports/gap-analysis?organisationId=${ORG_ID()}`);
 }
 
 // Document Relations
@@ -1360,11 +1370,11 @@ export async function checkAttachmentDuplicate(documentId: string, checksum: str
 
 // Dashboard
 export async function getDashboardStats() {
-  return api.get<DashboardStats>(`/policies/dashboard/stats?organisationId=${ORG_ID}`);
+  return api.get<DashboardStats>(`/policies/dashboard/stats?organisationId=${ORG_ID()}`);
 }
 
 export async function getComplianceStatus() {
-  return api.get<ComplianceStatus>(`/policies/dashboard/compliance?organisationId=${ORG_ID}`);
+  return api.get<ComplianceStatus>(`/policies/dashboard/compliance?organisationId=${ORG_ID()}`);
 }
 
 export interface OverdueReview {
@@ -1420,11 +1430,11 @@ export interface AuditLogEntry {
 }
 
 export async function getActionsNeeded() {
-  return api.get<ActionsNeeded>(`/policies/dashboard/actions-needed?organisationId=${ORG_ID}`);
+  return api.get<ActionsNeeded>(`/policies/dashboard/actions-needed?organisationId=${ORG_ID()}`);
 }
 
 export async function getRecentActivity(limit = 10) {
-  return api.get<RecentActivityItem[]>(`/policies/dashboard/recent-activity?organisationId=${ORG_ID}&limit=${limit}`);
+  return api.get<RecentActivityItem[]>(`/policies/dashboard/recent-activity?organisationId=${ORG_ID()}&limit=${limit}`);
 }
 
 export async function getAuditLog(params?: {
@@ -1437,7 +1447,7 @@ export async function getAuditLog(params?: {
   userId?: string;
 }) {
   const queryParams = new URLSearchParams();
-  queryParams.set('organisationId', ORG_ID);
+  queryParams.set('organisationId', ORG_ID());
   if (params?.documentId) queryParams.set('documentId', params.documentId);
   if (params?.skip) queryParams.set('skip', params.skip.toString());
   if (params?.take) queryParams.set('take', params.take.toString());

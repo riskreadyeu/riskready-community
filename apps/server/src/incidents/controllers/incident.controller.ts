@@ -13,6 +13,7 @@ import {
 import { IncidentService } from '../services/incident.service';
 import { IncidentClassificationService } from '../services/incident-classification.service';
 import { IncidentNotificationService } from '../services/incident-notification.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { CreateIncidentDto, UpdateIncidentDto } from '../dto/incident.dto';
 import {
   IncidentStatus,
@@ -28,6 +29,7 @@ export class IncidentController {
     private readonly service: IncidentService,
     private readonly classificationService: IncidentClassificationService,
     private readonly notificationService: IncidentNotificationService,
+    private readonly prisma: PrismaService,
   ) {}
 
   // ============================================
@@ -77,6 +79,28 @@ export class IncidentController {
   @Get('dashboard')
   async getDashboard(@Query('organisationId') organisationId?: string) {
     return this.service.getDashboardData(organisationId);
+  }
+
+  @Get('types')
+  async getTypes(@Query('organisationId') organisationId?: string) {
+    return this.prisma.incidentType.findMany({
+      where: {
+        isActive: true,
+        ...(organisationId && { organisationId }),
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  @Get('attack-vectors')
+  async getAttackVectors(@Query('organisationId') organisationId?: string) {
+    return this.prisma.attackVector.findMany({
+      where: {
+        isActive: true,
+        ...(organisationId && { organisationId }),
+      },
+      orderBy: { name: 'asc' },
+    });
   }
 
   @Get(':id')

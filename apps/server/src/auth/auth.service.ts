@@ -11,7 +11,7 @@ type LoginContext = {
 };
 
 type AuthResult = {
-  user: { id: string; email: string };
+  user: { id: string; email: string; firstName?: string; lastName?: string; organisationId?: string };
   accessToken: string;
   refreshSessionId: string;
 };
@@ -70,6 +70,21 @@ export class AuthService {
 
       const accessToken = await this.jwtService.signAsync({ sub: user.id, email: user.email });
 
+      // Look up the user's organisation (first org they created, or first available)
+      let organisationId: string | undefined;
+      try {
+        const org = await this.prisma.organisationProfile.findFirst({
+          where: { createdById: user.id },
+          select: { id: true },
+        }) ?? await this.prisma.organisationProfile.findFirst({
+          select: { id: true },
+          orderBy: { createdAt: 'desc' },
+        });
+        organisationId = org?.id;
+      } catch {
+        // Non-critical - continue without org ID
+      }
+
       // Create audit event (non-blocking)
       try {
         await this.prisma.auditEvent.create({
@@ -87,7 +102,7 @@ export class AuthService {
       }
 
       return {
-        user: { id: user.id, email: user.email },
+        user: { id: user.id, email: user.email, firstName: user.firstName ?? undefined, lastName: user.lastName ?? undefined, organisationId },
         accessToken,
         refreshSessionId,
       };
@@ -130,8 +145,23 @@ export class AuthService {
 
     const accessToken = await this.jwtService.signAsync({ sub: user.id, email: user.email });
 
+    // Look up the user's organisation
+    let organisationId: string | undefined;
+    try {
+      const org = await this.prisma.organisationProfile.findFirst({
+        where: { createdById: user.id },
+        select: { id: true },
+      }) ?? await this.prisma.organisationProfile.findFirst({
+        select: { id: true },
+        orderBy: { createdAt: 'desc' },
+      });
+      organisationId = org?.id;
+    } catch {
+      // Non-critical
+    }
+
     return {
-      user: { id: user.id, email: user.email },
+      user: { id: user.id, email: user.email, firstName: user.firstName ?? undefined, lastName: user.lastName ?? undefined, organisationId },
       accessToken,
       refreshSessionId: newRefreshSessionId,
     };

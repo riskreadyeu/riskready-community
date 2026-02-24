@@ -461,7 +461,8 @@ export async function getIncidentStats(): Promise<IncidentStats> {
 // ============================================
 
 export async function getIncidentTimeline(incidentId: string): Promise<IncidentTimelineEntry[]> {
-  return request<IncidentTimelineEntry[]>(`/api/incidents/${incidentId}/timeline`);
+  const data = await request<{ results: IncidentTimelineEntry[]; count: number } | IncidentTimelineEntry[]>(`/api/incidents/${incidentId}/timeline`);
+  return Array.isArray(data) ? data : data.results;
 }
 
 export interface CreateTimelineEntryDto {
@@ -484,7 +485,8 @@ export async function createTimelineEntry(incidentId: string, data: CreateTimeli
 // ============================================
 
 export async function getIncidentEvidence(incidentId: string): Promise<IncidentEvidence[]> {
-  return request<IncidentEvidence[]>(`/api/incidents/${incidentId}/evidence`);
+  const data = await request<{ results: IncidentEvidence[]; count: number } | IncidentEvidence[]>(`/api/incidents/${incidentId}/evidence`);
+  return Array.isArray(data) ? data : data.results;
 }
 
 export interface CreateEvidenceDto {
@@ -548,7 +550,8 @@ export async function createCommunication(incidentId: string, data: CreateCommun
 // ============================================
 
 export async function getIncidentLessonsLearned(incidentId: string): Promise<IncidentLessonsLearned[]> {
-  return request<IncidentLessonsLearned[]>(`/api/incidents/${incidentId}/lessons-learned`);
+  const data = await request<{ results: IncidentLessonsLearned[]; count: number } | IncidentLessonsLearned[]>(`/api/incidents/${incidentId}/lessons-learned`);
+  return Array.isArray(data) ? data : data.results;
 }
 
 export interface CreateLessonsLearnedDto {

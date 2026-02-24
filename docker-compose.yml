@@ -26,6 +26,7 @@ services:
       target: migrate
     environment:
       NODE_ENV: production
+      NODE_OPTIONS: "--max-old-space-size=1536"
       DATABASE_URL: postgresql://${POSTGRES_USER:-riskready}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-riskready}?schema=public
     depends_on:
       db:
@@ -33,7 +34,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 2G
     networks:
       - backend
     restart: "no"
