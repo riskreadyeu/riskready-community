@@ -34,7 +34,7 @@ interface ResultMessage {
   };
 }
 
-interface AgentRunnerDeps {
+export interface AgentRunnerDeps {
   databaseUrl: string;
   getMcpServers: (messageText?: string) => Record<string, { command: string; args: string[]; env?: Record<string, string> }>;
   memoryService?: MemoryService;
@@ -43,12 +43,29 @@ interface AgentRunnerDeps {
   getDbConfig?: () => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>;
 }
 
+export interface CouncilHook {
+  shouldConvene(message: string): boolean;
+  deliberate(
+    question: string,
+    organisationId: string,
+    signal: AbortSignal,
+    emit: (event: ChatEvent) => void,
+    mcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>,
+    getDbConfig?: () => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
+  ): Promise<{ text: string; sessionId: string }>;
+}
+
 export class AgentRunner {
   private queryFn: QueryFn | null = null;
   private deps: AgentRunnerDeps;
+  private councilHook: CouncilHook | null = null;
 
   constructor(deps: AgentRunnerDeps) {
     this.deps = deps;
+  }
+
+  setCouncilHook(hook: CouncilHook): void {
+    this.councilHook = hook;
   }
 
   private async getQueryFn(): Promise<QueryFn> {
@@ -62,9 +79,22 @@ export class AgentRunner {
     msg: UnifiedMessage,
     signal: AbortSignal,
     emit: (event: ChatEvent) => void,
+    taskId?: string,
   ): Promise<{ messageId: string }> {
     const queryFn = await this.getQueryFn();
     const conversationId = (msg.metadata.conversationId as string) ?? msg.channelId;
+
+    // If running with a task, update status to IN_PROGRESS
+    if (taskId) {
+      try {
+        await prisma.agentTask.update({
+          where: { id: taskId },
+          data: { status: 'IN_PROGRESS', conversationId },
+        });
+      } catch (err) {
+        logger.warn({ err, taskId }, 'Failed to update task status to IN_PROGRESS');
+      }
+    }
 
     // Save user message
     const userMessage = await prisma.chatMessage.create({
@@ -135,11 +165,44 @@ export class AgentRunner {
       }
     }
 
+    // Load task context if running with a task
+    let taskContext = '';
+    if (taskId) {
+      try {
+        const task = await prisma.agentTask.findUnique({
+          where: { id: taskId },
+          include: {
+            childTasks: {
+              select: { id: true, title: true, status: true, stepIndex: true },
+              orderBy: { stepIndex: 'asc' },
+            },
+          },
+        });
+        if (task) {
+          taskContext = `\n\nCurrent Task (ID: ${task.id}):
+Title: ${task.title}
+Instruction: ${task.instruction}
+Status: ${task.status}
+Trigger: ${task.trigger}`;
+          if (task.result) taskContext += `\nPrevious result: ${task.result}`;
+          if (task.actionIds.length > 0) taskContext += `\nLinked action IDs: ${task.actionIds.join(', ')}`;
+          if (task.childTasks.length > 0) {
+            taskContext += '\nSub-tasks:';
+            for (const ct of task.childTasks) {
+              taskContext += `\n  - [${ct.status}] ${ct.title}`;
+            }
+          }
+        }
+      } catch (err) {
+        logger.warn({ err, taskId }, 'Failed to load task context');
+      }
+    }
+
     // File attachments are not supported in Community Edition
     const fileContext = '';
 
     const prompt = `Organisation ID: ${msg.organisationId}
-${historyText ? `\nConversation history:\n${historyText}` : ''}${memoryContext}${fileContext}
+${historyText ? `\nConversation history:\n${historyText}` : ''}${memoryContext}${taskContext}${fileContext}
 
 User: ${msg.text}`;
 
@@ -176,125 +239,156 @@ User: ${msg.text}`;
         }
       }
 
-      const queryIterator = queryFn({
-        prompt,
-        options: {
-          abortController,
-          env: cleanEnv,
-          model,
-          mcpServers: this.deps.getMcpServers(msg.text),
-          allowedTools: ['mcp__*'],
-          permissionMode: 'bypassPermissions',
-          allowDangerouslySkipPermissions: true,
-          maxTurns,
-          includePartialMessages: true,
-          tools: [],
-          systemPrompt: SYSTEM_PROMPT,
-          persistSession: false,
-          stderr: (data: string) => {
-            logger.debug({ stderr: data }, 'agent-sdk-stderr');
-          },
-        },
-      });
+      const mcpServers = this.deps.getMcpServers(msg.text);
 
-      for await (const message of queryIterator) {
-        if (signal.aborted) break;
+      // Council decision: check if multi-agent deliberation is needed
+      if (this.councilHook && this.councilHook.shouldConvene(msg.text)) {
+        emit({ type: 'council_start' as ChatEvent['type'], message: 'Convening AI Agents Council for multi-perspective analysis...' });
 
-        if (message.type === 'stream_event') {
-          const event = (message as { type: string; event: StreamEventPayload }).event;
+        try {
+          const result = await this.councilHook.deliberate(
+            msg.text,
+            msg.organisationId,
+            signal,
+            emit,
+            mcpServers,
+            this.deps.getDbConfig,
+          );
 
-          // Track token usage per-event (supplementary — final totals come from result message)
-          if (event.type === 'message_start') {
-            const usage = (event as any).message?.usage;
-            if (usage) {
-              totalInputTokens += (usage.input_tokens ?? 0)
-                + (usage.cache_creation_input_tokens ?? 0)
-                + (usage.cache_read_input_tokens ?? 0);
-            }
-          }
-          if (event.type === 'message_delta') {
-            const usage = (event as any).usage;
-            if (usage) {
-              totalOutputTokens += (usage.output_tokens ?? 0);
-              totalInputTokens += (usage.cache_creation_input_tokens ?? 0)
-                + (usage.cache_read_input_tokens ?? 0);
-            }
-          }
+          fullText = result.text;
 
-          if (event.type === 'content_block_start') {
-            if (event.content_block?.type === 'tool_use') {
-              const toolName: string = event.content_block.name ?? '';
-              const server = toolName.split('__')[1] ?? 'unknown';
-              const idx = toolCalls.push({ name: toolName, server, status: 'running' }) - 1;
-              toolCallsByIndex.set(contentBlockIndex, idx);
-              emit({ type: 'tool_start', tool: toolName, server });
-            }
-            contentBlockIndex++;
-          }
-
-          if (
-            event.type === 'content_block_delta' &&
-            event.delta?.type === 'text_delta'
-          ) {
-            const text: string = event.delta.text ?? '';
-            fullText += text;
-            emit({ type: 'text_delta', text });
-          }
-
-          if (event.type === 'content_block_stop') {
-            const blockIdx = contentBlockIndex - 1;
-            const toolIdx = toolCallsByIndex.get(blockIdx);
-            if (toolIdx !== undefined && toolCalls[toolIdx]?.status === 'running') {
-              toolCalls[toolIdx].status = 'done';
-              emit({ type: 'tool_done', tool: toolCalls[toolIdx].name, status: 'success' });
-            }
-          }
+          // Emit text as delta for streaming
+          emit({ type: 'text_delta', text: fullText });
+          emit({ type: 'council_done' as ChatEvent['type'], message: 'Council deliberation complete' });
+        } catch (err) {
+          logger.error({ err }, 'Council deliberation failed, falling back to single agent');
+          emit({ type: 'error', message: 'Council deliberation failed, using single agent...' });
+          // Fall through to single-agent path below
         }
+      }
 
-        if (message.type === 'assistant') {
-          const assistantMsg = message as AssistantMessage;
-          for (const block of assistantMsg.message?.content ?? []) {
-            if (block.type === 'text') {
-              const actionMatches = (block.text as string).matchAll(
-                /"actionId"\s*:\s*"([^"]+)"/g,
-              );
-              for (const match of actionMatches) {
-                const actionId = match[1];
-                if (!actionIds.includes(actionId)) {
-                  actionIds.push(actionId);
-                  emit({
-                    type: 'action_proposed',
-                    actionId,
-                    summary: 'Action proposed — check AI Approvals queue',
-                  });
+      // Single-agent path (also fallback from council failure)
+      if (!fullText) {
+        const queryIterator = queryFn({
+          prompt,
+          options: {
+            abortController,
+            env: cleanEnv,
+            model,
+            mcpServers,
+            allowedTools: ['mcp__*'],
+            permissionMode: 'bypassPermissions',
+            allowDangerouslySkipPermissions: true,
+            maxTurns,
+            includePartialMessages: true,
+            tools: [],
+            systemPrompt: SYSTEM_PROMPT,
+            persistSession: false,
+            stderr: (data: string) => {
+              logger.debug({ stderr: data }, 'agent-sdk-stderr');
+            },
+          },
+        });
+
+        for await (const message of queryIterator) {
+          if (signal.aborted) break;
+
+          if (message.type === 'stream_event') {
+            const event = (message as { type: string; event: StreamEventPayload }).event;
+
+            // Track token usage per-event (supplementary — final totals come from result message)
+            if (event.type === 'message_start') {
+              const usage = (event as any).message?.usage;
+              if (usage) {
+                totalInputTokens += (usage.input_tokens ?? 0)
+                  + (usage.cache_creation_input_tokens ?? 0)
+                  + (usage.cache_read_input_tokens ?? 0);
+              }
+            }
+            if (event.type === 'message_delta') {
+              const usage = (event as any).usage;
+              if (usage) {
+                totalOutputTokens += (usage.output_tokens ?? 0);
+                totalInputTokens += (usage.cache_creation_input_tokens ?? 0)
+                  + (usage.cache_read_input_tokens ?? 0);
+              }
+            }
+
+            if (event.type === 'content_block_start') {
+              if (event.content_block?.type === 'tool_use') {
+                const toolName: string = event.content_block.name ?? '';
+                const server = toolName.split('__')[1] ?? 'unknown';
+                const idx = toolCalls.push({ name: toolName, server, status: 'running' }) - 1;
+                toolCallsByIndex.set(contentBlockIndex, idx);
+                emit({ type: 'tool_start', tool: toolName, server });
+              }
+              contentBlockIndex++;
+            }
+
+            if (
+              event.type === 'content_block_delta' &&
+              event.delta?.type === 'text_delta'
+            ) {
+              const text: string = event.delta.text ?? '';
+              fullText += text;
+              emit({ type: 'text_delta', text });
+            }
+
+            if (event.type === 'content_block_stop') {
+              const blockIdx = contentBlockIndex - 1;
+              const toolIdx = toolCallsByIndex.get(blockIdx);
+              if (toolIdx !== undefined && toolCalls[toolIdx]?.status === 'running') {
+                toolCalls[toolIdx].status = 'done';
+                emit({ type: 'tool_done', tool: toolCalls[toolIdx].name, status: 'success' });
+              }
+            }
+          }
+
+          if (message.type === 'assistant') {
+            const assistantMsg = message as AssistantMessage;
+            for (const block of assistantMsg.message?.content ?? []) {
+              if (block.type === 'text') {
+                const actionMatches = (block.text as string).matchAll(
+                  /"actionId"\s*:\s*"([^"]+)"/g,
+                );
+                for (const match of actionMatches) {
+                  const actionId = match[1];
+                  if (!actionIds.includes(actionId)) {
+                    actionIds.push(actionId);
+                    emit({
+                      type: 'action_proposed',
+                      actionId,
+                      summary: 'Action proposed — check AI Approvals queue',
+                    });
+                  }
                 }
               }
             }
           }
-        }
 
-        if (message.type === 'result') {
-          const resultMsg = message as ResultMessage;
-          if (resultMsg.subtype === 'success' && resultMsg.result && !fullText) {
-            fullText += resultMsg.result;
+          if (message.type === 'result') {
+            const resultMsg = message as ResultMessage;
+            if (resultMsg.subtype === 'success' && resultMsg.result && !fullText) {
+              fullText += resultMsg.result;
+            }
+            // Prefer SDK-accumulated totals (includes cache tokens across all turns)
+            if (resultMsg.usage) {
+              totalInputTokens = (resultMsg.usage.input_tokens ?? 0)
+                + (resultMsg.usage.cache_creation_input_tokens ?? 0)
+                + (resultMsg.usage.cache_read_input_tokens ?? 0);
+              totalOutputTokens = resultMsg.usage.output_tokens ?? 0;
+            }
           }
-          // Prefer SDK-accumulated totals (includes cache tokens across all turns)
-          if (resultMsg.usage) {
-            totalInputTokens = (resultMsg.usage.input_tokens ?? 0)
-              + (resultMsg.usage.cache_creation_input_tokens ?? 0)
-              + (resultMsg.usage.cache_read_input_tokens ?? 0);
-            totalOutputTokens = resultMsg.usage.output_tokens ?? 0;
-          }
-        }
 
-        // Intercept tool results for block extraction
-        if (message.type === 'tool_use_summary') {
-          const toolSummary = message as any;
-          if (toolSummary.tool_name && toolSummary.result) {
-            const block = extractBlock(toolSummary.tool_name, toolSummary.result);
-            if (block) {
-              blocks.push(block);
-              emit({ type: 'block', block });
+          // Intercept tool results for block extraction
+          if (message.type === 'tool_use_summary') {
+            const toolSummary = message as any;
+            if (toolSummary.tool_name && toolSummary.result) {
+              const block = extractBlock(toolSummary.tool_name, toolSummary.result);
+              if (block) {
+                blocks.push(block);
+                emit({ type: 'block', block });
+              }
             }
           }
         }
@@ -339,6 +433,24 @@ User: ${msg.text}`;
 
       emit({ type: 'done', messageId: saved.id });
 
+      // Update task with results if running with a task
+      if (taskId) {
+        try {
+          const hasPendingActions = actionIds.length > 0;
+          await prisma.agentTask.update({
+            where: { id: taskId },
+            data: {
+              status: hasPendingActions ? 'AWAITING_APPROVAL' : 'COMPLETED',
+              result: fullText.slice(0, 10000), // cap at 10k chars
+              actionIds: { push: actionIds },
+              completedAt: hasPendingActions ? undefined : new Date(),
+            },
+          });
+        } catch (err) {
+          logger.warn({ err, taskId }, 'Failed to update task after execution');
+        }
+      }
+
       // Non-blocking: distill memories after conversation
       if (this.deps.distiller) {
         const allMessages = await prisma.chatMessage.findMany({
@@ -351,6 +463,22 @@ User: ${msg.text}`;
 
       return { messageId: saved.id };
     } catch (err) {
+      // Update task as FAILED if running with a task
+      if (taskId) {
+        try {
+          await prisma.agentTask.update({
+            where: { id: taskId },
+            data: {
+              status: 'FAILED',
+              errorMessage: err instanceof Error ? err.message : String(err),
+              completedAt: new Date(),
+            },
+          });
+        } catch (taskErr) {
+          logger.warn({ err: taskErr, taskId }, 'Failed to mark task as FAILED');
+        }
+      }
+
       if (fullText) {
         await prisma.chatMessage.create({
           data: {

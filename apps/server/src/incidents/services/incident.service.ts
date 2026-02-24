@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Prisma, IncidentStatus, IncidentSeverity, IncidentCategory, IncidentSource, IncidentResolutionType, IncidentImpactType } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 
 // ============================================
@@ -84,7 +85,10 @@ interface IncidentFilters {
 
 @Injectable()
 export class IncidentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   // ============================================
   // REFERENCE NUMBER GENERATION
@@ -326,6 +330,15 @@ export class IncidentService {
       },
     });
 
+    // Emit event for agent triggers
+    this.eventEmitter.emit('incident.created', {
+      incidentId: incident.id,
+      referenceNumber,
+      title: data.title,
+      severity: data.severity,
+      organisationId,
+    });
+
     return incident;
   }
 
@@ -495,6 +508,15 @@ export class IncidentService {
         isAutomated: false,
         createdById: userId,
       },
+    });
+
+    // Emit event for agent triggers
+    this.eventEmitter.emit('incident.status_changed', {
+      incidentId: id,
+      referenceNumber: incident.referenceNumber,
+      previousStatus: incident.status,
+      newStatus: status,
+      organisationId: updated.organisationId,
     });
 
     return updated;

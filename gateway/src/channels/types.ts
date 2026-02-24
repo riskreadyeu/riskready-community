@@ -34,7 +34,8 @@ export type AIBlock =
   | { type: 'risk_detail'; data: Record<string, unknown> }
   | { type: 'heatmap'; data: Record<string, unknown> }
   | { type: 'control_table'; data: unknown[]; title?: string }
-  | { type: 'action_card'; data: { actionId: string; summary: string; actionType: string } };
+  | { type: 'action_card'; data: { actionId: string; summary: string; actionType: string } }
+  | { type: 'council_deliberation'; data: Record<string, unknown> };
 
 export type ChatEventType =
   | 'text_delta'
@@ -43,7 +44,13 @@ export type ChatEventType =
   | 'action_proposed'
   | 'block'
   | 'done'
-  | 'error';
+  | 'error'
+  // Council events
+  | 'council_start'
+  | 'council_member_start'
+  | 'council_member_done'
+  | 'council_synthesis'
+  | 'council_done';
 
 export interface ChatEvent {
   type: ChatEventType;
@@ -56,4 +63,8 @@ export interface ChatEvent {
   messageId?: string;
   message?: string;
   block?: AIBlock;
+  // Council-specific fields
+  agentRole?: string;
+  members?: string[];
+  sessionId?: string;
 }

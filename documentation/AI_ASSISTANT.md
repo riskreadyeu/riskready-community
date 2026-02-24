@@ -2,9 +2,17 @@
 
 ## Overview
 
-RiskReady Community Edition includes 8 specialised MCP (Model Context Protocol) servers that expose 248 tools for querying, analysing, and proposing changes to your GRC data through natural language. Connect these servers to **Claude Code** or **Claude Desktop** to interact with your compliance database. The servers cover controls, risks, policies, incidents, audits, evidence, IT service management, and organisational governance.
+RiskReady Community Edition includes **9 specialised MCP (Model Context Protocol) servers** that expose 250+ tools for querying, analysing, and proposing changes to your GRC data through natural language. Beyond reactive Q&A, the platform features an **autonomous agentic AI system** with:
 
-**Key principle: every mutation is proposed, not executed.** When the assistant needs to create, update, or delete data, it creates a pending action that a human must review and approve at `/settings/mcp-approvals` before the change touches the database.
+- **AI Agents Council** — 6 specialist agents deliberate on complex cross-domain questions
+- **Scheduled Workflows** — autonomous compliance runs on cron schedules
+- **Event-Driven Triggers** — automatic analysis on critical incidents
+- **Approval Feedback Loop** — the agent checks proposal outcomes and adapts
+- **Task Tracking** — persistent multi-step work across sessions
+
+Connect the servers to **Claude Code** or **Claude Desktop** to interact with your compliance database, or let the built-in AI Gateway handle routing, scheduling, and council orchestration automatically.
+
+**Key principle: every mutation is proposed, not executed.** When the assistant needs to create, update, or delete data, it creates a pending action that a human must review and approve at `/settings/mcp-approvals` before the change touches the database. This safety model is preserved even for autonomous and scheduled runs.
 
 ---
 
@@ -12,11 +20,14 @@ RiskReady Community Edition includes 8 specialised MCP (Model Context Protocol) 
 
 - [Setup](#setup)
 - [How It Works](#how-it-works)
-- [The 8 MCP Servers](#the-8-mcp-servers)
+- [The 9 MCP Servers](#the-9-mcp-servers)
+- [AI Agents Council](#ai-agents-council)
+- [Scheduled Workflows](#scheduled-workflows)
 - [Example Queries](#example-queries)
 - [Approval Queue](#approval-queue)
 - [Anti-Hallucination Safeguards](#anti-hallucination-safeguards)
 - [Model Selection](#model-selection)
+- [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -28,7 +39,7 @@ Connect the MCP servers to Claude Code or Claude Desktop by adding them to your 
 ### Claude Code
 
 ```bash
-# From the riskready-community directory, add all 8 servers:
+# From the riskready-community directory, add all 9 servers:
 claude mcp add riskready-controls npx tsx apps/mcp-server-controls/src/index.ts
 claude mcp add riskready-risks npx tsx apps/mcp-server-risks/src/index.ts
 claude mcp add riskready-policies npx tsx apps/mcp-server-policies/src/index.ts
@@ -37,6 +48,7 @@ claude mcp add riskready-itsm npx tsx apps/mcp-server-itsm/src/index.ts
 claude mcp add riskready-evidence npx tsx apps/mcp-server-evidence/src/index.ts
 claude mcp add riskready-audits npx tsx apps/mcp-server-audits/src/index.ts
 claude mcp add riskready-incidents npx tsx apps/mcp-server-incidents/src/index.ts
+claude mcp add riskready-agent-ops npx tsx apps/mcp-server-agent-ops/src/index.ts
 ```
 
 Set the `DATABASE_URL` environment variable to point to your running PostgreSQL instance (default: `postgresql://riskready:change-me@localhost:5433/riskready`).
@@ -59,34 +71,64 @@ Add the servers to your `claude_desktop_config.json`:
 }
 ```
 
-Repeat for each server you want to use. See the full server list in [The 8 MCP Servers](#the-8-mcp-servers) below.
+Repeat for each server you want to use. See the full server list in [The 9 MCP Servers](#the-9-mcp-servers) below.
 
 ---
 
 ## How It Works
 
 ```
-Your question --> Claude Code / Claude Desktop --> Claude
-                        |
-                        | MCP stdio transport
-                        v
-           8 specialised database servers (248 tools)
-                        |
-                        v
-           Proposed actions --> Approval Queue --> Human Review --> Execute
+                    ┌─────────────────────────────────────────┐
+                    │             AI Gateway                   │
+                    │                                         │
+  User Message ───> │  Router ──> Agent Runner ──> Response   │
+                    │               │      │                  │
+  Cron Schedule ──> │  Scheduler ───┘      │                  │
+                    │                      v                  │
+  Domain Event ───> │  Triggers    Council Orchestrator       │
+                    │               │                         │
+                    │               v                         │
+                    │     ┌─────────────────────┐             │
+                    │     │  6 Specialist Agents  │             │
+                    │     │  (parallel analysis)  │             │
+                    │     └─────────┬───────────┘             │
+                    │               v                         │
+                    │        CISO Synthesis                   │
+                    └───────────────┬─────────────────────────┘
+                                    │
+                    ┌───────────────v─────────────────────────┐
+                    │         9 MCP Servers (250+ tools)       │
+                    └───────────────┬─────────────────────────┘
+                                    │
+                    ┌───────────────v─────────────────────────┐
+                    │  Proposed actions --> Approval Queue      │
+                    │  --> Human Review --> Execute             │
+                    └─────────────────────────────────────────┘
 ```
 
-**Request lifecycle:**
+**Request lifecycle (user messages):**
 
-1. You ask a question in Claude Code or Claude Desktop.
-2. Claude analyses your question and calls the relevant MCP server tools via stdio transport.
-3. **Query tools** return data directly from the database -- you see the results immediately in your conversation.
+1. You ask a question in the web UI, Claude Code, or Claude Desktop.
+2. The AI Gateway routes your question to the relevant MCP servers by keyword matching across all 8 GRC domains.
+3. **Query tools** return data directly from the database -- you see the results immediately.
 4. **Mutation tools** (`propose_*`) do not modify data directly. Instead, they create pending actions in the approval queue.
 5. A human reviews proposed actions in the web UI at `/settings/mcp-approvals`, then approves or rejects each one.
+6. The agent can check what happened to its proposals via the Agent Ops server and adapt accordingly.
+
+**Council deliberation (complex questions):**
+
+When a question spans 3+ GRC domains (or uses trigger phrases like "posture assessment" or "board report"), the **AI Agents Council** is automatically convened. Six specialist agents analyse the question from their domain perspective in parallel, then the CISO Strategist synthesises findings into a unified deliberation.
+
+**Autonomous runs (scheduled/event-driven):**
+
+The platform can also run without user interaction:
+- **Scheduled workflows** execute on cron (e.g., weekly risk review every Monday at 7 AM)
+- **Event triggers** automatically dispatch analysis when critical incidents are created
+- **Approval resume** — when pending proposals are resolved, the agent resumes with the outcome
 
 ---
 
-## The 8 MCP Servers
+## The 9 MCP Servers
 
 Each server is a standalone process communicating via stdio. All query tools return data directly. All mutation tools (`propose_*`) create pending actions that require human approval.
 
@@ -170,7 +212,89 @@ Manages the incident register, timelines, lessons learned, and links to affected
 | **Analysis** | Incident trending, MTTR reports, control gap analysis from incidents |
 | **Propose** | Create/update incidents, add timeline entries, record lessons learned |
 
+### Agent Ops Server -- 7 tools (7 query)
+
+Provides agent self-awareness: checking proposal statuses, managing tasks, and tracking multi-step work. This server is **always loaded** regardless of routing, ensuring the agent can always check its own state.
+
+| Capability | Examples |
+|---|---|
+| **Approval Feedback** | Check action status, list pending/recent actions, read reviewer notes |
+| **Task Management** | Create tasks, update progress, track multi-step workflows, view task hierarchies |
+
 For detailed tool-by-tool documentation, see the individual server guides in `documentation/mcp-servers/`.
+
+---
+
+## AI Agents Council
+
+For complex questions that span multiple GRC domains, the platform automatically convenes a **council of 6 specialist AI agents**. Each agent analyses the question from their domain perspective, then the CISO Strategist synthesises findings into a unified deliberation.
+
+### Council Members
+
+| Agent | Role | MCP Servers Used |
+|-------|------|------------------|
+| **Risk Analyst** | Risk landscape, KRIs, tolerance breaches, treatment plans | risks, controls |
+| **Controls Auditor** | Control effectiveness, SOA, assessments, gap analysis | controls, evidence, audits |
+| **Compliance Officer** | Policy alignment, ISO 27001, DORA, NIS2 compliance | policies, controls, organisation |
+| **Incident Commander** | Incident patterns, response metrics, lessons learned | incidents, itsm, evidence |
+| **Evidence Auditor** | Evidence coverage, audit readiness, documentation gaps | evidence, audits, controls |
+| **CISO Strategist** | Cross-domain synthesis, executive reporting | all servers |
+
+### When Is the Council Convened?
+
+The council is automatically convened when:
+- **3+ distinct GRC domains** are triggered by keyword analysis in the query, OR
+- **Trigger phrases** match: "overall posture", "maturity assessment", "board report", "council review", "multi-perspective", "full assessment", "comprehensive review", "posture assessment", "cross-domain", "holistic view", "executive summary", "security posture"
+
+### Deliberation Patterns
+
+| Pattern | When Used | Flow |
+|---------|-----------|------|
+| **Parallel Then Synthesis** | Broad questions (default) | All agents run in parallel, then CISO synthesises |
+| **Sequential Buildup** | Investigations | Each agent receives prior findings as context |
+| **Challenge-Response** | Risk acceptance decisions | Agent A proposes, Agent B challenges, then synthesis |
+
+### Council Output
+
+The CISO Strategist synthesis includes:
+- **Consensus Summary** — what the council agrees on
+- **Cross-Domain Correlations** — links between domains (e.g., incident -> control gap -> risk)
+- **Consolidated Recommendations** — prioritised with supporting agents
+- **Dissenting Opinions** — preserved for GRC audit trail
+- **Proposed Actions** — concrete next steps by domain
+
+Every deliberation is persisted in the database (`CouncilSession` + `CouncilOpinion` records) for GRC audit compliance.
+
+---
+
+## Scheduled Workflows
+
+The platform can run compliance workflows autonomously on cron schedules without user interaction.
+
+### Built-in Workflows
+
+| Workflow | Steps | Default Schedule |
+|----------|-------|------------------|
+| **Incident Response Flow** | Incident analysis -> Control gap ID -> Risk re-assessment -> Treatment proposal | Monday 8 AM |
+| **Weekly Risk Review** | Tolerance breaches -> KRI trends -> Overdue treatments -> Executive summary | Monday 7 AM |
+| **Control Assurance Cycle** | Assessment review -> Gap analysis -> Nonconformity tracking | Wednesday 8 AM |
+| **Policy Compliance Check** | Overdue reviews -> Exception expiry -> Evidence coverage | 1st of month 9 AM |
+
+All workflows ship **disabled by default**. Enable them via the schedule management API (`/api/agent-schedules`).
+
+### How It Works
+
+1. The **Scheduler** polls the database every 60 seconds for due schedules.
+2. For each due schedule, it creates an `AgentTask` for tracking and executes via the Agent Runner.
+3. Results are stored in the task record. Any mutations go through the standard approval queue.
+4. When proposals are approved or rejected, the scheduler detects this and **automatically resumes** the agent with the outcome and reviewer notes.
+
+### Event-Driven Triggers
+
+Domain events can also trigger autonomous agent runs:
+- **`incident.created`** — For CRITICAL/HIGH severity incidents, dispatches automatic analysis
+- **`incident.status_changed`** — Logged for audit trail
+- **`approval.resolved`** — Logged; the scheduler handles resume via polling
 
 ---
 
@@ -209,6 +333,23 @@ For detailed tool-by-tool documentation, see the individual server guides in `do
 - "Add a remediation action for the failed encryption test"
 - "Record a new KRI measurement showing 95% compliance"
 
+### Council Deliberations (multi-domain questions)
+
+These queries automatically convene the AI Agents Council:
+
+- "Give me a full security posture assessment covering risks, controls, and compliance"
+- "Prepare a board report on our overall GRC maturity"
+- "We had a ransomware incident — what are the cross-domain implications?"
+- "Comprehensive review of our ISO 27001 readiness"
+- "What should we prioritise next quarter from a holistic risk perspective?"
+
+### Agent Self-Awareness
+
+- "What is the status of my last proposal?"
+- "Show me all pending actions"
+- "What tasks are currently in progress?"
+- "What happened to the control update I proposed yesterday?"
+
 All proposed changes appear in the approval queue at `/settings/mcp-approvals` for human review before execution.
 
 ---
@@ -239,13 +380,22 @@ AI proposes action --> McpPendingAction (PENDING)
         Human approves              Human rejects
              |                           |
      Executor service runs        Status: REJECTED
-             |
-     +-------+-------+
-     |               |
+             |                           |
+     +-------+-------+          Agent reads reviewNotes
+     |               |          and offers revised proposal
   Success          Failure
      |               |
   EXECUTED         FAILED
 ```
+
+### Approval Feedback Loop
+
+The agent can now close the loop on its proposals:
+1. When the agent proposes a change, it notes the `actionId`.
+2. It can check the status at any time using `check_action_status(actionId)`.
+3. If **approved**, the agent knows it can proceed with dependent work.
+4. If **rejected**, the agent reads the `reviewNotes` and offers a revised proposal.
+5. For **scheduled runs**, the scheduler automatically resumes the agent when all linked proposals are resolved.
 
 ---
 
@@ -275,6 +425,37 @@ The model used for GRC queries depends on which Claude model you select in Claud
 | **Claude Opus** | Complex analysis, multi-step reasoning, nuanced GRC advice | Most capable for difficult analytical tasks. Higher cost and slower response times. |
 
 Claude Code and Claude Desktop each provide their own model selection. Refer to the documentation for your MCP client to change models.
+
+---
+
+## Configuration
+
+### Council Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `COUNCIL_ENABLED` | `true` | Enable/disable the AI Agents Council |
+| `COUNCIL_CLASSIFIER_MODE` | `heuristic` | `heuristic` (zero-cost keyword matching) or `llm` (fast LLM call) |
+| `COUNCIL_MAX_MEMBERS` | `6` | Maximum council members per session |
+| `COUNCIL_MAX_TURNS_PER_MEMBER` | `15` | Maximum agent turns per council member |
+| `COUNCIL_DEFAULT_PATTERN` | `parallel_then_synthesis` | Default deliberation pattern |
+| `COUNCIL_MEMBER_MODEL` | *(inherit)* | Model for council members (e.g., use a cheaper model for cost control) |
+
+### Schedule Management
+
+Schedules are managed via the REST API:
+
+```
+GET    /api/agent-schedules          — List schedules
+POST   /api/agent-schedules          — Create a schedule
+PUT    /api/agent-schedules/:id      — Update a schedule
+DELETE /api/agent-schedules/:id      — Delete a schedule
+POST   /api/agent-schedules/:id/run-now — Trigger immediate execution
+```
+
+Cron expressions use standard 5-field format: `minute hour day month weekday` (e.g., `0 8 * * 1` = Monday at 8 AM).
+
+For the complete configuration and architecture reference, see the [Agentic AI Platform Guide](AGENTIC_AI_PLATFORM.md).
 
 ---
 

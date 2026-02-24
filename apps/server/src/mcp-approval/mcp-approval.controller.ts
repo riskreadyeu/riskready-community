@@ -9,6 +9,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { McpActionStatus, McpActionType } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { McpApprovalService } from './mcp-approval.service';
 import { McpApprovalExecutorService } from './mcp-approval-executor.service';
 import { ApproveActionDto, RejectActionDto } from './dto/review-action.dto';
@@ -21,6 +22,7 @@ export class McpApprovalController {
   constructor(
     private approvalService: McpApprovalService,
     private executorService: McpApprovalExecutorService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   @Get()
@@ -87,6 +89,15 @@ export class McpApprovalController {
       }
     }
 
+    // Emit approval resolved event
+    this.eventEmitter.emit('approval.resolved', {
+      actionId: id,
+      actionType: action.actionType,
+      status: 'APPROVED',
+      reviewNotes: dto.reviewNotes,
+      organisationId: action.organisationId,
+    });
+
     // No executor registered — stays in APPROVED status
     return action;
   }
@@ -97,12 +108,23 @@ export class McpApprovalController {
   }
 
   @Post(':id/reject')
-  reject(
+  async reject(
     @Param('id') id: string,
     @Body() dto: RejectActionDto,
     @Request() req: AuthenticatedRequest,
   ) {
     const reviewedById = req.user?.id;
-    return this.approvalService.reject(id, reviewedById, dto.reviewNotes);
+    const action = await this.approvalService.reject(id, reviewedById, dto.reviewNotes);
+
+    // Emit rejection event
+    this.eventEmitter.emit('approval.resolved', {
+      actionId: id,
+      actionType: action.actionType,
+      status: 'REJECTED',
+      reviewNotes: dto.reviewNotes,
+      organisationId: action.organisationId,
+    });
+
+    return action;
   }
 }

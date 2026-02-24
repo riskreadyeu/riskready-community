@@ -1,5 +1,7 @@
 // gateway/src/config.ts
 
+import type { DeliberationPattern } from './council/council-types.js';
+
 export interface GatewayConfig {
   port: number;
   databaseUrl: string;
@@ -22,6 +24,14 @@ export interface GatewayConfig {
     botToken: string;
   };
   gatewaySecret?: string;
+  council: {
+    enabled: boolean;
+    classifierMode: 'heuristic' | 'llm';
+    maxMembersPerSession: number;
+    maxTurnsPerMember: number;
+    defaultPattern: DeliberationPattern;
+    memberModel?: string;
+  };
 }
 
 export function loadConfig(): GatewayConfig {
@@ -52,5 +62,13 @@ export function loadConfig(): GatewayConfig {
       botToken: process.env.DISCORD_BOT_TOKEN,
     } : undefined,
     gatewaySecret: process.env.GATEWAY_SECRET,
+    council: {
+      enabled: process.env.COUNCIL_ENABLED !== 'false',
+      classifierMode: (process.env.COUNCIL_CLASSIFIER_MODE as 'heuristic' | 'llm') ?? 'heuristic',
+      maxMembersPerSession: Number(process.env.COUNCIL_MAX_MEMBERS ?? 6),
+      maxTurnsPerMember: Number(process.env.COUNCIL_MAX_TURNS_PER_MEMBER ?? 15),
+      defaultPattern: (process.env.COUNCIL_DEFAULT_PATTERN as DeliberationPattern) ?? 'parallel_then_synthesis',
+      memberModel: process.env.COUNCIL_MEMBER_MODEL || undefined,
+    },
   };
 }

@@ -65,3 +65,11 @@ skills:
     command: npx
     args: [tsx, ../mcp-server-incidents/src/index.ts]
     requiresDb: true
+
+  - name: riskready-agent-ops
+    description: "Agent self-awareness: check proposal statuses, list pending actions, manage tasks"
+    tags: [agent, approval, status, task]
+    capabilities: [query]
+    command: npx
+    args: [tsx, ../mcp-server-agent-ops/src/index.ts]
+    requiresDb: true

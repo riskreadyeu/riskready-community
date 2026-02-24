@@ -17,6 +17,9 @@ import { PrismaModule } from './prisma/prisma.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { GatewayConfigModule } from './gateway-config/gateway-config.module';
 import { McpApprovalModule } from './mcp-approval/mcp-approval.module';
+import { AgentScheduleModule } from './agent-schedule/agent-schedule.module';
+import { AgentTriggerModule } from './agent-triggers/agent-trigger.module';
+import { AgentWorkflowModule } from './agent-workflow/agent-workflow.module';
 import { RequestContextMiddleware } from './shared/middleware/request-context.middleware';
 
 @Module({
@@ -49,6 +52,9 @@ import { RequestContextMiddleware } from './shared/middleware/request-context.mi
     EvidenceModule,
     GatewayConfigModule,
     McpApprovalModule,
+    AgentScheduleModule,
+    AgentTriggerModule,
+    AgentWorkflowModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

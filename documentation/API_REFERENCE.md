@@ -933,6 +933,45 @@ Human-in-the-loop approval queue for actions proposed by MCP (Model Context Prot
 
 ---
 
+## Agent Schedules
+
+Manage autonomous agent schedules for recurring compliance workflows.
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/api/agent-schedules` | List schedules. Query: `organisationId`, `skip`, `take`. |
+| GET | `/api/agent-schedules/:id` | Get a single schedule. |
+| POST | `/api/agent-schedules` | Create a schedule. Body: `{ organisationId, name, description?, cronExpression, instruction, targetServers?, enabled? }`. |
+| PUT | `/api/agent-schedules/:id` | Update a schedule. Body: `{ name?, description?, cronExpression?, instruction?, targetServers?, enabled? }`. |
+| DELETE | `/api/agent-schedules/:id` | Delete a schedule. |
+| POST | `/api/agent-schedules/:id/run-now` | Trigger immediate execution of a schedule. |
+
+Cron expressions use standard 5-field format: `minute hour day month weekday`.
+
+---
+
+## Agent Workflows
+
+View and trigger cross-domain agent workflows.
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/api/agent-workflows` | List workflow executions. Query: `organisationId`, `status`, `skip`, `take`. |
+| GET | `/api/agent-workflows/:taskId` | Get workflow execution status with step results. |
+| POST | `/api/agent-workflows/trigger` | Trigger a built-in workflow. Body: `{ workflowId, organisationId, instruction? }`. |
+| GET | `/api/agent-workflows/definitions/built-in` | List available built-in workflow definitions. |
+
+### Built-in Workflows
+
+| Workflow ID | Name | Steps |
+|-------------|------|-------|
+| `incident-response-flow` | Incident Response Flow | 4 |
+| `weekly-risk-review` | Weekly Risk Review | 4 |
+| `control-assurance-cycle` | Control Assurance Cycle | 3 |
+| `policy-compliance-check` | Policy Compliance Check | 3 |
+
+---
+
 ## Error Responses
 
 All endpoints return standard HTTP status codes:

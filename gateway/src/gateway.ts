@@ -20,6 +20,8 @@ import { join } from 'node:path';
 import { RunManager } from './run/run-manager.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { loadFirstDbConfig } from './db-config.js';
+import { SchedulerService } from './scheduler/scheduler.service.js';
+import { CouncilOrchestrator } from './council/council-orchestrator.js';
 
 export class Gateway {
   private config: GatewayConfig;
@@ -30,6 +32,7 @@ export class Gateway {
   private agentRunner: AgentRunner;
   private skillRegistry: SkillRegistry;
   private router: Router;
+  private scheduler: SchedulerService;
 
   constructor(config: GatewayConfig) {
     this.config = config;
@@ -70,10 +73,12 @@ export class Gateway {
     this.agentRunner = new AgentRunner({
       databaseUrl: config.databaseUrl,
       getMcpServers: (messageText?: string) => {
+        const ALWAYS_INCLUDE = ['riskready-agent-ops'];
         if (messageText) {
           const skills = this.router.route(messageText);
-          const skillNames = skills.map(s => s.name);
-          return this.skillRegistry.getMcpServers(skillNames, config.databaseUrl, join(PROJECT_ROOT, 'apps'));
+          const skillNames = new Set(skills.map(s => s.name));
+          for (const name of ALWAYS_INCLUDE) skillNames.add(name);
+          return this.skillRegistry.getMcpServers(Array.from(skillNames), config.databaseUrl, join(PROJECT_ROOT, 'apps'));
         }
         // Fallback: all servers
         const allSkillNames = this.skillRegistry.listAll().map(s => s.name);
@@ -84,6 +89,22 @@ export class Gateway {
       distiller,
       getDbConfig: loadFirstDbConfig,
     });
+
+    // Council orchestrator for multi-agent deliberation
+    if (config.council.enabled) {
+      const councilOrchestrator = new CouncilOrchestrator({
+        router: this.router,
+        config: config.council,
+      });
+      this.agentRunner.setCouncilHook({
+        shouldConvene: (message: string) => councilOrchestrator.shouldConvene(message),
+        deliberate: (question, organisationId, signal, emit, mcpServers, getDbConfig) =>
+          councilOrchestrator.deliberate(question, organisationId, signal, emit, mcpServers, getDbConfig),
+      });
+    }
+
+    // Scheduler for autonomous runs
+    this.scheduler = new SchedulerService(this.agentRunner);
 
     // Conditionally wire channel adapters
     // Note: Slack/Discord user mapping models are not available in Community Edition.
@@ -130,10 +151,14 @@ export class Gateway {
       logger.info({ adapter: adapter.name }, 'Channel adapter started');
     }
 
+    // Start scheduler for autonomous runs
+    this.scheduler.start();
+
     logger.info({ port: this.config.port }, 'Listening');
   }
 
   async stop(): Promise<void> {
+    this.scheduler.stop();
     this.skillRegistry.stopWatching(this.config.skills.configPath);
 
     // Stop accepting new connections

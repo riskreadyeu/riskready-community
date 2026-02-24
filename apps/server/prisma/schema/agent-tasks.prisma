@@ -1,0 +1,65 @@
+// Agent task tracking for autonomous workflows
+
+enum AgentTaskStatus {
+  PENDING
+  IN_PROGRESS
+  AWAITING_APPROVAL
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AgentTaskTrigger {
+  USER_REQUEST
+  SCHEDULED
+  EVENT
+  WORKFLOW_STEP
+  APPROVAL_RESUME
+}
+
+model AgentTask {
+  id             String           @id @default(cuid())
+  organisationId String
+  title          String
+  instruction    String           @db.Text
+  workflowId     String?
+  parentTaskId   String?
+  parentTask     AgentTask?       @relation("TaskHierarchy", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  childTasks     AgentTask[]      @relation("TaskHierarchy")
+  stepIndex      Int?
+  status         AgentTaskStatus  @default(PENDING)
+  trigger        AgentTaskTrigger @default(USER_REQUEST)
+  conversationId String?
+  userId         String?
+  actionIds      String[]         @default([])
+  result         String?          @db.Text
+  errorMessage   String?          @db.Text
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  completedAt    DateTime?
+
+  @@index([organisationId])
+  @@index([status])
+  @@index([workflowId])
+  @@index([parentTaskId])
+}
+
+model AgentSchedule {
+  id             String    @id @default(cuid())
+  organisationId String
+  name           String
+  description    String?   @db.Text
+  cronExpression String
+  instruction    String    @db.Text
+  targetServers  String[]  @default([])
+  enabled        Boolean   @default(true)
+  lastRunAt      DateTime?
+  nextRunAt      DateTime?
+  lastRunTaskId  String?
+  createdBy      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([organisationId])
+  @@index([enabled, nextRunAt])
+}

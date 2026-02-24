@@ -22,6 +22,13 @@ describe('Gateway Integration', () => {
       logLevel: 'warn',
       queue: { maxDepthPerUser: 5, jobTimeoutMs: 30000 },
       skills: { configPath: '/tmp/test-skills.yaml', idleTimeoutMs: 600000 },
+      council: {
+        enabled: false,
+        classifierMode: 'heuristic',
+        maxMembersPerSession: 6,
+        maxTurnsPerMember: 15,
+        defaultPattern: 'parallel_then_synthesis',
+      },
     };
 
     gateway = new Gateway(testConfig);
