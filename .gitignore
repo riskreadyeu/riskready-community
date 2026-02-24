@@ -52,3 +52,4 @@ apps/server/prisma/*.ts
 .playwright-mcp/
 image.png
 *.png
+!screenshots/*.png

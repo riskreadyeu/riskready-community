@@ -168,6 +168,12 @@ export async function seedDemo() {
   await seedDashboard(prisma, ctx);
   console.log('  ✅ Dashboard complete\n');
 
+  // Step 10: Agentic AI platform data
+  console.log('🤖 Seeding agentic AI platform...');
+  const { seedAgentic } = await import('./seed-agentic');
+  await seedAgentic(prisma, ctx);
+  console.log('  ✅ Agentic AI complete\n');
+
   console.log('🎉 ClearStream Payments demo data seeded successfully!');
   console.log('   Login: ceo@clearstream.ie / password123');
   console.log('   Or:    ciso@clearstream.ie / password123\n');
