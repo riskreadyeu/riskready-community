@@ -116,21 +116,44 @@ cd riskready-community
 
 # 2. Create your environment file
 cp .env.example .env
+# Edit .env and set: POSTGRES_PASSWORD, JWT_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD
 
-# 3. Start all services
+# 3. Start all services (first run takes ~3 minutes to build)
 docker compose up -d
 
 # 4. Open http://localhost:9380 and log in
 ```
 
-**Default login credentials:**
+### Demo Data (auto-populated)
+
+On first deploy, the database is automatically populated with a realistic demo dataset for **ClearStream Payments Ltd** -- a fictional mid-size European fintech regulated under DORA and NIS2. No manual import needed.
+
+The demo includes: 15 risks with 30 scenarios, 40 ISO 27001 controls, 12 policies, 8 incidents, 20 IT assets, 5 audit nonconformities, 20 evidence records, and 6 months of trend data across all dashboards.
+
+**Demo login credentials:**
+
+| Email | Role | Password |
+|-------|------|----------|
+| `ciso@clearstream.ie` | CISO (recommended) | `password123` |
+| `ceo@clearstream.ie` | CEO | `password123` |
+| `cto@clearstream.ie` | CTO | `password123` |
+| `isms@clearstream.ie` | ISMS Manager | `password123` |
+| `security.lead@clearstream.ie` | IT Security Lead | `password123` |
+| `compliance@clearstream.ie` | Compliance Officer | `password123` |
+| `risk.analyst@clearstream.ie` | Risk Analyst | `password123` |
+| `dpo@clearstream.ie` | Data Protection Officer | `password123` |
+| `champion@clearstream.ie` | Security Champion | `password123` |
+
+> The CISO account provides the most complete view of all modules and dashboards.
+
+**Admin account** (configured via `.env`):
 
 | Field    | Value                    |
 |----------|--------------------------|
-| Email    | `admin@riskready.local`  |
-| Password | `admin123456`            |
+| Email    | Your `ADMIN_EMAIL` value  |
+| Password | Your `ADMIN_PASSWORD` value |
 
-> Change these in your `.env` file (`ADMIN_EMAIL`, `ADMIN_PASSWORD`) before deploying to production.
+> Change these in your `.env` file before deploying to production.
 
 To use AI features, connect the MCP servers to **Claude Code** or **Claude Desktop**. See the [AI Assistant Guide](documentation/AI_ASSISTANT.md) for setup instructions.
 
