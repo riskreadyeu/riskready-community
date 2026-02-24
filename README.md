@@ -10,6 +10,8 @@ A proactive AI system that runs compliance workflows on schedules, responds to i
 [![Issues](https://img.shields.io/github/issues/riskreadyeu/riskready-community)](https://github.com/riskreadyeu/riskready-community/issues)
 [![Stars](https://img.shields.io/github/stars/riskreadyeu/riskready-community)](https://github.com/riskreadyeu/riskready-community/stargazers)
 
+![Security Overview Dashboard](screenshots/01-dashboard.png)
+
 </div>
 
 ---
@@ -133,6 +135,10 @@ The council produces structured deliberations with consensus, dissenting opinion
 
 All autonomous capabilities preserve the human-approval safety model. For full details, see the [Agentic AI Platform Guide](documentation/AGENTIC_AI_PLATFORM.md).
 
+**AI Action Queue** — Every AI-proposed mutation goes through human review before execution.
+
+![AI Action Queue](screenshots/10-ai-action-queue.png)
+
 ---
 
 ## GRC Features
@@ -147,6 +153,48 @@ All autonomous capabilities preserve the human-approval safety model. For full d
 | **Evidence Management** | Evidence collection, file storage, linking to controls and risks |
 | **ITSM / Asset Management** | IT asset register, change management, capacity planning, business process mapping |
 | **Organisation Management** | Organisational structure, departments, locations, key personnel |
+
+<details>
+<summary><strong>Screenshots</strong> (click to expand)</summary>
+<br />
+
+**Risk Dashboard** — Heatmap, KRI status, top risks, treatment progress
+
+![Risk Dashboard](screenshots/02-risks.png)
+
+**Risk Register** — All risks with tier, status, framework mapping, and scores
+
+![Risk Register](screenshots/02b-risk-register.png)
+
+**Control Command Center** — Framework health, effectiveness metrics, compliance coverage
+
+![Control Command Center](screenshots/03-controls.png)
+
+**Controls Library** — 40 controls across ISO 27001, DORA, NIS2, SOC 2
+
+![Controls Library](screenshots/03b-controls-library.png)
+
+**Incident Management** — NIS2/DORA compliance tracking, response metrics, recent incidents
+
+![Incident Management](screenshots/04-incidents.png)
+
+**Evidence Center** — Repository, approval rate, evidence requests, linked entities
+
+![Evidence Center](screenshots/06-evidence.png)
+
+**Audit Management** — Audit workspace, nonconformity tracking, evidence requests
+
+![Audit Management](screenshots/07-audits.png)
+
+**ITSM Dashboard** — Asset register, capacity warnings, change management
+
+![ITSM Dashboard](screenshots/08-itsm.png)
+
+**Organisation** — Company profile, departments, global locations map
+
+![Organisation](screenshots/09-organisation.png)
+
+</details>
 
 ---
 
