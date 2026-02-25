@@ -33,7 +33,7 @@ A proactive AI system that runs compliance workflows on schedules, responds to i
   - [Administration Guide](#administration-guide)
   - [MCP Server Reference](#mcp-server-reference)
 - [Development Setup](#development-setup)
-- [Business Edition](#business-edition)
+- [Community vs Business Edition](#community-vs-business-edition)
 - [Contributing](#contributing)
 - [Security](#security)
 - [License](#license)
@@ -145,14 +145,14 @@ All autonomous capabilities preserve the human-approval safety model. For full d
 
 | Module | Capabilities |
 |--------|-------------|
-| **Risk Management** | Risk register, risk scenarios, key risk indicators, tolerance statements, treatment plans |
-| **Controls Framework** | Control library, control assessments, Statement of Applicability, gap analysis |
-| **Policy Management** | Document lifecycle, version control, change requests, reviews, exceptions |
-| **Incident Management** | Incident tracking, classification, response workflows, lessons learned |
-| **Audit Management** | Internal audit planning, nonconformity tracking, corrective actions |
-| **Evidence Management** | Evidence collection, file storage, linking to controls and risks |
-| **ITSM / Asset Management** | IT asset register, change management, capacity planning, business process mapping |
-| **Organisation Management** | Organisational structure, departments, locations, key personnel |
+| **Risk Management** | Risk register, 10-state risk scenarios with factor-based scoring (F1–F6, I1–I5), key risk indicators with thresholds, tolerance statements, treatment plans with tracked actions, calculation audit trail |
+| **Controls Framework** | Control library (40 controls across ISO 27001, DORA, NIS2, SOC 2), control assessments, Statement of Applicability, effectiveness testing, maturity radar, gap analysis, framework coverage mapping |
+| **Policy Management** | Document lifecycle, version control with diffs, multi-step approval workflows, change requests with impact assessment, scheduled reviews, policy exceptions with review cycles, user acknowledgments |
+| **Incident Management** | Incident tracking (MITRE ATT&CK aligned), NIS2/DORA compliance fields, response workflows, timeline, evidence with chain of custody, lessons learned, risk scenario materialisation |
+| **Audit Management** | Nonconformity tracking, corrective action plan workflows (DRAFT → VERIFIED_EFFECTIVE → CLOSED), evidence requests, multi-source findings (internal, external, certification audits) |
+| **Evidence Management** | Central evidence repository (EVD-YYYY-NNNN), evidence requests, file storage, integrity tracking, links to controls, risks, incidents, policies, assets, changes, and nonconformities |
+| **ITSM / Asset Management** | CMDB with 50+ asset types, dependency/relationship mapping, change management with CAB approval, change templates, capacity planning, business process mapping with RTO/RPO/MTD |
+| **Organisation Management** | Org profile with GRC calibration factors, departments, locations (with global map), key personnel with ISMS roles, security committees with meetings/decisions/actions, interested parties (power/interest matrix), context issues, regulatory eligibility surveys |
 
 <details>
 <summary><strong>Screenshots</strong> (click to expand)</summary>
@@ -349,19 +349,41 @@ cd ../web && npm run dev  # Frontend on http://localhost:5173
 
 ---
 
-## Business Edition
+## Community vs Business Edition
 
-The RiskReady Business Edition includes additional modules for larger organisations:
+The Community Edition is a **complete, production-ready GRC platform** — not a feature-gated trial. You get all 8 GRC modules, 9 MCP servers with 255 AI tools, the full AI Agents Council, scheduled autonomous workflows, and human-in-the-loop approval. Self-host it, run it in production, build on it.
 
-- Risk Appetite and Tolerance Cascade
-- Loss Magnitude Catalogue (FAIR methodology)
-- Supply Chain Risk Management
-- Business Continuity Management (BCM/BIA)
-- Vulnerability Management
-- Application Security Posture
-- External Requirements Mapping (ISO 27001, DORA, NIS2)
+The **Business Edition** adds advanced risk methodology, additional compliance modules, and managed infrastructure for organisations that need to go deeper.
 
-Contact us for more information about the Business Edition.
+| Capability | Community | Business |
+|------------|:---------:|:--------:|
+| **GRC Modules** (Risks, Controls, Policies, Incidents, Audits, Evidence, ITSM, Organisation) | 8 modules | 8 modules |
+| **AI MCP Servers** with 255 tools | 9 servers | 9 servers |
+| **AI Agents Council** — 6 specialists + CISO synthesis | Yes | Yes |
+| **Scheduled Autonomous Workflows** | 4 built-in | 4 built-in |
+| **Human-in-the-Loop Approval Queue** | Yes | Yes |
+| **ISO 27001 Controls & SOA** | Yes | Yes |
+| **Demo Data** (ClearStream Payments — fintech scenario) | Yes | Yes |
+| Self-hosted via Docker Compose | Yes | Yes |
+| | | |
+| **Risk Appetite & Tolerance Cascade** — board-level appetite flowing to operational thresholds | — | Yes |
+| **FAIR Methodology** — loss magnitude catalogue, quantified risk scoring | — | Yes |
+| **Integrated Security Risk Assessment (ISRA)** — structured assessment framework | — | Yes |
+| **Four-Layer Control Assurance** — design, implementation, operational, management testing | — | Yes |
+| **7-Phase Incident Response Playbooks** — automated response orchestration | — | Yes |
+| **Supply Chain Risk Management** — third-party risk scoring and monitoring | — | Yes |
+| **Business Continuity (BCM/BIA)** — continuity plans, impact analysis, recovery testing | — | Yes |
+| **Vulnerability Management** — scan ingestion, SLA tracking, remediation workflows | — | Yes |
+| **Application Security Posture** — SDLC integration, security gate tracking | — | Yes |
+| **External Requirements Mapping** — full ISO 27001, DORA, NIS2 clause-level traceability | — | Yes |
+| **Expert-Tuned Seed Data & Prompts** — production-ready configuration for regulated industries | — | Yes |
+| **Managed Cloud Infrastructure** — hosted deployment, backups, monitoring, upgrades | — | Yes |
+| **Priority Support & Onboarding** | — | Yes |
+
+**Community Edition** = the platform, the AI, the modules. Everything you need to run GRC.
+**Business Edition** = advanced methodology, deeper compliance, and managed infrastructure on top.
+
+[Learn more about the Business Edition →](https://riskready.eu)
 
 ---
 
