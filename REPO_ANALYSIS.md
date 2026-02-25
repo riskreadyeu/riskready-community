@@ -476,7 +476,7 @@ First deploy auto-populates with **ClearStream Payments Ltd** — a fictional mi
 
 1. **No linting** — No ESLint/Prettier configuration visible in CI or package.json
 2. **E2E tests present but not in CI** — Playwright is configured in the web app but not run in the CI pipeline
-3. **Single-org model** — The schema appears oriented toward a single organisation per deployment
+3. **Self-hosted single-org-per-instance model** — Intentional design for the community edition: each deployment gets its own database and Docker stack. No row-level multi-tenancy needed since each organisation runs its own instance.
 4. **No rate limiting on gateway** — The NestJS server has throttling, but the AI Gateway (Fastify) does not appear to have rate limiting
 5. **Secrets in demo seed** — Demo passwords (`password123`) are hardcoded in seed data (expected for demos, but worth noting)
 6. **No monitoring/observability stack** — No Prometheus, Grafana, or APM integration (Pino logging only)
