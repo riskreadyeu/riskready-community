@@ -360,7 +360,7 @@ export async function seedAgentic(
       agentRole: 'risk-analyst',
       confidence: 'medium',
       findings: [
-        { severity: 'high', title: 'R-06 needs score recalculation', detail: 'Current residual score (16) based on assumed control effectiveness. Actual effectiveness was lower — F2 should be adjusted from 3 to 2.', evidence: 'R-06 scenario calculation, incident evidence' },
+        { severity: 'high', title: 'R-06 needs score recalculation', detail: 'Current residual score (16) based on assumed control effectiveness. Actual effectiveness of linked controls was lower than assessed — residual score should be recalculated.', evidence: 'R-06 scenario calculation, incident evidence' },
       ],
       recommendations: [
         { priority: 'short_term', action: 'Recalculate R-06 after control updates implemented', supporting: 'Score should improve once gaps are closed' },
@@ -540,9 +540,9 @@ export async function seedAgentic(
     data: {
       actionType: 'ASSESS_SCENARIO',
       status: 'PENDING',
-      summary: 'Recalculate R-06 (DDoS attack) residual risk score — adjust F2 control effectiveness from 3 to 2',
-      reason: 'DDoS incident demonstrated that current control effectiveness for this scenario is lower than assessed. The F2 factor should be reduced from 3 (moderate) to 2 (limited) based on actual incident data.',
-      payload: { riskId: ctx.riskIds['R-06'], scenarioUpdate: { f2ControlEffectiveness: 2, justification: 'Adjusted based on INC-2026-007 — WAF effective but rate limiting and monitoring thresholds were insufficient' } },
+      summary: 'Recalculate R-06 (DDoS attack) residual risk score after control updates',
+      reason: 'DDoS incident demonstrated that current control effectiveness for this scenario is lower than assessed. Linked controls should be recalculated based on actual incident data.',
+      payload: { riskId: ctx.riskIds['R-06'], scenarioUpdate: { justification: 'Recalculate based on INC-2026-007 — WAF effective but rate limiting and monitoring thresholds were insufficient' } },
       mcpToolName: 'update_risk_scenario',
       organisationId: ctx.orgId,
       createdAt: hoursAgo(1),

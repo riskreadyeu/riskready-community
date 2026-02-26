@@ -131,32 +131,6 @@ export type ScenarioStatus =
   | 'CLOSED'
   | 'ARCHIVED';
 
-export interface ScenarioImpactAssessment {
-  id: string;
-  scenarioId: string;
-  category: ImpactCategory;
-  level: ImpactLevel;
-  value: number;
-  rationale?: string;
-  isResidual: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface EffectiveThreshold {
-  category: ImpactCategory;
-  level: ImpactLevel;
-  value: number;
-  description: string;
-  minAmount?: number;
-  maxAmount?: number;
-  duration?: string;
-  isRegulatoryMinimum: boolean;
-  regulatorySource?: string;
-  isOverridden: boolean;
-  overrideRationale?: string;
-}
-
 // Subset of TreatmentPlan returned when nested in RiskScenario
 export interface ScenarioTreatmentPlanSummary {
   id: string;
@@ -180,11 +154,6 @@ export interface RiskScenario {
   cause?: string;
   event?: string;
   consequence?: string;
-  sleLow?: number;
-  sleLikely?: number;
-  sleHigh?: number;
-  aro?: number;
-  ale?: number;
 
   // Workflow status (CRITICAL - Issue #1 fix)
   status: ScenarioStatus;
@@ -215,85 +184,7 @@ export interface RiskScenario {
   residualOverridden?: boolean;
   residualOverrideJustification?: string;
 
-  // BIRT weighted impact
-  weightedImpact?: number;
-  residualWeightedImpact?: number;
-  impactAssessments?: ScenarioImpactAssessment[];
-
-  // F1-F6 Likelihood Factor Scores
-  f1ThreatFrequency?: number;
-  f1Source?: string;
-  f1Override?: boolean;
-  f1OverrideJustification?: string;
-  f2ControlEffectiveness?: number;
-  f2Source?: string;
-  f2Override?: boolean;
-  f2OverrideJustification?: string;
-  f3GapVulnerability?: number;
-  f3Source?: string;
-  f3Override?: boolean;
-  f3OverrideJustification?: string;
-  f4IncidentHistory?: number;
-  f4Source?: string;
-  f4Override?: boolean;
-  f4OverrideJustification?: string;
-  f5AttackSurface?: number;
-  f5Source?: string;
-  f5Override?: boolean;
-  f5OverrideJustification?: string;
-  f6Environmental?: number;
-  f6Source?: string;
-  f6Override?: boolean;
-  f6OverrideJustification?: string;
-
-  // I1-I5 Impact Factor Scores
-  i1Financial?: number;
-  i1Breakdown?: Record<string, unknown>;
-  i2Operational?: number;
-  i2Breakdown?: Record<string, unknown>;
-  i3Regulatory?: number;
-  i3Breakdown?: Record<string, unknown>;
-  i4Reputational?: number;
-  i4Breakdown?: Record<string, unknown>;
-  i5Strategic?: number;
-  i5Breakdown?: Record<string, unknown>;
-
-  // Calculated aggregated scores
-  calculatedLikelihood?: number;
-  calculatedImpact?: number;
   targetResidualScore?: number;
-
-  // Calculation metadata
-  lastCalculatedAt?: string;
-  lastCalculatedBy?: UserBasic;
-  calculationTrigger?: string;
-  calculationTrace?: Record<string, unknown>;
-
-  // Calculation history for trend charts
-  calculationHistory?: Array<{
-    id: string;
-    calculatedAt: string;
-    trigger: string;
-    inherentScore: number | null;
-    residualScore: number | null;
-    previousResidualScore: number | null;
-    scoreChange: number | null;
-  }>;
-
-  // FAIR Monte Carlo quantitative analysis
-  quantitativeMode?: boolean;
-  tefMin?: number;
-  tefMode?: number;
-  tefMax?: number;
-  fairVulnerability?: number;
-  primaryLossMin?: number;
-  primaryLossMode?: number;
-  primaryLossMax?: number;
-  secondaryLossMin?: number;
-  secondaryLossMode?: number;
-  secondaryLossMax?: number;
-  secondaryLossProbability?: number;
-  simulationResult?: Record<string, unknown>;
 
   // Linked treatment plans
   treatmentPlans?: ScenarioTreatmentPlanSummary[];
@@ -506,159 +397,6 @@ export async function getScenariosByRisk(riskId: string): Promise<RiskScenario[]
   return request<RiskScenario[]>(`/api/risk-scenarios/risk/${riskId}`);
 }
 
-// ============================================
-// F1-F6 Factor Scores API
-// 3-Factor INHERENT Likelihood Model:
-//   F1 (34%): Threat Frequency - How often do attackers try?
-//   F2 (33%): Vulnerability/Ease of Exploit - How easy is it to exploit?
-//   F3 (33%): Attack Surface - How many entry points exist?
-// F4-F6 are supplementary (0% weight) for informational tracking
-//
-// NOTE: Field names are legacy and don't match semantic meaning:
-//   f2ControlEffectiveness → actually means Vulnerability/Ease of Exploit
-//   f3GapVulnerability → actually means Attack Surface
-// ============================================
-
-export interface FactorScores {
-  /** F1: Threat Frequency - How often do attackers attempt this attack type? */
-  f1ThreatFrequency: number | null;
-  /** F2: Vulnerability/Ease of Exploit (legacy name: ControlEffectiveness) */
-  f2ControlEffectiveness: number | null;
-  /** F3: Attack Surface (legacy name: GapVulnerability) */
-  f3GapVulnerability: number | null;
-  /** F4: Incident History (informational, 0% weight) */
-  f4IncidentHistory: number | null;
-  /** F5: External Exposure - legacy, merged into F3 (informational, 0% weight) */
-  f5AttackSurface: number | null;
-  /** F6: Environmental factors (informational, 0% weight) */
-  f6Environmental: number | null;
-}
-
-export interface FactorScoresResponse {
-  scores: FactorScores;
-  overrides: {
-    f1Override?: boolean;
-    f1OverrideJustification?: string;
-    f2Override?: boolean;
-    f2OverrideJustification?: string;
-    f3Override?: boolean;
-    f3OverrideJustification?: string;
-    f4Override?: boolean;
-    f4OverrideJustification?: string;
-    f5Override?: boolean;
-    f5OverrideJustification?: string;
-    f6Override?: boolean;
-    f6OverrideJustification?: string;
-  };
-  sources: {
-    f1Source?: string;
-    f2Source?: string;
-    f3Source?: string;
-    f4Source?: string;
-    f5Source?: string;
-    f6Source?: string;
-  };
-  justifications?: {
-    f1Justification?: string;
-    f1References?: { fsisac?: string; dbir?: string };
-    f2Justification?: string;
-    f3Justification?: string;
-    f4Justification?: string;
-    f5Justification?: string;
-    f6Justification?: string;
-  };
-  calculatedLikelihood: number | null;
-  lastCalculatedAt: string | null;
-  allScored: boolean;
-}
-
-// ============================================
-// Factor Evidence Types
-// Evidence data sources for each F1-F6 factor
-// ============================================
-
-export interface FactorEvidence {
-  f1?: {
-    baseFrequency?: number;
-    trend?: 'INCREASING' | 'STABLE' | 'DECREASING';
-    fsisacAlert?: string;
-    dbirReference?: string;
-    lastUpdated?: string;
-  };
-  f2?: {
-    linkedControls?: Array<{
-      id: string;
-      controlId: string;
-      name: string;
-      effectiveness: number;
-      lastTested?: string;
-      maturity?: string;
-    }>;
-    averageEffectiveness?: number;
-    gapCount?: number;
-  };
-  f3?: {
-    openVulnerabilities?: number;
-    criticalVulnerabilities?: number;
-    auditFindings?: number;
-    lastScanDate?: string;
-    source?: string;
-  };
-  f4?: {
-    incidents?: Array<{
-      id: string;
-      incidentId: string;
-      title: string;
-      severity: string;
-      date: string;
-    }>;
-    incidentCount?: number;
-    lastIncidentDate?: string;
-  };
-  f5?: {
-    externalAssets?: number;
-    internetFacing?: boolean;
-    thirdPartyConnections?: number;
-    cloudExposure?: string;
-    source?: string;
-  };
-  f6?: {
-    regulatoryPressure?: 'LOW' | 'MEDIUM' | 'HIGH';
-    industryTargeting?: boolean;
-    geopoliticalRisk?: string;
-    recentAlerts?: string[];
-  };
-}
-
-/**
- * Get F1-F6 likelihood factor scores for a scenario
- * These are the manual/stored factor scores required for T01 transition
- */
-export async function getFactorScores(scenarioId: string): Promise<FactorScoresResponse> {
-  return request<FactorScoresResponse>(`/api/risk-scenarios/${scenarioId}/factor-scores`);
-}
-
-/**
- * Get evidence data for F1-F6 likelihood factors
- * Returns linked data from controls, incidents, etc.
- */
-export async function getFactorEvidence(scenarioId: string): Promise<FactorEvidence> {
-  return request<FactorEvidence>(`/api/risk-scenarios/${scenarioId}/factor-evidence`);
-}
-
-/**
- * Update F1-F6 likelihood factor scores for a scenario
- */
-export async function updateFactorScores(
-  scenarioId: string,
-  scores: Partial<FactorScores>
-): Promise<FactorScoresResponse> {
-  return request<FactorScoresResponse>(`/api/risk-scenarios/${scenarioId}/factor-scores`, {
-    method: 'PUT',
-    body: JSON.stringify(scores),
-  });
-}
-
 export async function createRiskScenario(data: {
   scenarioId: string;
   title: string;
@@ -670,11 +408,6 @@ export async function createRiskScenario(data: {
   impact?: ImpactLevel;
   residualLikelihood?: LikelihoodLevel;
   residualImpact?: ImpactLevel;
-  sleLow?: number;
-  sleLikely?: number;
-  sleHigh?: number;
-  aro?: number;
-  ale?: number;
   controlIds?: string;
   riskId?: string;
 }): Promise<RiskScenario> {
@@ -695,11 +428,6 @@ export async function updateRiskScenario(id: string, data: {
   residualLikelihood?: LikelihoodLevel;
   residualImpact?: ImpactLevel;
   residualOverrideJustification?: string;
-  sleLow?: number;
-  sleLikely?: number;
-  sleHigh?: number;
-  aro?: number;
-  ale?: number;
   controlIds?: string;
 }): Promise<RiskScenario> {
   return request<RiskScenario>(`/api/risk-scenarios/${id}`, {
@@ -710,47 +438,6 @@ export async function updateRiskScenario(id: string, data: {
 
 export async function deleteRiskScenario(id: string): Promise<void> {
   await request(`/api/risk-scenarios/${id}`, { method: 'DELETE' });
-}
-
-// ============================================
-// BIRT Impact Assessment API
-// ============================================
-
-/**
- * Get effective thresholds for impact assessment
- * NOTE: The BIRT effective-thresholds endpoint is not yet implemented on the backend.
- * This stub returns empty data so the UI renders without errors.
- */
-export async function getEffectiveThresholds(
-  _organisationId: string
-): Promise<{ weights: CategoryWeight[]; thresholds: EffectiveThreshold[] }> {
-  return { weights: [], thresholds: [] };
-}
-
-/**
- * Save scenario impact assessments (BIRT methodology)
- * Backend endpoint: POST /api/risk-scenarios/:id/impact-assessments
- */
-export async function saveScenarioImpactAssessments(
-  scenarioId: string,
-  assessments: Array<{
-    category: ImpactCategory;
-    level: ImpactLevel;
-    value: number;
-    rationale?: string;
-  }>,
-  isResidual: boolean = false,
-  organisationId?: string
-): Promise<{
-  scenarioId: string;
-  isResidual: boolean;
-  assessments: ScenarioImpactAssessment[];
-  weightedImpact: number;
-}> {
-  return request(`/api/risk-scenarios/${scenarioId}/impact-assessments`, {
-    method: 'POST',
-    body: JSON.stringify({ assessments, isResidual, organisationId }),
-  });
 }
 
 // ============================================
@@ -1373,16 +1060,6 @@ export async function getUsers(): Promise<User[]> {
 // RISK SCORING API (Remote)
 // ============================================
 
-export interface CategoryAssessment {
-  category: ImpactCategory;
-  value: number; // 1-5
-}
-
-export interface CategoryWeight {
-  category: ImpactCategory;
-  weight: number; // Percentage (0-100)
-}
-
 /**
  * Calculate risk score remotely via API to ensure consistency with backend
  */
@@ -1396,19 +1073,6 @@ export async function calculateScoreRemote(
   });
 }
 
-/**
- * Calculate weighted impact remotely via API
- */
-export async function calculateWeightedImpactRemote(
-  assessments: CategoryAssessment[],
-  weights?: CategoryWeight[]
-): Promise<{ weightedImpact: number }> {
-  return request('/api/risks/scoring/calculate-weighted-impact', {
-    method: 'POST',
-    body: JSON.stringify({ assessments, weights }),
-  });
-}
-
 export type AppetiteLevel = 'MINIMAL' | 'LOW' | 'MODERATE' | 'HIGH';
 
 export const APPETITE_LEVEL_LABELS: Record<AppetiteLevel, string> = {
@@ -1417,89 +1081,6 @@ export const APPETITE_LEVEL_LABELS: Record<AppetiteLevel, string> = {
   MODERATE: 'Moderate (Balanced)',
   HIGH: 'High (Open)',
 };
-
-// ============================================
-// RESIDUAL LIKELIHOOD FACTOR SCORES API
-// Control-adjusted F1-F3 factors for residual risk
-// ============================================
-
-export interface ResidualFactorScores {
-  f1Residual: number | null;
-  f2Residual: number | null;
-  f3Residual: number | null;
-}
-
-export interface ControlFactorReduction {
-  id: string; // Database ID for linking to control detail page
-  controlId: string;
-  controlName: string;
-  effectiveness: number;
-  affectedFactors: ('F1' | 'F2' | 'F3')[];
-  reductionPerFactor: {
-    f1: number;
-    f2: number;
-    f3: number;
-  };
-}
-
-export interface ResidualFactorScoresResponse {
-  scenarioId: string;
-  inherentScores: {
-    f1ThreatFrequency: number | null;
-    f2ControlEffectiveness: number | null;
-    f3GapVulnerability: number | null;
-  };
-  residualScores: ResidualFactorScores;
-  calculatedResidualScores: ResidualFactorScores;
-  controlReductions: {
-    f1: number;
-    f2: number;
-    f3: number;
-    totalReduction: number;
-  };
-  calculatedResidualLikelihood: number | null;
-  overrides: {
-    f1Override?: boolean;
-    f1OverrideJustification?: string;
-    f2Override?: boolean;
-    f2OverrideJustification?: string;
-    f3Override?: boolean;
-    f3OverrideJustification?: string;
-  };
-  linkedControls: ControlFactorReduction[];
-}
-
-/**
- * Get residual likelihood factor scores for a scenario
- * Shows control-adjusted F1-F3 values with reduction breakdown
- */
-export async function getResidualFactorScores(scenarioId: string): Promise<ResidualFactorScoresResponse> {
-  return request<ResidualFactorScoresResponse>(`/api/risk-scenarios/${scenarioId}/residual-factor-scores`);
-}
-
-/**
- * Update residual likelihood factor scores for a scenario
- * Used when overriding calculated residual factors
- */
-export async function updateResidualFactorScores(
-  scenarioId: string,
-  data: {
-    scores?: Partial<ResidualFactorScores>;
-    overrides?: {
-      f1Override?: boolean;
-      f1OverrideJustification?: string;
-      f2Override?: boolean;
-      f2OverrideJustification?: string;
-      f3Override?: boolean;
-      f3OverrideJustification?: string;
-    };
-  }
-): Promise<ResidualFactorScoresResponse> {
-  return request<ResidualFactorScoresResponse>(`/api/risk-scenarios/${scenarioId}/residual-factor-scores`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
-}
 
 // ============================================
 // Scenario State Machine Types & API

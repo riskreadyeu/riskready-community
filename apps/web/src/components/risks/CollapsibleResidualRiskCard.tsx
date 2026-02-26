@@ -2,15 +2,11 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { ImpactSummaryCard } from './ImpactSummaryCard';
-import { ResidualLikelihoodCard } from './ResidualLikelihoodCard';
 import {
   Shield,
   ChevronDown,
@@ -18,7 +14,6 @@ import {
   Calculator,
   TrendingDown,
   AlertTriangle,
-  Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -27,58 +22,29 @@ import {
   getRiskLevelLabel,
   LIKELIHOOD_LABELS,
   LIKELIHOOD_VALUES,
+  IMPACT_LABELS,
+  IMPACT_VALUES,
 } from '@/lib/risk-scoring';
-import type {
-  RiskScenario,
-  ScenarioImpactAssessment,
-  ResidualFactorScoresResponse,
-  ControlFactorReduction,
-} from '@/lib/risks-api';
+import type { RiskScenario } from '@/lib/risks-api';
 
 interface CollapsibleResidualRiskCardProps {
   scenario: RiskScenario;
-  residualAssessments: ScenarioImpactAssessment[];
-  organisationId?: string;
   residualScore: number;
-  inherentScores: {
-    f1ThreatFrequency: number | null;
-    f2ControlEffectiveness: number | null;
-    f3GapVulnerability: number | null;
-  };
-  residualFactorData?: ResidualFactorScoresResponse;
-  linkedControls?: ControlFactorReduction[];
   onCalculateFromControls: () => Promise<void>;
-  onSaveResidualFactors: (data: {
-    scores: { f1Residual: number | null; f2Residual: number | null; f3Residual: number | null };
-    overrides: Record<string, boolean | string | undefined>;
-  }) => Promise<void>;
-  onSaved: () => void;
   calculatingResidual?: boolean;
-  savingFactors?: boolean;
   className?: string;
   defaultExpanded?: boolean;
 }
 
 export function CollapsibleResidualRiskCard({
   scenario,
-  residualAssessments,
-  organisationId,
   residualScore,
-  inherentScores,
-  residualFactorData,
-  linkedControls = [],
   onCalculateFromControls,
-  onSaveResidualFactors,
-  onSaved,
   calculatingResidual = false,
-  savingFactors = false,
   className,
   defaultExpanded = true,
 }: CollapsibleResidualRiskCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-  const [showOverrideJustification, setShowOverrideJustification] = useState(
-    !!scenario.residualOverrideJustification
-  );
 
   // Determine if residual is better than inherent
   const hasImprovement = scenario.inherentScore && residualScore
@@ -178,7 +144,7 @@ export function CollapsibleResidualRiskCard({
                 ) : (
                   <>
                     <Calculator className="w-4 h-4" />
-                    {scenario.calculatedResidualScore !== null
+                    {scenario.calculatedResidualScore !== null && scenario.calculatedResidualScore !== undefined
                       ? 'Recalculate'
                       : 'Calculate from Controls'}
                   </>
@@ -186,40 +152,47 @@ export function CollapsibleResidualRiskCard({
               </Button>
             </div>
 
-            {/* Residual Likelihood Factors */}
-            <ResidualLikelihoodCard
-              scenarioId={scenario.id}
-              inherentScores={inherentScores}
-              residualData={residualFactorData}
-              linkedControls={linkedControls}
-              calculatedResidualLikelihood={residualFactorData?.calculatedResidualLikelihood ?? null}
-              onSave={onSaveResidualFactors}
-              isSaving={savingFactors}
-            />
-
-            {/* Residual Impact Assessment */}
-            <ImpactSummaryCard
-              scenarioId={scenario.id}
-              organisationId={organisationId}
-              isResidual={true}
-              existingAssessments={residualAssessments}
-              weightedImpact={scenario.residualWeightedImpact ?? scenario.weightedImpact}
-              onSaved={onSaved}
-              variant="inline"
-            />
-
-            {/* Inherent Impact Fallback Banner */}
-            {residualAssessments.length === 0 && scenario.weightedImpact && (
-              <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 flex items-start gap-2">
-                <Info className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-                <div className="text-sm text-blue-800">
-                  <p className="font-medium">Using inherent impact</p>
-                  <p className="text-xs mt-1">
-                    No residual impact assessment. Create one if controls significantly reduce impact.
-                  </p>
+            {/* Residual Likelihood/Impact Display */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-lg bg-secondary/30">
+                <p className="text-xs text-muted-foreground mb-1">Residual Likelihood</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    {scenario.residualLikelihood
+                      ? LIKELIHOOD_LABELS[scenario.residualLikelihood]
+                      : scenario.likelihood
+                        ? LIKELIHOOD_LABELS[scenario.likelihood]
+                        : 'Not set'}
+                  </span>
+                  <span className="text-lg font-bold text-primary">
+                    {scenario.residualLikelihood
+                      ? LIKELIHOOD_VALUES[scenario.residualLikelihood]
+                      : scenario.likelihood
+                        ? LIKELIHOOD_VALUES[scenario.likelihood]
+                        : '—'}
+                  </span>
                 </div>
               </div>
-            )}
+              <div className="p-3 rounded-lg bg-secondary/30">
+                <p className="text-xs text-muted-foreground mb-1">Residual Impact</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    {scenario.residualImpact
+                      ? IMPACT_LABELS[scenario.residualImpact]
+                      : scenario.impact
+                        ? IMPACT_LABELS[scenario.impact]
+                        : 'Not set'}
+                  </span>
+                  <span className="text-lg font-bold text-primary">
+                    {scenario.residualImpact
+                      ? IMPACT_VALUES[scenario.residualImpact]
+                      : scenario.impact
+                        ? IMPACT_VALUES[scenario.impact]
+                        : '—'}
+                  </span>
+                </div>
+              </div>
+            </div>
 
             {/* Override Warning */}
             {scenario.residualOverridden && (

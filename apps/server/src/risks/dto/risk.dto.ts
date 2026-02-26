@@ -230,26 +230,6 @@ export class CreateScenarioDto {
   @IsOptional()
   residualImpact?: ImpactLevel;
 
-  @IsNumber()
-  @IsOptional()
-  sleLow?: number;
-
-  @IsNumber()
-  @IsOptional()
-  sleLikely?: number;
-
-  @IsNumber()
-  @IsOptional()
-  sleHigh?: number;
-
-  @IsNumber()
-  @IsOptional()
-  aro?: number;
-
-  @IsNumber()
-  @IsOptional()
-  ale?: number;
-
   @IsString()
   @IsOptional()
   controlIds?: string;
@@ -304,26 +284,6 @@ export class UpdateScenarioDto {
   @IsOptional()
   @MaxLength(2000)
   residualOverrideJustification?: string;
-
-  @IsNumber()
-  @IsOptional()
-  sleLow?: number;
-
-  @IsNumber()
-  @IsOptional()
-  sleLikely?: number;
-
-  @IsNumber()
-  @IsOptional()
-  sleHigh?: number;
-
-  @IsNumber()
-  @IsOptional()
-  aro?: number;
-
-  @IsNumber()
-  @IsOptional()
-  ale?: number;
 
   @IsString()
   @IsOptional()

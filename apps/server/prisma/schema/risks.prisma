@@ -1,7 +1,7 @@
 // ============================================
 // RISK MODULE EXTENSIONS
 // Risk Calculation Service, Lifecycle Management
-// Factor-Based Risk Scoring Engine
+// 5x5 Risk Scoring (Likelihood x Impact)
 // State Machine, Permissions, Notifications
 // ============================================
 
@@ -68,7 +68,7 @@ enum CalculationTrigger {
 
 // ============================================
 // RISK SCENARIO - ASSET JUNCTION TABLE
-// Links scenarios to assets with factor contribution flags
+// Links scenarios to assets
 // ============================================
 
 model RiskScenarioAsset {
@@ -82,12 +82,6 @@ model RiskScenarioAsset {
   isPrimaryTarget Boolean @default(false)
   impactLevel     String? // Override impact if this asset compromised
 
-  // Which factors does this asset contribute to?
-  feedsF3 Boolean @default(true) // Gap/Vulnerability
-  feedsF5 Boolean @default(false) // Attack Surface
-  feedsI1 Boolean @default(true) // Financial Impact
-  feedsI2 Boolean @default(true) // Operational Impact
-
   notes String? @db.Text
 
   createdAt DateTime @default(now())
@@ -100,7 +94,7 @@ model RiskScenarioAsset {
 
 // ============================================
 // RISK SCENARIO - CONTROL JUNCTION TABLE
-// Links scenarios to controls for F2 calculation
+// Links scenarios to controls for residual calculation
 // ============================================
 
 model RiskScenarioControl {
@@ -145,21 +139,6 @@ model RiskCalculationHistory {
   trigger         CalculationTrigger @default(MANUAL)
   triggerEntityId String? // ID of entity that triggered (asset, control, etc.)
   triggerDetails  String?            @db.Text
-
-  // Snapshot of factor scores (F1-F6)
-  f1ThreatFrequency      Int?
-  f2ControlEffectiveness Int?
-  f3GapVulnerability     Int?
-  f4IncidentHistory      Int?
-  f5AttackSurface        Int?
-  f6Environmental        Int?
-
-  // Snapshot of impact scores (I1-I5)
-  i1Financial    Int?
-  i2Operational  Int?
-  i3Regulatory   Int?
-  i4Reputational Int?
-  i5Strategic    Int?
 
   // Aggregated scores
   likelihood    Int?

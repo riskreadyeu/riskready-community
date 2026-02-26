@@ -4,46 +4,24 @@ import { RiskEventBusService } from './risk-event-bus.service';
 import { ToleranceEngineService } from './tolerance-engine.service';
 import { CalculationTrigger, Prisma, LikelihoodLevel, ImpactLevel } from '@prisma/client';
 import {
+  LIKELIHOOD_VALUES,
+  IMPACT_VALUES,
   mapEffectivenessScoreToStrength,
   CONTROL_EFFECTIVENESS,
   ControlStrength,
+  valueToLikelihoodLevel,
+  valueToImpactLevel,
 } from '../utils/risk-scoring';
 
 // ============================================
 // RISK CALCULATION SERVICE
-// Simplified 5×5 Likelihood × Impact model
-// Factors are manual 1-5 inputs; impact uses BIRT weighted average
+// Simple 5×5 Likelihood × Impact model
+// Likelihood and Impact are manual enum inputs (1-5)
 // Control effectiveness applies ONLY to residual calculation
 // ============================================
 
-// Factor score ranges
-const FACTOR_MIN = 1;
-const FACTOR_MAX = 5;
-
 // Risk zones
 export type RiskZone = 'TERMINATE' | 'TREAT' | 'TOLERATE' | 'TRANSFER';
-
-/**
- * Factor scores for inherent likelihood calculation
- * All factors are manual 1-5 inputs.
- * Likelihood = average(F1, F2, F3) rounded to nearest integer.
- */
-export interface FactorScores {
-  f1ThreatFrequency: number;
-  f2ControlEffectiveness: number;
-  f3GapVulnerability: number;
-  f4IncidentHistory: number;
-  f5AttackSurface: number;
-  f6Environmental: number;
-}
-
-export interface ImpactScores {
-  i1Financial: number;
-  i2Operational: number;
-  i3Regulatory: number;
-  i4Reputational: number;
-  i5Strategic: number;
-}
 
 export interface ControlEffectivenessResult {
   controlCount: number;
@@ -56,8 +34,6 @@ export interface ControlEffectivenessResult {
 
 export interface CalculationResult {
   scenarioId: string;
-  factors: FactorScores;
-  impacts: ImpactScores;
   likelihood: number;
   impact: number;
   inherentScore: number;
@@ -73,8 +49,8 @@ export interface CalculationResult {
 }
 
 export interface CalculationTrace {
-  factorContributions: Record<string, { raw: number; weighted: number; sources: string[] }>;
-  impactContributions: Record<string, { value: number; sources: string[] }>;
+  likelihood: { level: string; value: number };
+  impact: { level: string; value: number };
   controlEffectiveness: {
     controlCount: number;
     averageScore: number;
@@ -82,14 +58,10 @@ export interface CalculationTrace {
     likelihoodReduction: number;
     impactReduction: number;
   };
-  likelihoodFormula: string;
-  impactFormula: string;
+  inherentFormula: string;
   residualFormula: string;
-  scoreFormula: string;
   linkedEntities: {
     assets: string[];
-    vendors: string[];
-    applications: string[];
     controls: string[];
   };
 }
@@ -115,13 +87,11 @@ export class RiskCalculationService {
   /**
    * Calculate risk scores for a single scenario
    *
-   * Simplified model:
-   * 1. Read stored factor scores (f1-f3) as manual 1-5 inputs
-   * 2. Likelihood = average(f1, f2, f3) rounded to nearest integer
-   * 3. Impact = max of BIRT category scores (or stored weightedImpact)
-   * 4. inherentScore = likelihood × impact
-   * 5. Control effectiveness reduces residual scores
-   * 6. residualScore = residualLikelihood × residualImpact
+   * Simple 5×5 model:
+   * 1. Read likelihood and impact enum values directly
+   * 2. inherentScore = likelihood × impact (1-25)
+   * 3. Control effectiveness reduces residual scores
+   * 4. residualScore = residualLikelihood × residualImpact
    */
   async calculateScenario(
     scenarioId: string,
@@ -148,35 +118,31 @@ export class RiskCalculationService {
       throw new Error(`Scenario not found: ${scenarioId}`);
     }
 
-    // Extract stored scores
-    const factors = this.extractFactorScores(scenario);
-    const impacts = this.extractImpactScores(scenario);
-
-    // Compute inherent scores
-    const likelihood = this.calculateLikelihood(factors);
-    const rawImpact = this.calculateImpact(impacts);
-    const impact = scenario.weightedImpact ?? rawImpact;
-    const inherentScore = Math.round(likelihood * impact);
+    // Read likelihood and impact directly from enum fields
+    const likelihood = scenario.likelihood ? LIKELIHOOD_VALUES[scenario.likelihood] : 0;
+    const impact = scenario.impact ? IMPACT_VALUES[scenario.impact] : 0;
+    const inherentScore = likelihood * impact;
 
     // Compute residual scores via control effectiveness
     const controlEffectiveness = await this.calculateControlEffectiveness(scenario);
-    const residualLikelihood = this.applyControlReduction(likelihood, controlEffectiveness.likelihoodReduction);
-    const residualImpact = this.applyControlReduction(impact, controlEffectiveness.impactReduction);
-    const residualScore = Math.round(residualLikelihood * residualImpact * 10) / 10;
+    const residualLikelihoodValue = this.applyControlReduction(likelihood, controlEffectiveness.likelihoodReduction);
+    const residualImpactValue = this.applyControlReduction(impact, controlEffectiveness.impactReduction);
+    const residualScore = residualLikelihoodValue * residualImpactValue;
     const zone = this.determineZone(residualScore);
 
     // Build trace and change tracking
     const calculationTrace = this.buildCalculationTrace(
-      scenario, factors, impacts, likelihood, impact,
-      residualLikelihood, residualImpact, controlEffectiveness,
+      scenario, likelihood, impact,
+      residualLikelihoodValue, residualImpactValue, controlEffectiveness,
     );
     const previousResidualScore = scenario.residualScore;
     const scoreChange = previousResidualScore !== null ? residualScore - previousResidualScore : null;
 
     // Persist results atomically
     await this.persistCalculationResults(scenarioId, {
-      factors, impacts, likelihood, impact, inherentScore,
-      residualScore, previousResidualScore, scoreChange,
+      likelihood, impact, inherentScore,
+      residualLikelihoodValue, residualImpactValue, residualScore,
+      previousResidualScore, scoreChange,
       calculationTrace, trigger, triggerEntityId, userId,
     });
 
@@ -191,8 +157,10 @@ export class RiskCalculationService {
     }
 
     const result: CalculationResult = {
-      scenarioId, factors, impacts, likelihood, impact, inherentScore,
-      residualLikelihood, residualImpact, residualScore,
+      scenarioId, likelihood, impact, inherentScore,
+      residualLikelihood: residualLikelihoodValue,
+      residualImpact: residualImpactValue,
+      residualScore,
       previousResidualScore, scoreChange, zone,
       controlEffectiveness, calculationTrace,
       calculatedAt: new Date(),
@@ -201,38 +169,11 @@ export class RiskCalculationService {
     this.logger.log(
       `Calculated scenario ${scenarioId}: ` +
       `Inherent(L=${likelihood}, I=${impact}, S=${inherentScore}) -> ` +
-      `Residual(L=${residualLikelihood}, I=${residualImpact}, S=${residualScore}) ` +
+      `Residual(L=${residualLikelihoodValue}, I=${residualImpactValue}, S=${residualScore}) ` +
       `[${controlEffectiveness.controlCount} controls, ${controlEffectiveness.overallStrength}] Zone=${zone}`,
     );
 
     return result;
-  }
-
-  /**
-   * Extract and clamp F1-F6 factor scores from a scenario record
-   */
-  private extractFactorScores(scenario: ScenarioWithLinks): FactorScores {
-    return {
-      f1ThreatFrequency: this.clampFactor(scenario.f1ThreatFrequency ?? 3),
-      f2ControlEffectiveness: this.clampFactor(scenario.f2ControlEffectiveness ?? 3),
-      f3GapVulnerability: this.clampFactor(scenario.f3GapVulnerability ?? 3),
-      f4IncidentHistory: this.clampFactor(scenario.f4IncidentHistory ?? 3),
-      f5AttackSurface: this.clampFactor(scenario.f5AttackSurface ?? 3),
-      f6Environmental: this.clampFactor(scenario.f6Environmental ?? 3),
-    };
-  }
-
-  /**
-   * Extract I1-I5 impact scores from a scenario record
-   */
-  private extractImpactScores(scenario: ScenarioWithLinks): ImpactScores {
-    return {
-      i1Financial: scenario.i1Financial ?? 1,
-      i2Operational: scenario.i2Operational ?? 1,
-      i3Regulatory: scenario.i3Regulatory ?? 1,
-      i4Reputational: scenario.i4Reputational ?? 1,
-      i5Strategic: scenario.i5Strategic ?? 1,
-    };
   }
 
   /**
@@ -241,11 +182,11 @@ export class RiskCalculationService {
   private async persistCalculationResults(
     scenarioId: string,
     params: {
-      factors: FactorScores;
-      impacts: ImpactScores;
       likelihood: number;
       impact: number;
       inherentScore: number;
+      residualLikelihoodValue: number;
+      residualImpactValue: number;
       residualScore: number;
       previousResidualScore: number | null;
       scoreChange: number | null;
@@ -256,32 +197,22 @@ export class RiskCalculationService {
     },
   ): Promise<void> {
     const {
-      factors, impacts, likelihood, impact, inherentScore, residualScore,
-      previousResidualScore, scoreChange, calculationTrace, trigger, triggerEntityId, userId,
+      likelihood, impact, inherentScore, residualLikelihoodValue, residualImpactValue,
+      residualScore, previousResidualScore, scoreChange,
+      calculationTrace, trigger, triggerEntityId, userId,
     } = params;
 
     await this.prisma.$transaction(async (tx) => {
-      this.logger.debug(`Syncing Score ${likelihood} to Enum ${this.mapScoreToLikelihood(likelihood)}`);
-
       await tx.riskScenario.update({
         where: { id: scenarioId },
         data: {
-          f6Environmental: factors.f6Environmental,
-          i1Financial: impacts.i1Financial,
-          i2Operational: impacts.i2Operational,
-          i3Regulatory: impacts.i3Regulatory,
-          i4Reputational: impacts.i4Reputational,
-          i5Strategic: impacts.i5Strategic,
-          likelihood: this.mapScoreToLikelihood(likelihood),
-          impact: this.mapScoreToImpact(impact),
-          calculatedLikelihood: likelihood,
-          calculatedImpact: impact,
           inherentScore,
+          calculatedResidualLikelihood: valueToLikelihoodLevel(residualLikelihoodValue),
+          calculatedResidualImpact: valueToImpactLevel(residualImpactValue),
+          calculatedResidualScore: residualScore,
+          residualLikelihood: valueToLikelihoodLevel(residualLikelihoodValue),
+          residualImpact: valueToImpactLevel(residualImpactValue),
           residualScore,
-          lastCalculatedAt: new Date(),
-          lastCalculatedById: userId,
-          calculationTrigger: trigger,
-          calculationTrace: calculationTrace as unknown as Prisma.InputJsonValue,
         },
       });
 
@@ -292,8 +223,6 @@ export class RiskCalculationService {
           triggerEntityId,
           triggerDetails: `Calculated via ${trigger}`,
           calculatedById: userId,
-          ...factors,
-          ...impacts,
           likelihood,
           impact,
           inherentScore,
@@ -409,26 +338,8 @@ export class RiskCalculationService {
   }
 
   // ============================================
-  // AGGREGATE CALCULATIONS
+  // PRIVATE HELPERS
   // ============================================
-
-  /**
-   * Calculate likelihood = average(F1, F2, F3) rounded to 1 decimal place
-   */
-  private calculateLikelihood(factors: FactorScores): number {
-    const avg = (factors.f1ThreatFrequency + factors.f2ControlEffectiveness + factors.f3GapVulnerability) / 3;
-    return Math.round(avg * 10) / 10;
-  }
-
-  private calculateImpact(impacts: ImpactScores): number {
-    return Math.max(
-      impacts.i1Financial,
-      impacts.i2Operational,
-      impacts.i3Regulatory,
-      impacts.i4Reputational,
-      impacts.i5Strategic,
-    );
-  }
 
   private determineZone(score: number): RiskZone {
     if (score >= 20) return 'TERMINATE';
@@ -436,10 +347,6 @@ export class RiskCalculationService {
     if (score >= 6) return 'TOLERATE';
     return 'TRANSFER';
   }
-
-  // ============================================
-  // CONTROL EFFECTIVENESS CALCULATION
-  // ============================================
 
   /**
    * Calculate control effectiveness from linked controls
@@ -509,23 +416,12 @@ export class RiskCalculationService {
    * Apply control reduction to a score, clamped to minimum 1
    */
   private applyControlReduction(score: number, reduction: number): number {
-    if (reduction === 0) return score;
-    const reduced = score - reduction;
-    return Math.max(1, Math.round(reduced * 10) / 10);
-  }
-
-  // ============================================
-  // HELPERS
-  // ============================================
-
-  private clampFactor(value: number): number {
-    return Math.max(FACTOR_MIN, Math.min(FACTOR_MAX, Math.round(value)));
+    if (score === 0 || reduction === 0) return score;
+    return Math.max(1, score - reduction);
   }
 
   private buildCalculationTrace(
     scenario: ScenarioWithLinks,
-    factors: FactorScores,
-    impacts: ImpactScores,
     likelihood: number,
     impact: number,
     residualLikelihood: number,
@@ -535,21 +431,8 @@ export class RiskCalculationService {
     const { likelihoodReduction, impactReduction, overallStrength, controlCount, averageScore } = controlEffectiveness;
 
     return {
-      factorContributions: {
-        F1: { raw: factors.f1ThreatFrequency, weighted: factors.f1ThreatFrequency, sources: ['manual_input'] },
-        F2: { raw: factors.f2ControlEffectiveness, weighted: factors.f2ControlEffectiveness, sources: ['manual_input'] },
-        F3: { raw: factors.f3GapVulnerability, weighted: factors.f3GapVulnerability, sources: ['manual_input'] },
-        F4: { raw: factors.f4IncidentHistory, weighted: 0, sources: ['informational'] },
-        F5: { raw: factors.f5AttackSurface, weighted: 0, sources: ['informational'] },
-        F6: { raw: factors.f6Environmental, weighted: 0, sources: ['informational'] },
-      },
-      impactContributions: {
-        I1: { value: impacts.i1Financial, sources: ['manual_input'] },
-        I2: { value: impacts.i2Operational, sources: ['manual_input'] },
-        I3: { value: impacts.i3Regulatory, sources: ['manual_input'] },
-        I4: { value: impacts.i4Reputational, sources: ['manual_input'] },
-        I5: { value: impacts.i5Strategic, sources: ['manual_input'] },
-      },
+      likelihood: { level: scenario.likelihood ?? 'UNSET', value: likelihood },
+      impact: { level: scenario.impact ?? 'UNSET', value: impact },
       controlEffectiveness: {
         controlCount,
         averageScore,
@@ -557,16 +440,12 @@ export class RiskCalculationService {
         likelihoodReduction,
         impactReduction,
       },
-      likelihoodFormula: `avg(F1, F2, F3) = avg(${factors.f1ThreatFrequency}, ${factors.f2ControlEffectiveness}, ${factors.f3GapVulnerability}) = ${likelihood}`,
-      impactFormula: `max(I1, I2, I3, I4, I5) = ${impact}`,
+      inherentFormula: `${likelihood} × ${impact} = ${likelihood * impact}`,
       residualFormula: controlCount > 0
-        ? `RESIDUAL: L=${likelihood} - ${likelihoodReduction}(ctrl) = ${residualLikelihood}, I=${impact} - ${impactReduction}(ctrl) = ${residualImpact} [${controlCount} controls, ${averageScore}% avg, ${overallStrength} strength]`
-        : `RESIDUAL: L=${residualLikelihood}, I=${residualImpact} [No controls linked]`,
-      scoreFormula: `Inherent = ${likelihood} × ${impact} = ${Math.round(likelihood * impact)}, Residual = ${residualLikelihood} × ${residualImpact} = ${Math.round(residualLikelihood * residualImpact * 10) / 10}`,
+        ? `L=${likelihood} - ${likelihoodReduction}(ctrl) = ${residualLikelihood}, I=${impact} - ${impactReduction}(ctrl) = ${residualImpact}, Score = ${residualLikelihood * residualImpact} [${controlCount} controls, ${averageScore}% avg, ${overallStrength} strength]`
+        : `L=${residualLikelihood}, I=${residualImpact}, Score = ${residualLikelihood * residualImpact} [No controls linked]`,
       linkedEntities: {
         assets: scenario.assetLinks?.map((l) => l.asset.name) ?? [],
-        vendors: [],
-        applications: [],
         controls: scenario.controlLinks?.map((l) => l.control.name) ?? [],
       },
     };
@@ -580,23 +459,6 @@ export class RiskCalculationService {
   ): Promise<void> {
     // No-op in community edition
   }
-
-  private mapScoreToLikelihood(score: number): LikelihoodLevel {
-    if (score >= 4.5) return 'ALMOST_CERTAIN';
-    if (score >= 3.5) return 'LIKELY';
-    if (score >= 2.5) return 'POSSIBLE';
-    if (score >= 1.5) return 'UNLIKELY';
-    return 'RARE';
-  }
-
-  private mapScoreToImpact(score: number): ImpactLevel {
-    if (score >= 4.5) return 'SEVERE';
-    if (score >= 3.5) return 'MAJOR';
-    if (score >= 2.5) return 'MODERATE';
-    if (score >= 1.5) return 'MINOR';
-    return 'NEGLIGIBLE';
-  }
-
 }
 
 // Type for scenario with all linked entities
@@ -604,21 +466,10 @@ type ScenarioWithLinks = {
   id: string;
   riskId: string;
   title: string;
-  threatType?: string | null;
+  likelihood?: LikelihoodLevel | null;
+  impact?: ImpactLevel | null;
   inherentScore?: number | null;
   residualScore?: number | null;
-  weightedImpact?: number | null;
-  f1ThreatFrequency?: number | null;
-  f2ControlEffectiveness?: number | null;
-  f3GapVulnerability?: number | null;
-  f4IncidentHistory?: number | null;
-  f5AttackSurface?: number | null;
-  f6Environmental?: number | null;
-  i1Financial?: number | null;
-  i2Operational?: number | null;
-  i3Regulatory?: number | null;
-  i4Reputational?: number | null;
-  i5Strategic?: number | null;
   risk?: {
     id: string;
     title: string;

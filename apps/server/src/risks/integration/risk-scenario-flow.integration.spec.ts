@@ -15,7 +15,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ScenarioStatus } from '@prisma/client';
 
 // These tests are designed to run against a real database
 // Skip in CI environments without database access
@@ -42,29 +41,19 @@ describe.skip('RiskScenario Integration (requires database)', () => {
       expect(true).toBe(true); // Placeholder
     });
 
-    it('should accept BIRT impact assessments for all 4 categories', async () => {
-      // Test FINANCIAL, OPERATIONAL, LEGAL_REGULATORY, REPUTATION
-      expect(true).toBe(true);
-    });
-
-    it('should accept F1-F6 factor scores', async () => {
-      // Test all 6 likelihood factors
-      expect(true).toBe(true);
-    });
-
-    it('should calculate inherent score after factors submitted', async () => {
+    it('should calculate inherent score from likelihood and impact', async () => {
       // Verify score = likelihood * impact
       expect(true).toBe(true);
     });
 
-    it('should transition to ASSESSED when all factors complete', async () => {
+    it('should transition to ASSESSED when scoring is complete', async () => {
       // T01 transition
       expect(true).toBe(true);
     });
   });
 
   describe('Workflow Transitions', () => {
-    it('should transition DRAFT → ASSESSED after scoring', async () => {
+    it('should transition DRAFT -> ASSESSED after scoring', async () => {
       expect(true).toBe(true);
     });
 
@@ -73,12 +62,12 @@ describe.skip('RiskScenario Integration (requires database)', () => {
       expect(true).toBe(true);
     });
 
-    it('should transition EVALUATED → TREATING when treatment created', async () => {
+    it('should transition EVALUATED -> TREATING when treatment created', async () => {
       // T03 transition
       expect(true).toBe(true);
     });
 
-    it('should transition TREATING → TREATED when treatment completes', async () => {
+    it('should transition TREATING -> TREATED when treatment completes', async () => {
       // T06 transition
       expect(true).toBe(true);
     });
@@ -99,7 +88,7 @@ describe.skip('RiskScenario Integration (requires database)', () => {
       expect(true).toBe(true);
     });
 
-    it('should calculate F2 from linked control effectiveness', async () => {
+    it('should apply control effectiveness to residual score', async () => {
       expect(true).toBe(true);
     });
 
@@ -135,7 +124,7 @@ describe.skip('RiskScenario Integration (requires database)', () => {
  */
 describe('RiskScenario API Contract', () => {
   describe('GET /api/risk-scenarios/:id', () => {
-    it('should include status field in response', () => {
+    it('should include core fields in response', () => {
       const expectedFields = [
         'id',
         'scenarioId',
@@ -145,35 +134,14 @@ describe('RiskScenario API Contract', () => {
         'toleranceStatus',
         'toleranceThreshold',
         'toleranceGap',
-        'f1ThreatFrequency',
-        'f2ControlEffectiveness',
-        'f3GapVulnerability',
-        'f4IncidentHistory',
-        'f5AttackSurface',
-        'f6Environmental',
-        'calculatedLikelihood',
-        'calculatedImpact',
+        'likelihood',
+        'impact',
         'inherentScore',
         'residualScore',
       ];
 
       // Verify interface includes all expected fields
       expectedFields.forEach(field => {
-        expect(typeof field).toBe('string');
-      });
-    });
-
-    it('should include F1-F6 factor override flags', () => {
-      const overrideFields = [
-        'f1Override',
-        'f2Override',
-        'f3Override',
-        'f4Override',
-        'f5Override',
-        'f6Override',
-      ];
-
-      overrideFields.forEach(field => {
         expect(typeof field).toBe('string');
       });
     });
@@ -221,55 +189,6 @@ describe('RiskScenario API Contract', () => {
  * Pure function tests for risk scoring logic.
  */
 describe('Risk Calculation Logic', () => {
-  describe('Likelihood Factor Weighting', () => {
-    const weights = {
-      f1: 0.25, // Threat frequency
-      f2: 0.20, // Control effectiveness
-      f3: 0.15, // Gap/vulnerability
-      f4: 0.15, // Incident history
-      f5: 0.15, // Attack surface
-      f6: 0.10, // Environmental
-    };
-
-    it('weights should sum to 1.0', () => {
-      const sum = Object.values(weights).reduce((a, b) => a + b, 0);
-      expect(sum).toBeCloseTo(1.0, 2);
-    });
-
-    it('should calculate weighted likelihood correctly', () => {
-      const factors = { f1: 3, f2: 4, f3: 2, f4: 3, f5: 3, f6: 2 };
-      const weighted =
-        factors.f1 * weights.f1 +
-        factors.f2 * weights.f2 +
-        factors.f3 * weights.f3 +
-        factors.f4 * weights.f4 +
-        factors.f5 * weights.f5 +
-        factors.f6 * weights.f6;
-
-      expect(weighted).toBeGreaterThan(0);
-      expect(weighted).toBeLessThanOrEqual(5);
-    });
-  });
-
-  describe('Control Effectiveness Factor (Issue 8 Fix)', () => {
-    it('should use Math.round not Math.ceil', () => {
-      // 99% effective: 5 - (99/100)*4 = 1.04, should round to 1
-      const effectiveness99 = 99;
-      const factor99 = Math.round(5 - (effectiveness99 / 100) * 4);
-      expect(factor99).toBe(1);
-
-      // 50% effective: 5 - (50/100)*4 = 3, should be 3
-      const effectiveness50 = 50;
-      const factor50 = Math.round(5 - (effectiveness50 / 100) * 4);
-      expect(factor50).toBe(3);
-
-      // 0% effective: 5 - (0/100)*4 = 5, should be 5
-      const effectiveness0 = 0;
-      const factor0 = Math.round(5 - (effectiveness0 / 100) * 4);
-      expect(factor0).toBe(5);
-    });
-  });
-
   describe('Tolerance Threshold Derivation', () => {
     const toleranceLevels: Record<string, number> = {
       VERY_LOW: 5,

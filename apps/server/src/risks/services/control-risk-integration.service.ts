@@ -155,7 +155,6 @@ export class ControlRiskIntegrationService {
     riskReduction: number;
     controlEffectiveness: AggregatedControlEffectiveness;
   }> {
-    // Get scenario with weightedImpact for BIRT support
     const scenario = await this.prisma.riskScenario.findUnique({
       where: { id: scenarioId },
       select: {
@@ -164,7 +163,6 @@ export class ControlRiskIntegrationService {
         impact: true,
         inherentScore: true,
         riskId: true,
-        weightedImpact: true, // BIRT weighted impact
       },
     });
 
@@ -172,12 +170,7 @@ export class ControlRiskIntegrationService {
       throw new Error(`Scenario ${scenarioId} not found`);
     }
 
-    // Determine the impact to use: simple mode uses impact, BIRT mode uses weightedImpact converted to ImpactLevel
-    let effectiveImpact = scenario.impact;
-    if (!effectiveImpact && scenario.weightedImpact) {
-      // Convert weightedImpact (1-5) to ImpactLevel
-      effectiveImpact = this.weightedImpactToLevel(scenario.weightedImpact);
-    }
+    const effectiveImpact = scenario.impact;
 
     // Get control effectiveness from scenario's directly linked controls
     const controlEffectiveness = await this.getControlEffectivenessForScenario(
@@ -375,29 +368,5 @@ export class ControlRiskIntegrationService {
     };
   }
 
-  /**
-   * Convert weighted impact (1-5) to ImpactLevel enum
-   * This is used when BIRT assessment is used instead of simple impact
-   */
-  private weightedImpactToLevel(weightedImpact: number): ImpactLevel {
-    const rounded = Math.round(weightedImpact);
-    switch (rounded) {
-      case 1:
-        return 'NEGLIGIBLE';
-      case 2:
-        return 'MINOR';
-      case 3:
-        return 'MODERATE';
-      case 4:
-        return 'MAJOR';
-      case 5:
-        return 'SEVERE';
-      default:
-        // Handle edge cases
-        if (rounded <= 1) return 'NEGLIGIBLE';
-        if (rounded >= 5) return 'SEVERE';
-        return 'MODERATE';
-    }
-  }
 }
 

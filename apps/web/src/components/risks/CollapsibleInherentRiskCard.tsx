@@ -1,18 +1,17 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { ImpactSummaryCard } from './ImpactSummaryCard';
 import {
   AlertTriangle,
   ChevronDown,
   ChevronRight,
   Activity,
+  Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -21,31 +20,21 @@ import {
   getRiskLevelLabel,
   LIKELIHOOD_LABELS,
   LIKELIHOOD_VALUES,
+  IMPACT_LABELS,
+  IMPACT_VALUES,
 } from '@/lib/risk-scoring';
-import type {
-  RiskScenario,
-  ScenarioImpactAssessment,
-  LikelihoodLevel,
-} from '@/lib/risks-api';
+import type { RiskScenario } from '@/lib/risks-api';
 
 interface CollapsibleInherentRiskCardProps {
   scenario: RiskScenario;
-  inherentAssessments: ScenarioImpactAssessment[];
-  organisationId?: string;
   inherentScore: number;
-  onLikelihoodClick: () => void;
-  onSaved: () => void;
   className?: string;
   defaultExpanded?: boolean;
 }
 
 export function CollapsibleInherentRiskCard({
   scenario,
-  inherentAssessments,
-  organisationId,
   inherentScore,
-  onLikelihoodClick,
-  onSaved,
   className,
   defaultExpanded = true,
 }: CollapsibleInherentRiskCardProps) {
@@ -116,19 +105,9 @@ export function CollapsibleInherentRiskCard({
           <CardContent className="pt-0 space-y-4 border-t">
             {/* Likelihood Display */}
             <div className="pt-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium">Likelihood</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onLikelihoodClick}
-                  className="text-xs"
-                >
-                  Score Factors
-                </Button>
+              <div className="flex items-center gap-2 mb-2">
+                <Activity className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium">Likelihood</span>
               </div>
               <div className="p-3 rounded-lg bg-secondary/30 flex items-center justify-between">
                 <span className="text-sm font-medium">
@@ -144,16 +123,25 @@ export function CollapsibleInherentRiskCard({
               </div>
             </div>
 
-            {/* Impact Assessment */}
-            <ImpactSummaryCard
-              scenarioId={scenario.id}
-              organisationId={organisationId}
-              isResidual={false}
-              existingAssessments={inherentAssessments}
-              weightedImpact={scenario.weightedImpact}
-              onSaved={onSaved}
-              variant="inline"
-            />
+            {/* Impact Display */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium">Impact</span>
+              </div>
+              <div className="p-3 rounded-lg bg-secondary/30 flex items-center justify-between">
+                <span className="text-sm font-medium">
+                  {scenario.impact
+                    ? IMPACT_LABELS[scenario.impact]
+                    : 'Not set'}
+                </span>
+                <span className={cn('text-lg font-bold', 'text-primary')}>
+                  {scenario.impact
+                    ? IMPACT_VALUES[scenario.impact]
+                    : '—'}
+                </span>
+              </div>
+            </div>
 
             {/* Score Summary */}
             <div
@@ -163,7 +151,9 @@ export function CollapsibleInherentRiskCard({
               )}
             >
               <div>
-                <p className="text-xs text-muted-foreground">Inherent Score</p>
+                <p className="text-xs text-muted-foreground">
+                  Inherent Score = {scenario.likelihood ? LIKELIHOOD_VALUES[scenario.likelihood] : '?'} × {scenario.impact ? IMPACT_VALUES[scenario.impact] : '?'}
+                </p>
                 <p
                   className={cn('font-medium', getRiskScoreColor(inherentScore))}
                 >

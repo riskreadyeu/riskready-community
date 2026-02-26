@@ -13,7 +13,6 @@ import { ControlRiskIntegrationService } from './services/control-risk-integrati
 import { RiskCalculationService } from './services/risk-calculation.service';
 import { ToleranceEngineService } from './services/tolerance-engine.service';
 import { RiskEventBusService } from './services/risk-event-bus.service';
-import { ScenarioEntityResolverService } from './services/scenario-entity-resolver.service';
 import { KRIService } from './services/kri.service';
 
 // Controllers
@@ -49,7 +48,6 @@ import { KRIController } from './controllers/kri.controller';
     RiskCalculationService,
     ToleranceEngineService,
     RiskEventBusService,
-    ScenarioEntityResolverService,
     KRIService,
   ],
   exports: [

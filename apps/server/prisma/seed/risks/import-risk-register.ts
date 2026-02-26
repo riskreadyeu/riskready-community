@@ -12,7 +12,6 @@ import {
   TreatmentStatus,
   TreatmentPriority,
   ActionStatus,
-  ImpactCategory,
   ScenarioStatus,
 } from '@prisma/client';
 import * as fs from 'fs';
@@ -76,41 +75,6 @@ interface ScenarioCSV {
   event?: string;
   consequence?: string;
   framework: string;
-  sleLow?: string;
-  sleLikely?: string;
-  sleHigh?: string;
-  aro?: string;
-}
-
-interface ImpactAssessmentCSV {
-  scenarioId: string;
-  category: string;
-  level: string;
-  value: string;
-  rationale?: string;
-  isResidual: boolean;
-}
-
-interface LikelihoodFactorCSV {
-  scenarioId: string;
-  f1ThreatFrequency?: string;
-  f1Source?: string;
-  f1Justification?: string;
-  f2ControlEffectiveness?: string;
-  f2Source?: string;
-  f2Justification?: string;
-  f3GapVulnerability?: string;
-  f3Source?: string;
-  f3Justification?: string;
-  f4IncidentHistory?: string;
-  f4Source?: string;
-  f4Justification?: string;
-  f5AttackSurface?: string;
-  f5Source?: string;
-  f5Justification?: string;
-  f6Environmental?: string;
-  f6Source?: string;
-  f6Justification?: string;
 }
 
 interface KRICSV {
@@ -314,18 +278,6 @@ function mapActionStatus(status: string): ActionStatus {
   return map[status] || 'NOT_STARTED';
 }
 
-function mapImpactCategory(category: string): ImpactCategory {
-  const map: Record<string, ImpactCategory> = {
-    FINANCIAL: 'FINANCIAL',
-    OPERATIONAL: 'OPERATIONAL',
-    LEGAL_REGULATORY: 'LEGAL_REGULATORY',
-    REPUTATIONAL: 'REPUTATIONAL',
-    REPUTATION: 'REPUTATIONAL', // Legacy mapping for backwards compatibility
-    STRATEGIC: 'STRATEGIC',
-  };
-  return map[category] || 'FINANCIAL';
-}
-
 // ============================================
 // IMPORT FUNCTIONS
 // ============================================
@@ -440,10 +392,6 @@ export async function importRiskRegister(
         event: row.event,
         consequence: row.consequence,
         framework: mapFramework(row.framework),
-        sleLow: row.sleLow ? parseFloat(row.sleLow) : undefined,
-        sleLikely: row.sleLikely ? parseFloat(row.sleLikely) : undefined,
-        sleHigh: row.sleHigh ? parseFloat(row.sleHigh) : undefined,
-        aro: row.aro ? parseFloat(row.aro) : undefined,
         status: 'DRAFT' as ScenarioStatus,
         riskId: riskDbId,
         createdById: user.id,
@@ -457,102 +405,7 @@ export async function importRiskRegister(
   console.log(`   ✅ Created ${scenariosCreated} scenarios (${scenariosSkipped} skipped)`);
 
   // ============================================
-  // STEP 3: Import BIRT Impact Assessments
-  // ============================================
-  console.log('📝 Step 3: Importing BIRT Impact Assessments...');
-  const birtFile = path.join(templatesDir, '03-birt-impact-assessments.csv');
-  const birtAssessments = readCSV<ImpactAssessmentCSV>(birtFile);
-  let birtCreated = 0;
-  let birtSkipped = 0;
-
-  for (const row of birtAssessments) {
-    if (!row.scenarioId || !row.category || !row.level) continue;
-
-    const scenarioDbId = scenarioIdMap.get(row.scenarioId);
-    if (!scenarioDbId) {
-      console.log(`   ⚠️  Skipping BIRT for ${row.scenarioId}: Scenario not found`);
-      continue;
-    }
-
-    const isResidual = row.isResidual === true;
-
-    const existing = await db.scenarioImpactAssessment.findFirst({
-      where: {
-        scenarioId: scenarioDbId,
-        category: mapImpactCategory(row.category),
-        isResidual,
-      },
-    });
-
-    if (existing) {
-      birtSkipped++;
-      continue;
-    }
-
-    await db.scenarioImpactAssessment.create({
-      data: {
-        scenarioId: scenarioDbId,
-        category: mapImpactCategory(row.category),
-        level: mapImpact(row.level) as ImpactLevel,
-        value: parseInt(row.value) || 1,
-        rationale: row.rationale,
-        isResidual,
-      },
-    });
-
-    birtCreated++;
-  }
-
-  console.log(`   ✅ Created ${birtCreated} impact assessments (${birtSkipped} skipped)`);
-
-  // ============================================
-  // STEP 4: Import Likelihood Factors (F1-F6)
-  // ============================================
-  console.log('📝 Step 4: Importing Likelihood Factors...');
-  const factorsFile = path.join(templatesDir, '04-likelihood-factors.csv');
-  const factors = readCSV<LikelihoodFactorCSV>(factorsFile);
-  let factorsUpdated = 0;
-
-  for (const row of factors) {
-    if (!row.scenarioId) continue;
-
-    const scenarioDbId = scenarioIdMap.get(row.scenarioId);
-    if (!scenarioDbId) {
-      console.log(`   ⚠️  Skipping factors for ${row.scenarioId}: Scenario not found`);
-      continue;
-    }
-
-    await db.riskScenario.update({
-      where: { id: scenarioDbId },
-      data: {
-        f1ThreatFrequency: row.f1ThreatFrequency ? parseInt(row.f1ThreatFrequency) : undefined,
-        f1Source: row.f1Source,
-        f2ControlEffectiveness: row.f2ControlEffectiveness
-          ? parseInt(row.f2ControlEffectiveness)
-          : undefined,
-        f2Source: row.f2Source,
-        f3GapVulnerability: row.f3GapVulnerability
-          ? parseInt(row.f3GapVulnerability)
-          : undefined,
-        f3Source: row.f3Source,
-        f4IncidentHistory: row.f4IncidentHistory
-          ? parseInt(row.f4IncidentHistory)
-          : undefined,
-        f4Source: row.f4Source,
-        f5AttackSurface: row.f5AttackSurface ? parseInt(row.f5AttackSurface) : undefined,
-        f5Source: row.f5Source,
-        f6Environmental: row.f6Environmental ? parseInt(row.f6Environmental) : undefined,
-        f6Source: row.f6Source,
-      },
-    });
-
-    factorsUpdated++;
-  }
-
-  console.log(`   ✅ Updated ${factorsUpdated} scenarios with likelihood factors`);
-
-  // ============================================
-  // STEP 5: Import KRIs
+  // STEP 3: Import KRIs (Steps 3-4 removed: BIRT and factors no longer used)
   // ============================================
   console.log('📝 Step 5: Importing Key Risk Indicators...');
   const krisFile = path.join(templatesDir, '05-kris.csv');
@@ -886,8 +739,6 @@ export async function importRiskRegister(
   console.log('='.repeat(50));
   console.log(`   Risks:              ${risksCreated} created, ${risksSkipped} skipped`);
   console.log(`   Scenarios:          ${scenariosCreated} created, ${scenariosSkipped} skipped`);
-  console.log(`   Impact Assessments: ${birtCreated} created, ${birtSkipped} skipped`);
-  console.log(`   Likelihood Factors: ${factorsUpdated} updated`);
   console.log(`   KRIs:               ${krisCreated} created, ${krisSkipped} skipped`);
   console.log(`   Treatment Plans:    ${treatmentsCreated} created, ${treatmentsSkipped} skipped`);
   console.log(`   Treatment Actions:  ${actionsCreated} created, ${actionsSkipped} skipped`);

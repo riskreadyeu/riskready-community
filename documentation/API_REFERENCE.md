@@ -155,10 +155,11 @@ All other endpoints require a valid JWT session.
 
 #### Risk Scoring
 
+Uses a 5x5 risk matrix. Likelihood: `RARE`, `UNLIKELY`, `POSSIBLE`, `LIKELY`, `ALMOST_CERTAIN` (mapped 1-5). Impact: `NEGLIGIBLE`, `MINOR`, `MODERATE`, `MAJOR`, `SEVERE` (mapped 1-5). Inherent score = likelihood x impact (1-25). Residual score is calculated from linked control effectiveness.
+
 | Method | Route | Description |
 |--------|-------|-------------|
-| POST | `/api/risks/scoring/calculate` | Calculate a risk score. Body: `{ likelihood, impact }`. |
-| POST | `/api/risks/scoring/calculate-weighted-impact` | Calculate weighted impact. Body: `{ assessments, weights }`. |
+| POST | `/api/risks/scoring/calculate` | Calculate a risk score. Body: `{ likelihood, impact }` where likelihood and impact are enum values from the 5x5 matrix. Returns inherent score (1-25). |
 
 #### Control-Risk Effectiveness
 
@@ -181,16 +182,6 @@ All other endpoints require a valid JWT session.
 | PUT | `/api/risk-scenarios/:id` | Update a scenario. |
 | DELETE | `/api/risk-scenarios/:id` | Delete a scenario. |
 
-#### Factor Scores
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| GET | `/api/risk-scenarios/:id/factor-scores` | Get F1-F6 likelihood factor scores. |
-| PUT | `/api/risk-scenarios/:id/factor-scores` | Update F1-F6 factor scores. |
-| GET | `/api/risk-scenarios/:id/factor-evidence` | Get evidence data for F1-F6 factors. |
-| GET | `/api/risk-scenarios/:id/residual-factor-scores` | Get residual factor scores. |
-| PUT | `/api/risk-scenarios/:id/residual-factor-scores` | Update residual factor scores. |
-
 #### Calculation and Tolerance
 
 | Method | Route | Description |
@@ -198,15 +189,6 @@ All other endpoints require a valid JWT session.
 | GET | `/api/risk-scenarios/:id/calculation-history` | Calculation history. Query: `limit` (default 20). |
 | GET | `/api/risk-scenarios/:id/tolerance-evaluation` | Evaluate tolerance for this scenario's risk. |
 | POST | `/api/risk-scenarios/:id/recalculate` | Trigger manual recalculation. |
-
-#### BIRT Impact Assessments
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| GET | `/api/risk-scenarios/:id/impact-assessments` | Get impact assessments. Query: `isResidual`. |
-| POST | `/api/risk-scenarios/:id/impact-assessments` | Save impact assessments. |
-| DELETE | `/api/risk-scenarios/:id/impact-assessments/:category` | Delete a specific category assessment. Query: `isResidual`. |
-| DELETE | `/api/risk-scenarios/:id/impact-assessments` | Clear all impact assessments. Query: `isResidual`. |
 
 #### Scenario Control Links
 

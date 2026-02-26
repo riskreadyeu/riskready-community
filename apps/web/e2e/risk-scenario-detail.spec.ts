@@ -83,9 +83,6 @@ test.describe('Page Load', () => {
     const residualScore = page.locator('[data-testid="residual-score"], .residual-score');
     await expect(residualScore).toBeVisible();
 
-    // Verify ALE calculation displays
-    const aleDisplay = page.locator('[data-testid="ale-display"], .ale-value');
-    await expect(aleDisplay).toBeVisible();
   });
 
   test('should load in under 2 seconds', async ({ page }) => {
@@ -110,112 +107,22 @@ test.describe('Assessment Tab', () => {
     await navigateToScenario(page);
   });
 
-  test('should open BIRT dialog when clicking Assess button', async ({ page }) => {
+  test('should display inherent risk score (L x I)', async ({ page }) => {
     // Click on Assessment tab
     await page.click('[data-testid="assessment-tab"], [role="tab"]:has-text("Assessment")');
 
-    // Click "Assess Impact" button
-    await page.click('[data-testid="assess-impact-btn"], button:has-text("Assess")');
-
-    // Wait for dialog to open
-    const dialog = page.locator('[data-testid="birt-dialog"], [role="dialog"]');
-    await expect(dialog).toBeVisible();
-
-    // Should have 4 impact categories
-    const categories = page.locator('[data-testid="impact-category"]');
-    await expect(categories).toHaveCount(4);
+    // Should show likelihood and impact values
+    const inherentSection = page.locator('[data-testid="inherent-risk"], .inherent-risk');
+    await expect(inherentSection).toBeVisible();
   });
 
-  test('should save BIRT assessment and update weighted impact', async ({ page }) => {
+  test('should display residual risk score with calculate button', async ({ page }) => {
     // Click on Assessment tab
     await page.click('[data-testid="assessment-tab"], [role="tab"]:has-text("Assessment")');
 
-    // Click assess button to open dialog
-    await page.click('[data-testid="assess-impact-btn"], button:has-text("Assess")');
-
-    // Wait for dialog
-    await page.waitForSelector('[role="dialog"]');
-
-    // Set impact scores - adjust selectors as needed
-    const selects = page.locator('[data-testid="impact-select"], select');
-    const selectCount = await selects.count();
-
-    for (let i = 0; i < selectCount; i++) {
-      await selects.nth(i).selectOption('3');
-    }
-
-    // Click Save
-    await page.click('[data-testid="save-impact-btn"], button:has-text("Save")');
-
-    // Dialog should close
-    await expect(page.locator('[role="dialog"]')).not.toBeVisible();
-
-    // Weighted impact should be displayed
-    const weightedImpact = page.locator('[data-testid="weighted-impact"], .weighted-impact');
-    await expect(weightedImpact).toContainText(/\d+/);
-  });
-
-  test('should display F1-F6 factor editor', async ({ page }) => {
-    // Navigate to Assessment tab
-    await page.click('[data-testid="assessment-tab"], [role="tab"]:has-text("Assessment")');
-
-    // Look for Likelihood Factors section
-    const factorsSection = page.locator('[data-testid="likelihood-factors"], .likelihood-factors');
-    await expect(factorsSection).toBeVisible();
-
-    // Check for all 6 factor inputs (F1-F6)
-    for (let i = 1; i <= 6; i++) {
-      const factorInput = page.locator(`[data-testid="factor-f${i}"], [name="f${i}"]`);
-      await expect(factorInput).toBeVisible();
-    }
-  });
-
-  test('should persist factor scores after refresh', async ({ page }) => {
-    // Navigate to Assessment tab
-    await page.click('[data-testid="assessment-tab"], [role="tab"]:has-text("Assessment")');
-
-    // Set F1 to 3
-    const f1Input = page.locator('[data-testid="factor-f1"], [name="f1"]');
-    await f1Input.fill('3');
-
-    // Set F2 to 4
-    const f2Input = page.locator('[data-testid="factor-f2"], [name="f2"]');
-    await f2Input.fill('4');
-
-    // Click Save button
-    await page.click('[data-testid="save-factors-btn"], button:has-text("Save")');
-
-    // Wait for save to complete
-    await page.waitForTimeout(1000);
-
-    // Refresh page
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-
-    // Navigate back to Assessment tab
-    await page.click('[data-testid="assessment-tab"], [role="tab"]:has-text("Assessment")');
-
-    // Check F1 and F2 values persisted
-    const f1Value = await page.locator('[data-testid="factor-f1"], [name="f1"]').inputValue();
-    const f2Value = await page.locator('[data-testid="factor-f2"], [name="f2"]').inputValue();
-
-    expect(f1Value).toBe('3');
-    expect(f2Value).toBe('4');
-  });
-
-  test('should show calculated suggestions next to manual scores', async ({ page }) => {
-    // Navigate to Assessment tab with linked controls
-    await page.click('[data-testid="assessment-tab"], [role="tab"]:has-text("Assessment")');
-
-    // Check F2 (Control Effectiveness) section for suggested value
-    const suggestion = page.locator('[data-testid="f2-suggestion"], .factor-suggestion');
-
-    // Suggestion badge should appear if system calculation differs
-    // This may not always be visible depending on scenario state
-    const isVisible = await suggestion.isVisible();
-    if (isVisible) {
-      await expect(suggestion).toContainText(/Suggested/i);
-    }
+    // Should show residual risk section
+    const residualSection = page.locator('[data-testid="residual-risk"], .residual-risk');
+    await expect(residualSection).toBeVisible();
   });
 });
 

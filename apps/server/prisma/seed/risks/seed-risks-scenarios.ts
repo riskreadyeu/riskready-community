@@ -165,9 +165,6 @@ export async function seedRisksAndScenarios() {
   const deletedScenarioControls = await prisma.riskScenarioControl.deleteMany({});
   console.log(`  Deleted ${deletedScenarioControls.count} scenario-control links`);
 
-  const deletedImpactAssessments = await prisma.scenarioImpactAssessment.deleteMany({});
-  console.log(`  Deleted ${deletedImpactAssessments.count} impact assessments`);
-
   const deletedStateHistory = await prisma.scenarioStateHistory.deleteMany({});
   console.log(`  Deleted ${deletedStateHistory.count} state history records`);
 

@@ -140,7 +140,7 @@ The Risk Register is a filterable table of all risks in the system. From here yo
 Each risk has a comprehensive detail page with multiple tabs:
 
 - **Overview** -- Risk title, description, category, tier, owner, current status, inherent and residual risk scores, and tolerance status (Within, Exceeds, or Critical).
-- **Scenarios** -- Each risk can have multiple scenarios. Scenarios use a factor-based scoring model and follow a 10-state lifecycle: Draft, Assessed, Evaluated, Treating, Treated, Accepted, Monitoring, Escalated, Review, Closed. You can create new scenarios, edit existing ones, and transition them through workflow states.
+- **Scenarios** -- Each risk can have multiple scenarios. Scenarios are scored using a 5x5 risk matrix (likelihood x impact) and follow a 10-state lifecycle: Draft, Assessed, Evaluated, Treating, Treated, Accepted, Monitoring, Escalated, Review, Closed. You can create new scenarios, edit existing ones, and transition them through workflow states.
 - **Controls** -- Controls linked to the risk's scenarios, showing their effectiveness in mitigating the risk.
 - **History** -- A full audit trail of changes to the risk record.
 
@@ -152,8 +152,7 @@ You can edit risk properties, enable/disable a risk, and manage its lifecycle fr
 
 Scenarios represent specific ways a risk could materialize. Each scenario detail page shows:
 
-- **Assessment** -- Factor-based scores for likelihood and impact, with the ability to update factor scores and recalculate residual risk from linked controls.
-- **Impact Summary** -- Visual breakdown of the scenario's impact dimensions.
+- **Assessment** -- Likelihood and impact ratings using a 5x5 risk matrix. Likelihood is set manually as one of five levels (Rare, Unlikely, Possible, Likely, Almost Certain) mapped to scores 1--5. Impact is set manually as one of five levels (Negligible, Minor, Moderate, Major, Severe) mapped to scores 1--5. The inherent risk score is the product of likelihood and impact (range 1--25). The residual risk score is calculated automatically from the effectiveness of linked controls.
 - **Linked Controls** -- Controls that mitigate this scenario, with their current effectiveness.
 - **Treatment Plans** -- Active treatment plans addressing this scenario.
 - **Workflow Sidebar** -- Current state in the scenario lifecycle with available transitions (for example, moving a scenario from "Assessed" to "Treating").

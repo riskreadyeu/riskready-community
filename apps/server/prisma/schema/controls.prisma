@@ -635,31 +635,6 @@ enum ImpactCategory {
 }
 
 // ============================================
-// SCENARIO IMPACT ASSESSMENT MODEL
-// Per-category impact assessment for scenarios
-// ============================================
-
-model ScenarioImpactAssessment {
-  id         String       @id @default(cuid())
-  scenarioId String
-  scenario   RiskScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
-
-  category  ImpactCategory
-  level     ImpactLevel // Selected level for this category
-  value     Int // Numeric value 1-5
-  rationale String?        @db.Text
-
-  // For residual assessment (after controls)
-  isResidual Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([scenarioId, category, isResidual])
-  @@index([scenarioId])
-}
-
-// ============================================
 // RISK MODEL
 // Parent risks linked to controls
 // ============================================
@@ -772,15 +747,6 @@ model RiskScenario {
   toleranceThreshold Int? // Current tolerance threshold
   toleranceGap       Int? // Score - Threshold (positive = exceeds)
 
-  // Single Loss Expectancy (SLE) ranges
-  sleLow    Decimal? @db.Decimal(15, 2) // Low estimate
-  sleLikely Decimal? @db.Decimal(15, 2) // Most likely estimate
-  sleHigh   Decimal? @db.Decimal(15, 2) // High estimate
-
-  // Annualized metrics
-  aro Decimal? @db.Decimal(5, 2) // Annual Rate of Occurrence
-  ale Decimal? @db.Decimal(15, 2) // Annual Loss Expectancy
-
   // Inherent Assessment (before controls)
   likelihood    LikelihoodLevel?
   impact        ImpactLevel?
@@ -804,151 +770,12 @@ model RiskScenario {
   residualOverriddenAt          DateTime?
   residualPreviousScore         Int? // Store calculated score before override
 
-  // BIRT weighted impact (calculated from category assessments)
-  weightedImpact         Int? // Weighted average of inherent category impacts (1-5)
-  residualWeightedImpact Int? // Weighted average after controls
-
   // Multi-framework support
   framework  ControlFramework @default(ISO)
   // @deprecated Use controlLinks relation instead. This field is for backwards compatibility only.
   controlIds String? // Comma-separated control IDs - DEPRECATED
 
-  // ============================================
-  // FACTOR-BASED CALCULATION FIELDS (F1-F6)
-  // 3-Factor INHERENT Likelihood Model:
-  //   F1 (34%): Threat Frequency - How often do attackers try?
-  //   F2 (33%): Vulnerability/Ease of Exploit - How easy is it to exploit?
-  //   F3 (33%): Attack Surface - How many entry points exist?
-  // F4-F6 are supplementary (0% weight) for informational tracking
-  // ============================================
-
-  // F1: Threat Frequency
-  // Measures: How often do attackers attempt this type of attack?
-  f1ThreatFrequency       Int?
-  f1Source                String?
-  f1Override              Boolean @default(false)
-  f1OverrideJustification String? @db.Text
-
-  // F2: Vulnerability / Ease of Exploit
-  // SEMANTIC: Measures technical difficulty to exploit (NOT control effectiveness)
-  // NOTE: Field name "f2ControlEffectiveness" is legacy - actual meaning is Vulnerability
-  // Control effectiveness is applied during RESIDUAL calculation, not inherent
-  f2ControlEffectiveness  Int? // TODO: Rename to f2VulnerabilityExposure in future migration
-  f2Source                String?
-  f2Override              Boolean @default(false)
-  f2OverrideJustification String? @db.Text
-
-  // F3: Attack Surface
-  // SEMANTIC: Measures how many entry points/opportunities exist for attackers
-  // NOTE: Field name "f3GapVulnerability" is legacy - actual meaning is Attack Surface
-  f3GapVulnerability      Int? // TODO: Rename to f3AttackSurface in future migration
-  f3Source                String?
-  f3Override              Boolean @default(false)
-  f3OverrideJustification String? @db.Text
-
-  // F4: Incident History (from Incidents)
-  f4IncidentHistory       Int?
-  f4Source                String?
-  f4Override              Boolean @default(false)
-  f4OverrideJustification String? @db.Text
-
-  // F5: Attack Surface (from Assets, Applications)
-  f5AttackSurface         Int?
-  f5Source                String?
-  f5Override              Boolean @default(false)
-  f5OverrideJustification String? @db.Text
-
-  // F6: Environmental (Threat Intel / Manual)
-  f6Environmental         Int?
-  f6Source                String?
-  f6Override              Boolean @default(false)
-  f6OverrideJustification String? @db.Text
-
-  // ============================================
-  // IMPACT CATEGORY FIELDS (I1-I5)
-  // ============================================
-
-  // I1: Financial Impact
-  i1Financial Int?
-  i1Breakdown Json? // { assetCosts, vendorValue, piiCost }
-
-  // I2: Operational Impact
-  i2Operational Int?
-  i2Breakdown   Json? // { rto, userImpact, criticality }
-
-  // I3: Regulatory Impact
-  i3Regulatory Int?
-  i3Breakdown  Json? // { gdpr, dora, nis2, pci }
-
-  // I4: Reputational Impact
-  i4Reputational Int?
-  i4Breakdown    Json? // { externalFacing, customerData }
-
-  // I5: Strategic Impact
-  i5Strategic Int?
-  i5Breakdown Json? // { criticalFunction, competitiveAdvantage }
-
-  // ============================================
-  // AGGREGATED CALCULATED SCORES
-  // ============================================
-
-  calculatedLikelihood Int? // Weighted sum of F1-F6
-  calculatedImpact     Int? // Max of I1-I5
   targetResidualScore  Int? // Post-treatment target
-
-  // Calculation metadata
-  lastCalculatedAt   DateTime?
-  lastCalculatedById String?
-  lastCalculatedBy   User?     @relation("ScenarioCalculatedBy", fields: [lastCalculatedById], references: [id], onDelete: SetNull)
-  calculationTrigger String? // MANUAL, ASSET_UPDATED, CONTROL_TESTED, etc.
-  calculationTrace   Json? // Full audit trail
-
-  // ============================================
-  // FAIR QUANTITATIVE MODE FIELDS
-  // ============================================
-
-  // Enable quantitative analysis for this scenario
-  quantitativeMode Boolean @default(false)
-
-  // Threat Event Frequency (TEF) - PERT parameters
-  tefMin  Float? // Minimum annual attempts
-  tefMode Float? // Most likely annual attempts
-  tefMax  Float? // Maximum annual attempts
-
-  // Vulnerability override for FAIR (0-1)
-  // If null, derived from F2 factor
-  fairVulnerability Float?
-
-  // Primary Loss (SLE) - PERT parameters in currency
-  primaryLossMin  Float? // Minimum loss per event
-  primaryLossMode Float? // Most likely loss per event
-  primaryLossMax  Float? // Maximum loss per event
-
-  // Secondary Loss - PERT parameters (optional)
-  secondaryLossMin         Float?
-  secondaryLossMode        Float?
-  secondaryLossMax         Float?
-  secondaryLossProbability Float? // P(secondary loss | event)
-
-  // Cached simulation results
-  lastSimulationAt     DateTime?
-  simulationIterations Int?
-
-  // ALE Statistics (cached from last simulation)
-  aleMean   Float?
-  aleMedian Float?
-  aleP90    Float?
-  aleP95    Float?
-  aleP99    Float?
-
-  // LEF Statistics
-  lefMean Float?
-
-  // Probability metrics
-  probabilityOfLoss Float?
-
-  // Full simulation result JSON (for charts)
-  simulationResult Json?
 
   // ============================================
   // RELATIONSHIPS
@@ -957,9 +784,8 @@ model RiskScenario {
   riskId              String
   risk                Risk                       @relation(fields: [riskId], references: [id], onDelete: Cascade)
   toleranceStatements RiskToleranceStatement[]   @relation("RTSScenarios")
-  impactAssessments   ScenarioImpactAssessment[]
 
-  // Entity links for factor calculation
+  // Control links for residual calculation
   assetLinks         RiskScenarioAsset[]
   controlLinks       RiskScenarioControl[]
   calculationHistory RiskCalculationHistory[]
@@ -979,11 +805,8 @@ model RiskScenario {
 
   @@unique([scenarioId, riskId])
   @@index([riskId])
-  @@index([lastCalculatedAt])
   @@index([status])
   @@index([toleranceStatus])
-  @@index([calculationTrigger])
-  @@index([f1Override, f2Override, f3Override])
 }
 
 // ============================================

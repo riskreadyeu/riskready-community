@@ -13,13 +13,8 @@ import {
 import { RiskScenarioService } from '../services/risk-scenario.service';
 import { RiskCalculationService } from '../services/risk-calculation.service';
 import { ToleranceEngineService } from '../services/tolerance-engine.service';
-import { ControlFramework, LikelihoodLevel, ImpactLevel, ImpactCategory } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
 import { CreateScenarioDto, UpdateScenarioDto } from '../dto/risk.dto';
 import {
-  UpdateFactorScoresDto,
-  UpdateResidualFactorScoresDto,
-  SaveImpactAssessmentsDto,
   LinkControlDto,
   UpdateControlLinkDto,
 } from '../dto/risk-scenario.dto';
@@ -31,7 +26,6 @@ export class RiskScenarioController {
     private readonly service: RiskScenarioService,
     private readonly calculationService: RiskCalculationService,
     private readonly toleranceEngine: ToleranceEngineService,
-    private readonly prisma: PrismaService,
   ) {}
 
   @Get()
@@ -59,54 +53,6 @@ export class RiskScenarioController {
   @Get('risk/:riskId')
   async findByRisk(@Param('riskId') riskId: string) {
     return this.service.findByRisk(riskId);
-  }
-
-  /**
-   * Get F1-F6 likelihood factor scores for a scenario
-   */
-  @Get(':id/factor-scores')
-  async getFactorScores(@Param('id') id: string) {
-    return this.service.getLikelihoodFactorScores(id);
-  }
-
-  /**
-   * Update F1-F6 likelihood factor scores for a scenario
-   */
-  @Put(':id/factor-scores')
-  async updateFactorScores(
-    @Request() req: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Body() data: UpdateFactorScoresDto,
-  ) {
-    return this.service.updateLikelihoodFactorScores(id, data, req.user.id);
-  }
-
-  /**
-   * Get evidence data for F1-F6 likelihood factors
-   */
-  @Get(':id/factor-evidence')
-  async getFactorEvidence(@Param('id') id: string) {
-    return this.service.getFactorEvidence(id);
-  }
-
-  /**
-   * Get residual likelihood factor scores for a scenario
-   */
-  @Get(':id/residual-factor-scores')
-  async getResidualFactorScores(@Param('id') id: string) {
-    return this.service.getResidualFactorScores(id);
-  }
-
-  /**
-   * Update residual likelihood factor scores for a scenario
-   */
-  @Put(':id/residual-factor-scores')
-  async updateResidualFactorScores(
-    @Request() req: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Body() data: UpdateResidualFactorScoresDto,
-  ) {
-    return this.service.updateResidualFactorScores(id, data, req.user.id);
   }
 
   // ============================================
@@ -159,51 +105,6 @@ export class RiskScenarioController {
       undefined,
       req.user?.id,
     );
-  }
-
-  // ============================================
-  // BIRT IMPACT ASSESSMENT ENDPOINTS
-  // ============================================
-
-  @Get(':id/impact-assessments')
-  async getImpactAssessments(
-    @Param('id') id: string,
-    @Query('isResidual') isResidual?: string,
-  ) {
-    const isResidualBool = isResidual === 'true';
-    return this.service.getImpactAssessments(id, isResidualBool);
-  }
-
-  @Post(':id/impact-assessments')
-  async saveImpactAssessments(
-    @Param('id') id: string,
-    @Body() data: SaveImpactAssessmentsDto,
-  ) {
-    return this.service.saveImpactAssessments(
-      id,
-      data.assessments,
-      data.isResidual ?? false,
-      data.organisationId,
-    );
-  }
-
-  @Delete(':id/impact-assessments/:category')
-  async deleteImpactAssessment(
-    @Param('id') id: string,
-    @Param('category') category: ImpactCategory,
-    @Query('isResidual') isResidual?: string,
-  ) {
-    const isResidualBool = isResidual === 'true';
-    return this.service.deleteImpactAssessment(id, category, isResidualBool);
-  }
-
-  @Delete(':id/impact-assessments')
-  async clearImpactAssessments(
-    @Param('id') id: string,
-    @Query('isResidual') isResidual?: string,
-  ) {
-    const isResidualBool = isResidual !== undefined ? isResidual === 'true' : undefined;
-    return this.service.clearImpactAssessments(id, isResidualBool);
   }
 
   @Get(':id')

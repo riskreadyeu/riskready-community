@@ -144,7 +144,7 @@ Manages ISO 27001 controls, Statement of Applicability (SOA), control assessment
 
 ### Risks Server -- 33 tools (22 query, 11 mutation)
 
-Manages the risk register, scenarios with factor scoring (F1--F6), KRIs, tolerance statements, and treatment plans.
+Manages the risk register, risk scenarios with likelihood/impact scoring (5×5 matrix, scores 1--25), KRIs, residual risk calculated from linked controls, and treatment plans.
 
 | Capability | Examples |
 |---|---|

@@ -119,7 +119,6 @@ model User {
   risksDisabled               Risk[]             @relation("RiskDisabledBy")
   scenariosCreated            RiskScenario[]     @relation("ScenarioCreatedBy")
   scenariosUpdated            RiskScenario[]     @relation("ScenarioUpdatedBy")
-  scenariosCalculatedBy       RiskScenario[]     @relation("ScenarioCalculatedBy")
   scenariosResidualOverridden RiskScenario[]     @relation("ScenarioResidualOverriddenBy")
   krisCreated                 KeyRiskIndicator[] @relation("KRICreatedBy")
   krisUpdated                 KeyRiskIndicator[] @relation("KRIUpdatedBy")

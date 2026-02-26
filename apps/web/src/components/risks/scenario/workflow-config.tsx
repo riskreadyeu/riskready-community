@@ -26,7 +26,7 @@ export const STATUS_CONFIG: Record<ScenarioStatus, StatusConfig> = {
     borderColor: "border-gray-300",
     icon: <Target className="w-4 h-4" />,
     description: "You're building the risk picture",
-    whatToDo: "Score the 3 likelihood factors (Threat Frequency, Exploit Ease, Attack Surface) and assess BIRT impact categories. This creates the evidence base for your risk decision.",
+    whatToDo: "Set likelihood and impact levels to calculate the inherent risk score. This creates the evidence base for your risk decision.",
     phase: "assessment",
   },
   ASSESSED: {

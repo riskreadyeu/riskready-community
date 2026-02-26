@@ -248,18 +248,6 @@ export async function seedRisks(prismaArg?: PrismaClient): Promise<void> {
         likelihood: LikelihoodLevel.POSSIBLE,
         impact: ImpactLevel.MODERATE,
         inherentScore: 9,
-        // Initialize Factor scores to baseline (e.g. 1) to avoid broken calculation UI
-        f1ThreatFrequency: 1,
-        f2ControlEffectiveness: 1,
-        f3GapVulnerability: 1,
-        f4IncidentHistory: 1,
-        f5AttackSurface: 1,
-        f6Environmental: 1,
-        i1Financial: 1,
-        i2Operational: 1,
-        i3Regulatory: 1,
-        i4Reputational: 1,
-        i5Strategic: 1,
       },
     });
     scenariosCreated++;

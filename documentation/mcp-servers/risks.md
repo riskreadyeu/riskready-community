@@ -22,8 +22,8 @@ Manages the risk register, risk scenarios, Key Risk Indicators (KRIs), Risk Tole
 | Tool | Description |
 |------|-------------|
 | `list_scenarios` | List scenarios with filters: riskId, status, toleranceStatus. Paginated. |
-| `get_scenario` | Single scenario with factor scores, assessments, controls, state history. |
-| `get_scenario_scores` | Factor scores (F1-F6), impact scores (I1-I5), calculation metadata. |
+| `get_scenario` | Single scenario with likelihood, impact, inherent/residual scores, controls, state history. |
+| `get_scenario_scores` | 5x5 matrix scores: likelihood, impact, inherentScore, residualScore, residualLikelihood, residualImpact. |
 
 ### Key Risk Indicators (3)
 
@@ -103,7 +103,7 @@ Manages the risk register, risk scenarios, Key Risk Indicators (KRIs), Risk Tole
 | URI | Description |
 |-----|-------------|
 | `risks://frameworks/iso31000` | ISO 31000 risk management framework structure |
-| `risks://scoring/methodology` | Factor-based risk scoring methodology (F1-F6, I1-I5) |
+| `risks://scoring/methodology` | 5x5 risk matrix methodology: likelihood (RARE–ALMOST_CERTAIN) x impact (NEGLIGIBLE–SEVERE), scored 1–25 |
 | `risks://tolerance/guidance` | Risk tolerance and appetite framework guidance |
 | `risks://treatment/workflow` | Treatment plan lifecycle and action tracking |
 | `risks://data-integrity` | Anti-hallucination guidance for AI consumers |

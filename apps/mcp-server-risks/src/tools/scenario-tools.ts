@@ -6,7 +6,7 @@ import { withErrorHandling } from '#mcp-shared';
 export function registerScenarioTools(server: McpServer) {
   server.tool(
     'list_scenarios',
-    'List risk scenarios with optional filters. Returns scenario ID, title, status, scores, and tolerance status.',
+    'List risk scenarios with optional filters. Returns scenario ID, title, status, likelihood, impact, scores, and tolerance status.',
     {
       riskId: z.string().optional().describe('Filter by parent risk UUID'),
       status: z.enum(['DRAFT', 'ASSESSED', 'EVALUATED', 'TREATING', 'TREATED', 'ACCEPTED', 'MONITORING', 'ESCALATED', 'REVIEW', 'CLOSED', 'ARCHIVED']).optional().describe('Filter by scenario status'),
@@ -39,8 +39,6 @@ export function registerScenarioTools(server: McpServer) {
             residualScore: true,
             toleranceStatus: true,
             toleranceGap: true,
-            quantitativeMode: true,
-            aleMean: true,
             risk: { select: { id: true, riskId: true, title: true } },
             _count: { select: { controlLinks: true, treatmentPlans: true } },
           },
@@ -61,7 +59,7 @@ export function registerScenarioTools(server: McpServer) {
 
   server.tool(
     'get_scenario',
-    'Get a single risk scenario with full details: factor scores, assessments, controls, state history, and calculation metadata.',
+    'Get a single risk scenario with full details: scores, controls, state history, and calculation metadata.',
     {
       id: z.string().describe('RiskScenario UUID'),
     },
@@ -75,7 +73,6 @@ export function registerScenarioTools(server: McpServer) {
               control: { select: { id: true, controlId: true, name: true, implementationStatus: true } },
             },
           },
-          impactAssessments: true,
           treatmentPlans: {
             select: {
               id: true,
@@ -131,7 +128,7 @@ export function registerScenarioTools(server: McpServer) {
 
   server.tool(
     'get_scenario_scores',
-    'Get factor scores (F1-F6), impact scores (I1-I5), and calculation metadata for a scenario.',
+    'Get likelihood, impact, inherent/residual scores, and override status for a scenario.',
     {
       id: z.string().describe('RiskScenario UUID'),
     },
@@ -142,47 +139,20 @@ export function registerScenarioTools(server: McpServer) {
           id: true,
           scenarioId: true,
           title: true,
-          f1ThreatFrequency: true,
-          f1Source: true,
-          f1Override: true,
-          f2ControlEffectiveness: true,
-          f2Source: true,
-          f2Override: true,
-          f3GapVulnerability: true,
-          f3Source: true,
-          f3Override: true,
-          f4IncidentHistory: true,
-          f5AttackSurface: true,
-          f6Environmental: true,
-          i1Financial: true,
-          i2Operational: true,
-          i3Regulatory: true,
-          i4Reputational: true,
-          i5Strategic: true,
-          calculatedLikelihood: true,
-          calculatedImpact: true,
           likelihood: true,
           impact: true,
           inherentScore: true,
           residualLikelihood: true,
           residualImpact: true,
           residualScore: true,
+          calculatedResidualLikelihood: true,
+          calculatedResidualImpact: true,
           calculatedResidualScore: true,
           residualOverridden: true,
           residualOverrideJustification: true,
-          weightedImpact: true,
-          residualWeightedImpact: true,
-          calculationTrigger: true,
-          lastCalculatedAt: true,
-          quantitativeMode: true,
-          tefMin: true,
-          tefMode: true,
-          tefMax: true,
-          aleMean: true,
-          aleMedian: true,
-          aleP90: true,
-          aleP95: true,
-          aleP99: true,
+          targetResidualScore: true,
+          toleranceStatus: true,
+          toleranceGap: true,
         },
       });
 

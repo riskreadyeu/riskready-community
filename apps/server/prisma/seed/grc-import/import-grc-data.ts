@@ -224,17 +224,6 @@ async function importScenarios(orgId: string) {
         residualLikelihood: row.residualLikelihood || null,
         residualImpact: row.residualImpact || null,
         residualScore: toNumber(row.residualScore),
-        f1ThreatFrequency: toNumber(row.f1ThreatFrequency),
-        f2ControlEffectiveness: toNumber(row.f2ControlEffectiveness),
-        f3GapVulnerability: toNumber(row.f3Opportunity),
-        f4IncidentHistory: toNumber(row.f4LikelihoodSuccess),
-        f5AttackSurface: toNumber(row.f5Confidence),
-        f6Environmental: toNumber(row.f6Source),
-        i1Financial: toNumber(row.i1Financial),
-        i2Operational: toNumber(row.i3Operational),
-        i3Regulatory: toNumber(row.i4Legal),
-        i4Reputational: toNumber(row.i2Reputational),
-        i5Strategic: toNumber(row.i5Strategic),
         toleranceThreshold: toNumber(row.toleranceThreshold),
         toleranceStatus: row.toleranceStatus || null,
         riskId: riskDbId,
@@ -473,60 +462,6 @@ async function importRACIAssignments() {
   console.log(`  Imported ${activities.size} activities and ${imported} RACI assignments`);
 }
 
-async function importScenarioImpactAssessments(orgId: string) {
-  console.log('Importing scenario impact assessments...');
-  const filePath = path.join(IMPORT_DIR, 'risk/07_scenario_impact_assessments.csv');
-
-  if (!fs.existsSync(filePath)) {
-    console.log('  No scenario impact assessments file found, skipping');
-    return;
-  }
-
-  const data = parseCSV<any>(filePath);
-
-  // Get scenario mappings
-  const scenarios = await prisma.riskScenario.findMany({
-    where: { risk: { organisationId: orgId } },
-  });
-  const scenarioMap = new Map(scenarios.map(s => [s.scenarioId, s.id]));
-
-  // Delete existing
-  await prisma.scenarioImpactAssessment.deleteMany({
-    where: { scenario: { risk: { organisationId: orgId } } },
-  });
-
-  let imported = 0;
-  let skipped = 0;
-
-  for (const row of data) {
-    const scenarioDbId = scenarioMap.get(row.scenarioId);
-    if (!scenarioDbId) {
-      skipped++;
-      continue;
-    }
-
-    try {
-      await prisma.scenarioImpactAssessment.create({
-        data: {
-          scenarioId: scenarioDbId,
-          category: mapImpactCategory(row.category),
-          level: row.level || 'MODERATE',
-          value: toNumber(row.value) || 3,
-          rationale: row.rationale || null,
-          isResidual: toBool(row.isResidual),
-        },
-      });
-      imported++;
-    } catch (e: any) {
-      // Skip duplicates
-      if (!e.message?.includes('Unique constraint')) {
-        throw e;
-      }
-    }
-  }
-  console.log(`  Imported ${imported} scenario impact assessments (${skipped} skipped)`);
-}
-
 async function importKRIHistory(orgId: string) {
   console.log('Importing KRI history...');
   const filePath = path.join(IMPORT_DIR, 'risk/09_kri_history.csv');
@@ -582,23 +517,6 @@ function mapKRIStatus(value: string | undefined): 'GREEN' | 'AMBER' | 'RED' | 'N
     return upper as any;
   }
   return 'NOT_MEASURED';
-}
-
-function mapImpactCategory(value: string | undefined): 'FINANCIAL' | 'OPERATIONAL' | 'LEGAL_REGULATORY' | 'REPUTATIONAL' | 'STRATEGIC' {
-  if (!value) return 'FINANCIAL';
-  const upper = value.toUpperCase();
-  // Map common variants
-  const mapping: Record<string, string> = {
-    'FINANCIAL': 'FINANCIAL',
-    'OPERATIONAL': 'OPERATIONAL',
-    'LEGAL': 'LEGAL_REGULATORY',
-    'LEGAL_REGULATORY': 'LEGAL_REGULATORY',
-    'REGULATORY': 'LEGAL_REGULATORY',
-    'REPUTATION': 'REPUTATIONAL',
-    'REPUTATIONAL': 'REPUTATIONAL',
-    'STRATEGIC': 'STRATEGIC',
-  };
-  return (mapping[upper] || 'FINANCIAL') as any;
 }
 
 function mapToleranceLevel(value: string | undefined): 'HIGH' | 'MEDIUM' | 'LOW' {
@@ -1251,7 +1169,6 @@ async function main() {
     await importMetricHistory(org.id);
     await importRisks(org.id);
     await importScenarios(org.id);
-    await importScenarioImpactAssessments(org.id);
     await importKRIs(org.id);
     await importKRIHistory(org.id);
     await importRTS(org.id);

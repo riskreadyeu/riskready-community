@@ -1,7 +1,7 @@
 // =============================================================================
 // RiskScenarioDetailV2Page - Scenario Detail Page
 // =============================================================================
-// Displays comprehensive scenario details with assessment, FAIR analysis,
+// Displays comprehensive scenario details with assessment,
 // controls, and treatment plans using Archer design patterns
 
 import { useState, useEffect } from "react";
@@ -45,7 +45,6 @@ import {
 import {
   getRiskScenario,
   getScenarioLinkedControls,
-  updateFactorScores,
   calculateResidualFromControls,
   type RiskScenario,
   type ScenarioControlLink,
@@ -63,9 +62,6 @@ import {
   AssessmentDialog,
   ScenarioControlLinker,
 } from "@/components/risks";
-
-// Risk Assessment Components
-import { ImpactSummaryCard } from "@/components/risks/ImpactSummaryCard";
 
 // Shared Constants
 import {
@@ -302,21 +298,6 @@ export function RiskScenarioDetailV2Page() {
                 </CardContent>
               </Card>
             </div>
-          </Section>
-
-          {/* Impact Assessment (BIRT Categories) */}
-          <Section title="Impact Assessment (BIRT)" icon={Target} description="5-category impact breakdown">
-            <ImpactSummaryCard
-              scenarioId={scenario.id}
-              organisationId={organisationId}
-              existingAssessments={scenario.impactAssessments}
-              weightedImpact={scenario.weightedImpact}
-              onSaved={(weightedImpact) => {
-                loadData();
-                toast.success(`Impact saved: ${weightedImpact}`);
-              }}
-              variant="inline"
-            />
           </Section>
 
           {/* Score Summary */}

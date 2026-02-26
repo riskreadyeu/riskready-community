@@ -49,15 +49,8 @@ export function RiskScenarioDialog({
     framework: "ISO" as ControlFramework,
     likelihood: "",
     impact: "",
-    sleLow: 0,
-    sleLikely: 0,
-    sleHigh: 0,
-    aro: 0,
     controlIds: "",
   });
-
-  // Calculate ALE
-  const calculatedALE = form.sleLikely * form.aro;
 
   useEffect(() => {
     if (scenario) {
@@ -70,10 +63,6 @@ export function RiskScenarioDialog({
         framework: scenario.framework || "ISO",
         likelihood: scenario.likelihood || "",
         impact: scenario.impact || "",
-        sleLow: scenario.sleLow ? Number(scenario.sleLow) : 0,
-        sleLikely: scenario.sleLikely ? Number(scenario.sleLikely) : 0,
-        sleHigh: scenario.sleHigh ? Number(scenario.sleHigh) : 0,
-        aro: scenario.aro ? Number(scenario.aro) : 0,
         controlIds: scenario.controlIds || "",
       });
     } else {
@@ -91,10 +80,6 @@ export function RiskScenarioDialog({
       framework: "ISO",
       likelihood: "",
       impact: "",
-      sleLow: 0,
-      sleLikely: 0,
-      sleHigh: 0,
-      aro: 0,
       controlIds: "",
     });
     setError(null);
@@ -116,7 +101,6 @@ export function RiskScenarioDialog({
         ...form,
         likelihood: form.likelihood ? form.likelihood as LikelihoodLevel : undefined,
         impact: form.impact ? form.impact as ImpactLevel : undefined,
-        ale: calculatedALE,
         riskId: riskId || scenario?.riskId,
       };
 
@@ -143,14 +127,6 @@ export function RiskScenarioDialog({
     onOpenChange(false);
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(value);
-  };
-
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -160,7 +136,7 @@ export function RiskScenarioDialog({
             {isEditing ? `Edit Scenario - ${scenario.scenarioId}` : "Create New Risk Scenario"}
           </DialogTitle>
           <DialogDescription>
-            Define the cause-event-consequence chain and financial impact estimates.
+            Define the cause-event-consequence chain, likelihood, and impact.
           </DialogDescription>
         </DialogHeader>
 
@@ -290,78 +266,6 @@ export function RiskScenarioDialog({
                     <SelectItem value="SEVERE">Severe (5)</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
-
-            {/* Financial Impact - SLE */}
-            <div className="space-y-4 p-4 rounded-lg bg-secondary/30 border">
-              <h4 className="font-medium text-sm">Financial Impact Estimates</h4>
-              
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sleLow" className="text-green-600">SLE (Low)</Label>
-                  <Input
-                    id="sleLow"
-                    type="number"
-                    min={0}
-                    value={form.sleLow || ""}
-                    onChange={(e) => setForm({ ...form, sleLow: parseFloat(e.target.value) || 0 })}
-                    placeholder="0"
-                  />
-                  <p className="text-xs text-muted-foreground">Best case loss</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sleLikely" className="text-amber-600">SLE (Likely)</Label>
-                  <Input
-                    id="sleLikely"
-                    type="number"
-                    min={0}
-                    value={form.sleLikely || ""}
-                    onChange={(e) => setForm({ ...form, sleLikely: parseFloat(e.target.value) || 0 })}
-                    placeholder="0"
-                  />
-                  <p className="text-xs text-muted-foreground">Expected loss</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sleHigh" className="text-red-600">SLE (High)</Label>
-                  <Input
-                    id="sleHigh"
-                    type="number"
-                    min={0}
-                    value={form.sleHigh || ""}
-                    onChange={(e) => setForm({ ...form, sleHigh: parseFloat(e.target.value) || 0 })}
-                    placeholder="0"
-                  />
-                  <p className="text-xs text-muted-foreground">Worst case loss</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="space-y-2">
-                  <Label htmlFor="aro">ARO (Annual Rate of Occurrence)</Label>
-                  <Input
-                    id="aro"
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    value={form.aro || ""}
-                    onChange={(e) => setForm({ ...form, aro: parseFloat(e.target.value) || 0 })}
-                    placeholder="0.00"
-                  />
-                  <p className="text-xs text-muted-foreground">Expected times per year (e.g., 0.5 = once every 2 years)</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>ALE (Calculated)</Label>
-                  <div className={cn(
-                    "h-10 flex items-center px-3 rounded-md border bg-muted text-lg font-bold",
-                    calculatedALE > 100000 ? "text-red-600" :
-                    calculatedALE > 50000 ? "text-orange-600" :
-                    calculatedALE > 10000 ? "text-amber-600" : "text-green-600"
-                  )}>
-                    {formatCurrency(calculatedALE)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">SLE (Likely) × ARO</p>
-                </div>
               </div>
             </div>
 

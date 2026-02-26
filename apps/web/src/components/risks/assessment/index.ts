@@ -1,9 +1,4 @@
 // =============================================================================
 // Headless Assessment Components (Community Edition)
 // =============================================================================
-
-export {
-  ImpactAssessmentContent,
-  type ImpactAssessmentContentProps,
-  type ImpactActionState,
-} from "./impact-assessment-content";
+// BIRT impact assessment components removed — using simple 5×5 L×I matrix

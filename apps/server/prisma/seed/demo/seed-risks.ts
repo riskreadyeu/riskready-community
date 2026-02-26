@@ -234,9 +234,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'POSSIBLE' as const,
       residualImpact: 'MAJOR' as const,
       residualScore: 12,
-      f1ThreatFrequency: 4,
-      f2ControlEffectiveness: 3,
-      f3GapVulnerability: 4,
     },
     {
       scenarioId: 'R-01-S02',
@@ -252,9 +249,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'UNLIKELY' as const,
       residualImpact: 'MODERATE' as const,
       residualScore: 6,
-      f1ThreatFrequency: 3,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 3,
     },
     // R-02 scenarios
     {
@@ -271,9 +265,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'UNLIKELY' as const,
       residualImpact: 'MAJOR' as const,
       residualScore: 8,
-      f1ThreatFrequency: 4,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 3,
     },
     {
       scenarioId: 'R-02-S02',
@@ -289,9 +280,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'RARE' as const,
       residualImpact: 'MODERATE' as const,
       residualScore: 3,
-      f1ThreatFrequency: 1,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 2,
     },
     // R-03 scenarios
     {
@@ -308,9 +296,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'UNLIKELY' as const,
       residualImpact: 'SEVERE' as const,
       residualScore: 10,
-      f1ThreatFrequency: 4,
-      f2ControlEffectiveness: 3,
-      f3GapVulnerability: 3,
     },
     {
       scenarioId: 'R-03-S02',
@@ -326,9 +311,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'RARE' as const,
       residualImpact: 'MAJOR' as const,
       residualScore: 4,
-      f1ThreatFrequency: 3,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 2,
     },
     // R-04 scenarios
     {
@@ -345,9 +327,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'RARE' as const,
       residualImpact: 'MODERATE' as const,
       residualScore: 3,
-      f1ThreatFrequency: 2,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 3,
     },
     {
       scenarioId: 'R-04-S02',
@@ -363,9 +342,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'RARE' as const,
       residualImpact: 'MINOR' as const,
       residualScore: 2,
-      f1ThreatFrequency: 1,
-      f2ControlEffectiveness: 3,
-      f3GapVulnerability: 2,
     },
     // R-05 scenarios
     {
@@ -382,9 +358,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'UNLIKELY' as const,
       residualImpact: 'MAJOR' as const,
       residualScore: 8,
-      f1ThreatFrequency: 3,
-      f2ControlEffectiveness: 3,
-      f3GapVulnerability: 3,
     },
     {
       scenarioId: 'R-05-S02',
@@ -400,9 +373,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'RARE' as const,
       residualImpact: 'MODERATE' as const,
       residualScore: 3,
-      f1ThreatFrequency: 1,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 3,
     },
     // R-06 scenarios
     {
@@ -419,9 +389,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'POSSIBLE' as const,
       residualImpact: 'MINOR' as const,
       residualScore: 6,
-      f1ThreatFrequency: 4,
-      f2ControlEffectiveness: 3,
-      f3GapVulnerability: 3,
     },
     {
       scenarioId: 'R-06-S02',
@@ -437,9 +404,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'RARE' as const,
       residualImpact: 'MINOR' as const,
       residualScore: 2,
-      f1ThreatFrequency: 2,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 2,
     },
     // R-07 scenarios
     {
@@ -456,9 +420,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'RARE' as const,
       residualImpact: 'MODERATE' as const,
       residualScore: 3,
-      f1ThreatFrequency: 1,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 2,
     },
     {
       scenarioId: 'R-07-S02',
@@ -474,9 +435,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'RARE' as const,
       residualImpact: 'NEGLIGIBLE' as const,
       residualScore: 1,
-      f1ThreatFrequency: 1,
-      f2ControlEffectiveness: 1,
-      f3GapVulnerability: 1,
     },
     // R-08 scenarios
     {
@@ -493,9 +451,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'POSSIBLE' as const,
       residualImpact: 'MODERATE' as const,
       residualScore: 9,
-      f1ThreatFrequency: 4,
-      f2ControlEffectiveness: 3,
-      f3GapVulnerability: 3,
     },
     {
       scenarioId: 'R-08-S02',
@@ -511,9 +466,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'UNLIKELY' as const,
       residualImpact: 'MINOR' as const,
       residualScore: 4,
-      f1ThreatFrequency: 3,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 3,
     },
     // R-09 scenarios
     {
@@ -530,9 +482,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'RARE' as const,
       residualImpact: 'MAJOR' as const,
       residualScore: 4,
-      f1ThreatFrequency: 1,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 1,
     },
     {
       scenarioId: 'R-09-S02',
@@ -548,9 +497,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'RARE' as const,
       residualImpact: 'MINOR' as const,
       residualScore: 2,
-      f1ThreatFrequency: 1,
-      f2ControlEffectiveness: 1,
-      f3GapVulnerability: 2,
     },
     // R-10 scenarios
     {
@@ -567,9 +513,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'UNLIKELY' as const,
       residualImpact: 'MAJOR' as const,
       residualScore: 8,
-      f1ThreatFrequency: 3,
-      f2ControlEffectiveness: 3,
-      f3GapVulnerability: 3,
     },
     {
       scenarioId: 'R-10-S02',
@@ -585,9 +528,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'UNLIKELY' as const,
       residualImpact: 'MODERATE' as const,
       residualScore: 6,
-      f1ThreatFrequency: 2,
-      f2ControlEffectiveness: 3,
-      f3GapVulnerability: 2,
     },
     // R-11 scenarios
     {
@@ -604,9 +544,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'UNLIKELY' as const,
       residualImpact: 'MODERATE' as const,
       residualScore: 6,
-      f1ThreatFrequency: 2,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 3,
     },
     {
       scenarioId: 'R-11-S02',
@@ -622,9 +559,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'RARE' as const,
       residualImpact: 'MINOR' as const,
       residualScore: 2,
-      f1ThreatFrequency: 2,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 2,
     },
     // R-12 scenarios
     {
@@ -641,9 +575,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'UNLIKELY' as const,
       residualImpact: 'MODERATE' as const,
       residualScore: 6,
-      f1ThreatFrequency: 3,
-      f2ControlEffectiveness: 3,
-      f3GapVulnerability: 3,
     },
     {
       scenarioId: 'R-12-S02',
@@ -659,9 +590,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'RARE' as const,
       residualImpact: 'MINOR' as const,
       residualScore: 2,
-      f1ThreatFrequency: 3,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 3,
     },
     // R-13 scenarios
     {
@@ -678,9 +606,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'UNLIKELY' as const,
       residualImpact: 'MAJOR' as const,
       residualScore: 8,
-      f1ThreatFrequency: 2,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 2,
     },
     {
       scenarioId: 'R-13-S02',
@@ -696,9 +621,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'UNLIKELY' as const,
       residualImpact: 'MODERATE' as const,
       residualScore: 6,
-      f1ThreatFrequency: 3,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 3,
     },
     // R-14 scenarios
     {
@@ -715,9 +637,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'UNLIKELY' as const,
       residualImpact: 'MODERATE' as const,
       residualScore: 6,
-      f1ThreatFrequency: 3,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 3,
     },
     {
       scenarioId: 'R-14-S02',
@@ -733,9 +652,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'RARE' as const,
       residualImpact: 'MINOR' as const,
       residualScore: 2,
-      f1ThreatFrequency: 2,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 2,
     },
     // R-15 scenarios
     {
@@ -752,9 +668,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'POSSIBLE' as const,
       residualImpact: 'MINOR' as const,
       residualScore: 6,
-      f1ThreatFrequency: 4,
-      f2ControlEffectiveness: 2,
-      f3GapVulnerability: 3,
     },
     {
       scenarioId: 'R-15-S02',
@@ -770,9 +683,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       residualLikelihood: 'UNLIKELY' as const,
       residualImpact: 'MINOR' as const,
       residualScore: 4,
-      f1ThreatFrequency: 3,
-      f2ControlEffectiveness: 3,
-      f3GapVulnerability: 3,
     },
   ];
 
@@ -791,9 +701,6 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
         residualLikelihood: def.residualLikelihood,
         residualImpact: def.residualImpact,
         residualScore: def.residualScore,
-        f1ThreatFrequency: def.f1ThreatFrequency,
-        f2ControlEffectiveness: def.f2ControlEffectiveness,
-        f3GapVulnerability: def.f3GapVulnerability,
         riskId: ctx.riskIds[def.riskRef]!,
         createdById: ctx.users.ciso,
       },
