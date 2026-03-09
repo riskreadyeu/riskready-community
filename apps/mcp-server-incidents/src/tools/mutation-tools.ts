@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
 import { createPendingAction, withErrorHandling } from '#mcp-shared';
@@ -26,7 +27,7 @@ function registerIncidentMutations(server: McpServer) {
     },
     withErrorHandling('propose_create_incident', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_INCIDENT',
+        actionType: McpActionType.CREATE_INCIDENT,
         summary: `Create ${params.severity} incident "${params.title}" (${params.referenceNumber}) from ${params.source}`,
         reason: params.reason,
         payload: params,
@@ -68,7 +69,7 @@ function registerIncidentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_INCIDENT',
+        actionType: McpActionType.UPDATE_INCIDENT,
         summary: `Update incident ${incident.referenceNumber} (${incident.title})`,
         reason: params.reason,
         payload: params,
@@ -99,7 +100,7 @@ function registerIncidentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'TRANSITION_INCIDENT',
+        actionType: McpActionType.TRANSITION_INCIDENT,
         summary: `Transition incident ${incident.referenceNumber} from ${incident.status} to ${params.targetStatus}`,
         reason: params.reason,
         payload: { ...params, currentStatus: incident.status },
@@ -134,7 +135,7 @@ function registerIncidentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'ADD_INCIDENT_ASSET',
+        actionType: McpActionType.ADD_INCIDENT_ASSET,
         summary: `Link asset ${asset.assetTag} (${asset.name}) to incident ${incident.referenceNumber} as ${params.impactType}`,
         reason: params.reason,
         payload: params,
@@ -169,7 +170,7 @@ function registerIncidentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'LINK_INCIDENT_CONTROL',
+        actionType: McpActionType.LINK_INCIDENT_CONTROL,
         summary: `Link control ${control.controlId} (${control.name}) to incident ${incident.referenceNumber} as ${params.linkType}`,
         reason: params.reason,
         payload: params,
@@ -203,7 +204,7 @@ function registerIncidentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CLOSE_INCIDENT',
+        actionType: McpActionType.CLOSE_INCIDENT,
         summary: `Close incident ${incident.referenceNumber} as ${params.resolutionType} (current status: ${incident.status})`,
         reason: params.reason,
         payload: { ...params, currentStatus: incident.status },
@@ -240,7 +241,7 @@ function registerTimelineMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'ADD_TIMELINE_ENTRY',
+        actionType: McpActionType.ADD_TIMELINE_ENTRY,
         summary: `Add ${params.entryType} timeline entry to incident ${incident.referenceNumber}: "${params.title}"`,
         reason: params.reason,
         payload: params,
@@ -279,7 +280,7 @@ function registerLessonMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CREATE_LESSON_LEARNED',
+        actionType: McpActionType.CREATE_LESSON_LEARNED,
         summary: `Create ${params.category} lesson learned for incident ${incident.referenceNumber}`,
         reason: params.reason,
         payload: params,

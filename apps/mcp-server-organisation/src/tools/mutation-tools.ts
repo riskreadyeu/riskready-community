@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
 import { createPendingAction, withErrorHandling } from '#mcp-shared';
@@ -70,7 +71,7 @@ function registerProfileMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_ORG_PROFILE',
+        actionType: McpActionType.UPDATE_ORG_PROFILE,
         summary: `Update organisation profile "${org.name}"`,
         reason: params.reason,
         payload: params,
@@ -111,7 +112,7 @@ function registerStructureMutations(server: McpServer) {
     },
     withErrorHandling('propose_create_department', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_DEPARTMENT',
+        actionType: McpActionType.CREATE_DEPARTMENT,
         summary: `Create department "${params.name}" (${params.departmentCode})`,
         reason: params.reason,
         payload: params,
@@ -152,7 +153,7 @@ function registerStructureMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_DEPARTMENT',
+        actionType: McpActionType.UPDATE_DEPARTMENT,
         summary: `Update department "${dept.name}" (${dept.departmentCode})`,
         reason: params.reason,
         payload: params,
@@ -191,7 +192,7 @@ function registerStructureMutations(server: McpServer) {
     },
     withErrorHandling('propose_create_location', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_LOCATION',
+        actionType: McpActionType.CREATE_LOCATION,
         summary: `Create location "${params.name}"${params.locationCode ? ` (${params.locationCode})` : ''}`,
         reason: params.reason,
         payload: params,
@@ -234,7 +235,7 @@ function registerStructureMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_LOCATION',
+        actionType: McpActionType.UPDATE_LOCATION,
         summary: `Update location "${loc.name}"${loc.locationCode ? ` (${loc.locationCode})` : ''}`,
         reason: params.reason,
         payload: params,
@@ -276,7 +277,7 @@ function registerProcessMutations(server: McpServer) {
     },
     withErrorHandling('propose_create_business_process', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_BUSINESS_PROCESS',
+        actionType: McpActionType.CREATE_BUSINESS_PROCESS,
         summary: `Create business process "${params.name}" (${params.processCode})`,
         reason: params.reason,
         payload: params,
@@ -317,7 +318,7 @@ function registerProcessMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_BUSINESS_PROCESS',
+        actionType: McpActionType.UPDATE_BUSINESS_PROCESS,
         summary: `Update business process "${process.name}" (${process.processCode})`,
         reason: params.reason,
         payload: params,
@@ -352,7 +353,7 @@ function registerProcessMutations(server: McpServer) {
     },
     withErrorHandling('propose_create_external_dependency', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_EXTERNAL_DEPENDENCY',
+        actionType: McpActionType.CREATE_EXTERNAL_DEPENDENCY,
         summary: `Create ${params.criticalityLevel} external dependency "${params.name}" (${params.dependencyType})`,
         reason: params.reason,
         payload: params,
@@ -390,7 +391,7 @@ function registerProcessMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_EXTERNAL_DEPENDENCY',
+        actionType: McpActionType.UPDATE_EXTERNAL_DEPENDENCY,
         summary: `Update external dependency "${dep.name}"`,
         reason: params.reason,
         payload: params,
@@ -422,7 +423,7 @@ function registerGovernanceMutations(server: McpServer) {
     },
     withErrorHandling('propose_create_committee', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_COMMITTEE',
+        actionType: McpActionType.CREATE_COMMITTEE,
         summary: `Create ${params.committeeType} committee "${params.name}"`,
         reason: params.reason,
         payload: params,
@@ -457,7 +458,7 @@ function registerGovernanceMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_COMMITTEE',
+        actionType: McpActionType.UPDATE_COMMITTEE,
         summary: `Update committee "${committee.name}"`,
         reason: params.reason,
         payload: params,
@@ -497,7 +498,7 @@ function registerGovernanceMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CREATE_COMMITTEE_MEETING',
+        actionType: McpActionType.CREATE_COMMITTEE_MEETING,
         summary: `Schedule meeting "${params.title}" for ${committee.name} on ${params.meetingDate}`,
         reason: params.reason,
         payload: params,

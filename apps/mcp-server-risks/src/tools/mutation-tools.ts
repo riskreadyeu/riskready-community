@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
 import { createPendingAction, withErrorHandling } from '#mcp-shared';
@@ -27,7 +28,7 @@ function registerRiskMutations(server: McpServer) {
     },
     withErrorHandling('propose_create_risk', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_RISK',
+        actionType: McpActionType.CREATE_RISK,
         summary: `Create risk "${params.title}" (${params.riskId})`,
         reason: params.reason,
         payload: params,
@@ -65,7 +66,7 @@ function registerRiskMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_RISK',
+        actionType: McpActionType.UPDATE_RISK,
         summary: `Update risk "${risk.riskId}" (${risk.title})`,
         reason: params.reason,
         payload: params,
@@ -105,7 +106,7 @@ function registerRiskMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CREATE_KRI',
+        actionType: McpActionType.CREATE_KRI,
         summary: `Create KRI "${params.name}" (${params.kriId}) for risk ${risk.riskId}`,
         reason: params.reason,
         payload: params,
@@ -137,7 +138,7 @@ function registerRiskMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'RECORD_KRI_VALUE',
+        actionType: McpActionType.RECORD_KRI_VALUE,
         summary: `Record value "${params.value}" for KRI "${kri.kriId}" (${kri.name})`,
         reason: params.reason,
         payload: params,
@@ -165,7 +166,7 @@ function registerRiskMutations(server: McpServer) {
     },
     withErrorHandling('propose_create_rts', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_RTS',
+        actionType: McpActionType.CREATE_RTS,
         summary: `Create RTS "${params.title}" (${params.rtsId})`,
         reason: params.reason,
         payload: params,
@@ -195,7 +196,7 @@ function registerRiskMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'APPROVE_RTS',
+        actionType: McpActionType.APPROVE_RTS,
         summary: `Approve RTS "${rts.rtsId}" (${rts.title}) — current status: ${rts.status}`,
         reason: params.reason,
         payload: { ...params, currentStatus: rts.status },
@@ -237,7 +238,7 @@ function registerScenarioMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CREATE_SCENARIO',
+        actionType: McpActionType.CREATE_SCENARIO,
         summary: `Create scenario "${params.title}" (${params.scenarioId}) under risk ${risk.riskId}`,
         reason: params.reason,
         payload: params,
@@ -268,7 +269,7 @@ function registerScenarioMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'TRANSITION_SCENARIO',
+        actionType: McpActionType.TRANSITION_SCENARIO,
         summary: `Transition scenario "${scenario.scenarioId}" from ${scenario.status} to ${params.targetStatus}`,
         reason: params.reason,
         payload: { ...params, currentStatus: scenario.status },
@@ -301,7 +302,7 @@ function registerScenarioMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'ASSESS_SCENARIO',
+        actionType: McpActionType.ASSESS_SCENARIO,
         summary: `Record ${params.assessmentType} assessment for scenario "${scenario.scenarioId}" — likelihood: ${params.likelihood}, impact: ${params.impact}`,
         reason: params.reason,
         payload: params,
@@ -347,7 +348,7 @@ function registerTreatmentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CREATE_TREATMENT_PLAN',
+        actionType: McpActionType.CREATE_TREATMENT_PLAN,
         summary: `Create treatment plan "${params.title}" (${params.treatmentId}) for risk ${risk.riskId}`,
         reason: params.reason,
         payload: params,
@@ -385,7 +386,7 @@ function registerTreatmentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CREATE_TREATMENT_ACTION',
+        actionType: McpActionType.CREATE_TREATMENT_ACTION,
         summary: `Create treatment action "${params.title}" (${params.actionId}) under plan ${plan.treatmentId}`,
         reason: params.reason,
         payload: params,

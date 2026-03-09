@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
 import { createPendingAction, withErrorHandling } from '#mcp-shared';
@@ -34,7 +35,7 @@ function registerNonconformityMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CREATE_NONCONFORMITY',
+        actionType: McpActionType.CREATE_NONCONFORMITY,
         summary: `Create nonconformity "${params.title}" (${params.ncId}) — ${params.severity} ${params.source}`,
         reason: params.reason,
         payload: params,
@@ -74,7 +75,7 @@ function registerNonconformityMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_NONCONFORMITY',
+        actionType: McpActionType.UPDATE_NONCONFORMITY,
         summary: `Update nonconformity ${nc.ncId} (${nc.title})`,
         reason: params.reason,
         payload: params,
@@ -105,7 +106,7 @@ function registerNonconformityMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'TRANSITION_NONCONFORMITY',
+        actionType: McpActionType.TRANSITION_NONCONFORMITY,
         summary: `Transition nonconformity ${nc.ncId} from ${nc.status} to ${params.targetStatus}`,
         reason: params.reason,
         payload: { ...params, currentStatus: nc.status },
@@ -138,7 +139,7 @@ function registerNonconformityMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CLOSE_NONCONFORMITY',
+        actionType: McpActionType.CLOSE_NONCONFORMITY,
         summary: `Close nonconformity ${nc.ncId} (${nc.title})`,
         reason: params.reason,
         payload: params,
@@ -172,7 +173,7 @@ function registerCapMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'SUBMIT_CAP',
+        actionType: McpActionType.SUBMIT_CAP,
         summary: `Submit CAP for nonconformity ${nc.ncId} (${nc.title})`,
         reason: params.reason,
         payload: params,
@@ -202,7 +203,7 @@ function registerCapMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'APPROVE_CAP',
+        actionType: McpActionType.APPROVE_CAP,
         summary: `Approve CAP for nonconformity ${nc.ncId} (${nc.title})`,
         reason: params.reason,
         payload: params,
@@ -232,7 +233,7 @@ function registerCapMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'REJECT_CAP',
+        actionType: McpActionType.REJECT_CAP,
         summary: `Reject CAP for nonconformity ${nc.ncId}: ${params.rejectionReason}`,
         reason: params.reason,
         payload: params,

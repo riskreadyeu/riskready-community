@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
 import { createPendingAction, withErrorHandling } from '#mcp-shared';
@@ -35,7 +36,7 @@ function registerDocumentMutations(server: McpServer) {
     },
     withErrorHandling('propose_create_policy', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_POLICY',
+        actionType: McpActionType.CREATE_POLICY,
         summary: `Create ${params.documentType.toLowerCase()} "${params.title}" (${params.documentId})`,
         reason: params.reason,
         payload: {
@@ -101,7 +102,7 @@ function registerDocumentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_POLICY',
+        actionType: McpActionType.UPDATE_POLICY,
         summary: `Update policy "${doc.title}" (${doc.documentId})`,
         reason: params.reason,
         payload: {
@@ -151,7 +152,7 @@ function registerDocumentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'SUBMIT_POLICY_REVIEW',
+        actionType: McpActionType.SUBMIT_POLICY_REVIEW,
         summary: `Submit "${doc.title}" (${doc.documentId}) for ${params.reviewType.toLowerCase().replace('_', ' ')} review`,
         reason: params.reason,
         payload: {
@@ -187,7 +188,7 @@ function registerDocumentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'APPROVE_POLICY',
+        actionType: McpActionType.APPROVE_POLICY,
         summary: `Approve policy "${doc.title}" (${doc.documentId}) — current status: ${doc.status}`,
         reason: params.reason,
         payload: {
@@ -221,7 +222,7 @@ function registerDocumentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'PUBLISH_POLICY',
+        actionType: McpActionType.PUBLISH_POLICY,
         summary: `Publish policy "${doc.title}" (${doc.documentId})`,
         reason: params.reason,
         payload: {
@@ -256,7 +257,7 @@ function registerDocumentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'RETIRE_POLICY',
+        actionType: McpActionType.RETIRE_POLICY,
         summary: `Retire policy "${doc.title}" (${doc.documentId})`,
         reason: params.reason || params.retirementReason,
         payload: {
@@ -305,7 +306,7 @@ function registerExceptionMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CREATE_POLICY_EXCEPTION',
+        actionType: McpActionType.CREATE_POLICY_EXCEPTION,
         summary: `Create exception "${params.title}" (${params.exceptionId}) for policy "${doc.title}"`,
         reason: params.reason,
         payload: {
@@ -356,7 +357,7 @@ function registerExceptionMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'APPROVE_POLICY_EXCEPTION',
+        actionType: McpActionType.APPROVE_POLICY_EXCEPTION,
         summary: `Approve exception "${exception.title}" (${exception.exceptionId}) for policy "${exception.document.title}"`,
         reason: params.reason,
         payload: {
@@ -402,7 +403,7 @@ function registerChangeRequestMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CREATE_POLICY_CHANGE_REQUEST',
+        actionType: McpActionType.CREATE_POLICY_CHANGE_REQUEST,
         summary: `Create ${params.priority} ${params.changeType.toLowerCase().replace('_', ' ')} change request "${params.title}" for policy "${doc.title}"`,
         reason: params.reason,
         payload: {

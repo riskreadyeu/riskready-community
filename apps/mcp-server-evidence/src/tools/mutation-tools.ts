@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
 import { createPendingAction, withErrorHandling } from '#mcp-shared';
@@ -32,7 +33,7 @@ function registerEvidenceMutations(server: McpServer) {
     },
     withErrorHandling('propose_create_evidence', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_EVIDENCE',
+        actionType: McpActionType.CREATE_EVIDENCE,
         summary: `Create ${params.evidenceType} evidence "${params.title}" (${params.evidenceRef})`,
         reason: params.reason,
         payload: params,
@@ -71,7 +72,7 @@ function registerEvidenceMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_EVIDENCE',
+        actionType: McpActionType.UPDATE_EVIDENCE,
         summary: `Update evidence ${evidence.evidenceRef} (${evidence.title})`,
         reason: params.reason,
         payload: params,
@@ -103,7 +104,7 @@ function registerEvidenceMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'LINK_EVIDENCE',
+        actionType: McpActionType.LINK_EVIDENCE,
         summary: `Link evidence ${evidence.evidenceRef} to ${params.targetType} ${params.targetId}${params.linkType ? ` (${params.linkType})` : ''}`,
         reason: params.reason,
         payload: params,
@@ -138,7 +139,7 @@ function registerRequestMutations(server: McpServer) {
     },
     withErrorHandling('propose_create_request', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_EVIDENCE_REQUEST',
+        actionType: McpActionType.CREATE_EVIDENCE_REQUEST,
         summary: `Create evidence request "${params.title}" (${params.requestRef}) due ${params.dueDate}`,
         reason: params.reason,
         payload: params,
@@ -172,7 +173,7 @@ function registerRequestMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'FULFILL_EVIDENCE_REQUEST',
+        actionType: McpActionType.FULFILL_EVIDENCE_REQUEST,
         summary: `Fulfill request ${request.requestRef} with evidence ${evidence.evidenceRef}`,
         reason: params.reason,
         payload: params,
@@ -202,7 +203,7 @@ function registerRequestMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CLOSE_EVIDENCE_REQUEST',
+        actionType: McpActionType.CLOSE_EVIDENCE_REQUEST,
         summary: `${params.action.charAt(0).toUpperCase() + params.action.slice(1)} evidence request ${request.requestRef} (current status: ${request.status})`,
         reason: params.reason,
         payload: { ...params, currentStatus: request.status },

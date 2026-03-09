@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
 import { createPendingAction, getDefaultOrganisationId, withErrorHandling } from '#mcp-shared';
@@ -33,7 +34,7 @@ function registerAssessmentMutations(server: McpServer) {
     },
     withErrorHandling('propose_assessment', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_ASSESSMENT',
+        actionType: McpActionType.CREATE_ASSESSMENT,
         summary: `Create assessment "${params.title}" (${params.assessmentRef})`,
         reason: params.reason,
         payload: params,
@@ -74,7 +75,7 @@ function registerAssessmentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_ASSESSMENT',
+        actionType: McpActionType.UPDATE_ASSESSMENT,
         summary: `Update assessment ${assessment.assessmentRef} (${assessment.title})`,
         reason: params.reason,
         payload: params,
@@ -106,7 +107,7 @@ function registerAssessmentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'DELETE_ASSESSMENT',
+        actionType: McpActionType.DELETE_ASSESSMENT,
         summary: `Delete draft assessment ${assessment.assessmentRef} (${assessment.title})`,
         reason: params.reason,
         payload: params,
@@ -138,7 +139,7 @@ function registerAssessmentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'START_ASSESSMENT',
+        actionType: McpActionType.START_ASSESSMENT,
         summary: `Start assessment ${assessment.assessmentRef} (DRAFT → IN_PROGRESS)`,
         reason: params.reason,
         payload: params,
@@ -170,7 +171,7 @@ function registerAssessmentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'SUBMIT_ASSESSMENT_REVIEW',
+        actionType: McpActionType.SUBMIT_ASSESSMENT_REVIEW,
         summary: `Submit assessment ${assessment.assessmentRef} for review (IN_PROGRESS → UNDER_REVIEW)`,
         reason: params.reason,
         payload: params,
@@ -203,7 +204,7 @@ function registerAssessmentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'COMPLETE_ASSESSMENT',
+        actionType: McpActionType.COMPLETE_ASSESSMENT,
         summary: `Complete assessment ${assessment.assessmentRef} (UNDER_REVIEW → COMPLETED)`,
         reason: params.reason,
         payload: { ...params, reviewNotes: params.reviewNotes },
@@ -236,7 +237,7 @@ function registerAssessmentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CANCEL_ASSESSMENT',
+        actionType: McpActionType.CANCEL_ASSESSMENT,
         summary: `Cancel assessment ${assessment.assessmentRef} (${assessment.status} → CANCELLED)`,
         reason: params.reason,
         payload: params,
@@ -266,7 +267,7 @@ function registerAssessmentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'ADD_ASSESSMENT_CONTROLS',
+        actionType: McpActionType.ADD_ASSESSMENT_CONTROLS,
         summary: `Add ${params.controlIds.length} control(s) to assessment ${assessment.assessmentRef}`,
         reason: params.reason,
         payload: params,
@@ -296,7 +297,7 @@ function registerAssessmentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'REMOVE_ASSESSMENT_CONTROL',
+        actionType: McpActionType.REMOVE_ASSESSMENT_CONTROL,
         summary: `Remove control from assessment ${assessment.assessmentRef}`,
         reason: params.reason,
         payload: params,
@@ -326,7 +327,7 @@ function registerAssessmentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'ADD_ASSESSMENT_SCOPE_ITEMS',
+        actionType: McpActionType.ADD_ASSESSMENT_SCOPE_ITEMS,
         summary: `Add ${params.scopeItemIds.length} scope item(s) to assessment ${assessment.assessmentRef}`,
         reason: params.reason,
         payload: params,
@@ -356,7 +357,7 @@ function registerAssessmentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'REMOVE_ASSESSMENT_SCOPE_ITEM',
+        actionType: McpActionType.REMOVE_ASSESSMENT_SCOPE_ITEM,
         summary: `Remove scope item from assessment ${assessment.assessmentRef}`,
         reason: params.reason,
         payload: params,
@@ -388,7 +389,7 @@ function registerAssessmentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'POPULATE_ASSESSMENT_TESTS',
+        actionType: McpActionType.POPULATE_ASSESSMENT_TESTS,
         summary: `Populate tests for assessment ${assessment.assessmentRef} (${assessment.controls.length} controls in scope)`,
         reason: params.reason,
         payload: params,
@@ -422,7 +423,7 @@ function registerAssessmentMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'BULK_ASSIGN_TESTS',
+        actionType: McpActionType.BULK_ASSIGN_TESTS,
         summary: `Bulk assign ${params.testIds.length} test(s)`,
         reason: params.reason,
         payload: params,
@@ -465,7 +466,7 @@ function registerSoaMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_SOA_ENTRY',
+        actionType: McpActionType.UPDATE_SOA_ENTRY,
         summary: `Update SOA entry for control ${entry.controlId}: ${[
           params.applicable !== undefined ? `applicable=${params.applicable}` : '',
           params.implementationStatus ? `status=${params.implementationStatus}` : '',
@@ -492,7 +493,7 @@ function registerSoaMutations(server: McpServer) {
     },
     withErrorHandling('propose_create_soa', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_SOA',
+        actionType: McpActionType.CREATE_SOA,
         summary: `Create SOA version ${params.version}${params.name ? ` (${params.name})` : ''}`,
         reason: params.reason,
         payload: params,
@@ -515,7 +516,7 @@ function registerSoaMutations(server: McpServer) {
     },
     withErrorHandling('propose_create_soa_from_controls', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_SOA_FROM_CONTROLS',
+        actionType: McpActionType.CREATE_SOA_FROM_CONTROLS,
         summary: `Create SOA version ${params.version} from current control library`,
         reason: params.reason,
         payload: params,
@@ -547,7 +548,7 @@ function registerSoaMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CREATE_SOA_VERSION',
+        actionType: McpActionType.CREATE_SOA_VERSION,
         summary: `Create SOA version ${params.newVersion} from ${sourceSoa.version}`,
         reason: params.reason,
         payload: params,
@@ -581,7 +582,7 @@ function registerSoaMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_SOA',
+        actionType: McpActionType.UPDATE_SOA,
         summary: `Update SOA ${soa.version} metadata`,
         reason: params.reason,
         payload: params,
@@ -613,7 +614,7 @@ function registerSoaMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'SUBMIT_SOA_REVIEW',
+        actionType: McpActionType.SUBMIT_SOA_REVIEW,
         summary: `Submit SOA ${soa.version} for review (DRAFT → PENDING_REVIEW)`,
         reason: params.reason,
         payload: params,
@@ -645,7 +646,7 @@ function registerSoaMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'APPROVE_SOA',
+        actionType: McpActionType.APPROVE_SOA,
         summary: `Approve SOA ${soa.version} (PENDING_REVIEW → APPROVED)`,
         reason: params.reason,
         payload: params,
@@ -677,7 +678,7 @@ function registerSoaMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'DELETE_SOA',
+        actionType: McpActionType.DELETE_SOA,
         summary: `Delete draft SOA ${soa.version}`,
         reason: params.reason,
         payload: params,
@@ -710,7 +711,7 @@ function registerScopeMutations(server: McpServer) {
     },
     withErrorHandling('propose_scope_item', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_SCOPE_ITEM',
+        actionType: McpActionType.CREATE_SCOPE_ITEM,
         summary: `Create scope item ${params.code} (${params.name}) — ${params.scopeType}, ${params.criticality} criticality`,
         reason: params.reason,
         payload: params,
@@ -743,7 +744,7 @@ function registerScopeMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_SCOPE_ITEM',
+        actionType: McpActionType.UPDATE_SCOPE_ITEM,
         summary: `Update scope item ${item.code} (${item.name})`,
         reason: params.reason,
         payload: params,
@@ -772,7 +773,7 @@ function registerScopeMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'DELETE_SCOPE_ITEM',
+        actionType: McpActionType.DELETE_SCOPE_ITEM,
         summary: `Delete scope item ${item.code} (${item.name})`,
         reason: params.reason,
         payload: params,
@@ -817,7 +818,7 @@ function registerTestMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'RECORD_TEST_RESULT',
+        actionType: McpActionType.RECORD_TEST_RESULT,
         summary: `Record ${params.result} result for test ${test.testCode} in ${test.assessment.assessmentRef}`,
         reason: params.reason,
         payload: params,
@@ -850,7 +851,7 @@ function registerTestMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CREATE_REMEDIATION',
+        actionType: McpActionType.CREATE_REMEDIATION,
         summary: `Create remediation "${params.title}" for test ${test.testCode} (${params.priority} priority)`,
         reason: params.reason,
         payload: params,
@@ -885,7 +886,7 @@ function registerTestMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_TEST',
+        actionType: McpActionType.UPDATE_TEST,
         summary: `Update test ${test.testCode} in ${test.assessment.assessmentRef}`,
         reason: params.reason,
         payload: params,
@@ -915,7 +916,7 @@ function registerTestMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'ASSIGN_TESTER',
+        actionType: McpActionType.ASSIGN_TESTER,
         summary: `Assign tester to test ${test.testCode} in ${test.assessment.assessmentRef}`,
         reason: params.reason,
         payload: params,
@@ -952,7 +953,7 @@ function registerTestMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_ROOT_CAUSE',
+        actionType: McpActionType.UPDATE_ROOT_CAUSE,
         summary: `Update root cause for test ${test.testCode} in ${test.assessment.assessmentRef}`,
         reason: params.reason,
         payload: params,
@@ -985,7 +986,7 @@ function registerTestMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'SKIP_TEST',
+        actionType: McpActionType.SKIP_TEST,
         summary: `Skip test ${test.testCode} in ${test.assessment.assessmentRef}: ${params.justification}`,
         reason: params.reason,
         payload: params,
@@ -1029,7 +1030,7 @@ function registerControlMutations(server: McpServer) {
       ].filter(Boolean).join(', ');
 
       return createPendingAction({
-        actionType: 'UPDATE_CONTROL_STATUS',
+        actionType: McpActionType.UPDATE_CONTROL_STATUS,
         summary: `Update control ${control.controlId} (${control.name}): ${changes || `status: ${params.implementationStatus}`}`,
         reason: params.reason,
         payload: params,
@@ -1071,7 +1072,7 @@ function registerControlMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CREATE_CONTROL',
+        actionType: McpActionType.CREATE_CONTROL,
         summary: `Create control "${params.name}" (${params.controlId})`,
         reason: params.reason,
         payload: params,
@@ -1111,7 +1112,7 @@ function registerControlMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_CONTROL',
+        actionType: McpActionType.UPDATE_CONTROL,
         summary: `Update control ${control.controlId} (${control.name})`,
         reason: params.reason,
         payload: params,
@@ -1144,7 +1145,7 @@ function registerControlMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'DISABLE_CONTROL',
+        actionType: McpActionType.DISABLE_CONTROL,
         summary: `Disable control ${control.controlId}: ${params.disableReason}`,
         reason: params.reason,
         payload: params,
@@ -1179,7 +1180,7 @@ function registerControlMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'ENABLE_CONTROL',
+        actionType: McpActionType.ENABLE_CONTROL,
         summary: `Enable control ${control.controlId}`,
         reason: params.reason,
         payload: params,
@@ -1217,7 +1218,7 @@ function registerMetricMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'UPDATE_METRIC_VALUE',
+        actionType: McpActionType.UPDATE_METRIC_VALUE,
         summary: `Record metric ${metric.metricId} value: ${params.value} (${params.status})`,
         reason: params.reason,
         payload: params,

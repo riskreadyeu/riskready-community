@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
 import { createPendingAction, getDefaultOrganisationId, withErrorHandling } from '#mcp-shared';
@@ -125,7 +126,7 @@ function registerAssetMutations(server: McpServer) {
     },
     withErrorHandling('propose_asset', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_ASSET',
+        actionType: McpActionType.CREATE_ASSET,
         summary: `Create ${params.assetType} asset "${params.name}"${params.businessCriticality ? ` (${params.businessCriticality} criticality)` : ''}`,
         reason: params.reason,
         payload: params,
@@ -254,7 +255,7 @@ function registerAssetMutations(server: McpServer) {
       const orgId = await getDefaultOrganisationId();
 
       return createPendingAction({
-        actionType: 'UPDATE_ASSET',
+        actionType: McpActionType.UPDATE_ASSET,
         summary: `Update asset ${asset.assetTag} (${asset.name})`,
         reason: params.reason,
         payload: params,
@@ -299,7 +300,7 @@ function registerAssetMutations(server: McpServer) {
       const orgId = await getDefaultOrganisationId();
 
       return createPendingAction({
-        actionType: 'CREATE_ASSET_RELATIONSHIP',
+        actionType: McpActionType.CREATE_ASSET_RELATIONSHIP,
         summary: `Create relationship: ${fromAsset.assetTag} ${params.relationshipType} ${toAsset.assetTag}${params.isCritical ? ' (CRITICAL)' : ''}`,
         reason: params.reason,
         payload: params,
@@ -337,7 +338,7 @@ function registerAssetMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'LINK_ASSET_CONTROL',
+        actionType: McpActionType.LINK_ASSET_CONTROL,
         summary: `Link asset ${asset.assetTag} to control ${control.controlId} (${control.name})`,
         reason: params.reason,
         payload: params,
@@ -372,7 +373,7 @@ function registerAssetMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'LINK_ASSET_RISK',
+        actionType: McpActionType.LINK_ASSET_RISK,
         summary: `Link asset ${asset.assetTag} to risk ${risk.riskId} (${risk.title})${params.impactLevel ? ` — ${params.impactLevel} impact` : ''}`,
         reason: params.reason,
         payload: params,
@@ -404,7 +405,7 @@ function registerAssetMutations(server: McpServer) {
       const orgId = await getDefaultOrganisationId();
 
       return createPendingAction({
-        actionType: 'DELETE_ASSET',
+        actionType: McpActionType.DELETE_ASSET,
         summary: `Delete/dispose asset ${asset.assetTag} (${asset.name}): ${params.disposalReason}`,
         reason: params.reason,
         payload: params,
@@ -462,7 +463,7 @@ function registerChangeMutations(server: McpServer) {
     },
     withErrorHandling('propose_change', async (params) => {
       return createPendingAction({
-        actionType: 'CREATE_CHANGE',
+        actionType: McpActionType.CREATE_CHANGE,
         summary: `Create ${params.changeType} change "${params.title}" (${params.category}, ${params.securityImpact || 'LOW'} security impact)`,
         reason: params.reason,
         payload: params,
@@ -529,7 +530,7 @@ function registerChangeMutations(server: McpServer) {
       const orgId = await getDefaultOrganisationId();
 
       return createPendingAction({
-        actionType: 'UPDATE_CHANGE',
+        actionType: McpActionType.UPDATE_CHANGE,
         summary: `Update change ${change.changeRef} (${change.title})`,
         reason: params.reason,
         payload: params,
@@ -561,7 +562,7 @@ function registerChangeMutations(server: McpServer) {
       const orgId = await getDefaultOrganisationId();
 
       return createPendingAction({
-        actionType: 'APPROVE_CHANGE',
+        actionType: McpActionType.APPROVE_CHANGE,
         summary: `Approve change ${change.changeRef} (${change.title})`,
         reason: params.reason,
         payload: params,
@@ -593,7 +594,7 @@ function registerChangeMutations(server: McpServer) {
       const orgId = await getDefaultOrganisationId();
 
       return createPendingAction({
-        actionType: 'REJECT_CHANGE',
+        actionType: McpActionType.REJECT_CHANGE,
         summary: `Reject change ${change.changeRef} (${change.title}): ${params.rejectionReason}`,
         reason: params.reason,
         payload: params,
@@ -626,7 +627,7 @@ function registerChangeMutations(server: McpServer) {
       const orgId = await getDefaultOrganisationId();
 
       return createPendingAction({
-        actionType: 'IMPLEMENT_CHANGE',
+        actionType: McpActionType.IMPLEMENT_CHANGE,
         summary: `Mark change ${change.changeRef} (${change.title}) as implementing`,
         reason: params.reason,
         payload: params,
@@ -663,7 +664,7 @@ function registerChangeMutations(server: McpServer) {
       const orgId = await getDefaultOrganisationId();
 
       return createPendingAction({
-        actionType: 'COMPLETE_CHANGE',
+        actionType: McpActionType.COMPLETE_CHANGE,
         summary: `Complete change ${change.changeRef} (${change.title}) — ${params.successful ? 'successful' : 'unsuccessful'}`,
         reason: params.reason,
         payload: params,
@@ -695,7 +696,7 @@ function registerChangeMutations(server: McpServer) {
       const orgId = await getDefaultOrganisationId();
 
       return createPendingAction({
-        actionType: 'CANCEL_CHANGE',
+        actionType: McpActionType.CANCEL_CHANGE,
         summary: `Cancel change ${change.changeRef} (${change.title}): ${params.cancellationReason}`,
         reason: params.reason,
         payload: params,
@@ -756,7 +757,7 @@ function registerCapacityMutations(server: McpServer) {
       }
 
       return createPendingAction({
-        actionType: 'CREATE_CAPACITY_PLAN',
+        actionType: McpActionType.CREATE_CAPACITY_PLAN,
         summary: `Create capacity plan "${params.title}"${params.projectedGrowthPercent ? ` (${params.projectedGrowthPercent}% projected growth)` : ''}`,
         reason: params.reason,
         payload: params,
@@ -799,7 +800,7 @@ function registerCapacityMutations(server: McpServer) {
       const orgId = await getDefaultOrganisationId();
 
       return createPendingAction({
-        actionType: 'UPDATE_CAPACITY_PLAN',
+        actionType: McpActionType.UPDATE_CAPACITY_PLAN,
         summary: `Update capacity plan "${plan.title}"`,
         reason: params.reason,
         payload: params,

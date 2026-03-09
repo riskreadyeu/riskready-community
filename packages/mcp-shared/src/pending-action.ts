@@ -1,3 +1,4 @@
+import { McpActionType } from '@prisma/client';
 import { prisma } from './prisma.js';
 
 export async function getDefaultOrganisationId(): Promise<string> {
@@ -7,7 +8,7 @@ export async function getDefaultOrganisationId(): Promise<string> {
 }
 
 export async function createPendingAction(params: {
-  actionType: string;
+  actionType: McpActionType;
   summary: string;
   reason?: string;
   payload: unknown;
@@ -18,7 +19,7 @@ export async function createPendingAction(params: {
   const orgId = params.organisationId || await getDefaultOrganisationId();
   const action = await prisma.mcpPendingAction.create({
     data: {
-      actionType: params.actionType as never,
+      actionType: params.actionType,
       summary: params.summary,
       reason: params.reason,
       payload: params.payload as never,
