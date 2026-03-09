@@ -47,6 +47,9 @@ apps/server/*.md
 apps/server/*.ts
 apps/server/prisma/*.ts
 
+# Worktrees
+.worktrees/
+
 # Agent Artifacts
 .claude/
 .playwright-mcp/
