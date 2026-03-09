@@ -8,6 +8,7 @@ import { MemoryService } from '../memory/memory.service.js';
 import { SearchService } from '../memory/search.service.js';
 import { MemoryDistiller } from '../memory/distiller.js';
 import { extractBlock, hasBlockMapping } from './block-extractor.js';
+import { extractActionIdsFromToolResults } from './action-id-extractor.js';
 
 type QueryFn = typeof import('@anthropic-ai/claude-agent-sdk')['query'];
 
@@ -210,6 +211,7 @@ User: ${msg.text}`;
     const toolCalls: Array<{ name: string; server: string; status: string }> = [];
     const actionIds: string[] = [];
     const blocks: Array<{ type: string; [key: string]: unknown }> = [];
+    const collectedToolResults: Array<{ content?: string | Array<{ type?: string; text?: string }> }> = [];
     let contentBlockIndex = 0;
     const toolCallsByIndex = new Map<number, number>(); // content block index → toolCalls array index
     let totalInputTokens = 0;
@@ -344,26 +346,9 @@ User: ${msg.text}`;
             }
           }
 
+          // Collect tool results from assistant messages for structured action ID extraction
           if (message.type === 'assistant') {
-            const assistantMsg = message as AssistantMessage;
-            for (const block of assistantMsg.message?.content ?? []) {
-              if (block.type === 'text') {
-                const actionMatches = (block.text as string).matchAll(
-                  /"actionId"\s*:\s*"([^"]+)"/g,
-                );
-                for (const match of actionMatches) {
-                  const actionId = match[1];
-                  if (!actionIds.includes(actionId)) {
-                    actionIds.push(actionId);
-                    emit({
-                      type: 'action_proposed',
-                      actionId,
-                      summary: 'Action proposed — check AI Approvals queue',
-                    });
-                  }
-                }
-              }
-            }
+            // kept for later regex fallback — no longer primary extraction
           }
 
           if (message.type === 'result') {
@@ -380,7 +365,7 @@ User: ${msg.text}`;
             }
           }
 
-          // Intercept tool results for block extraction
+          // Intercept tool results for block extraction and action ID collection
           if (message.type === 'tool_use_summary') {
             const toolSummary = message as any;
             if (toolSummary.tool_name && toolSummary.result) {
@@ -389,8 +374,30 @@ User: ${msg.text}`;
                 blocks.push(block);
                 emit({ type: 'block', block });
               }
+              // Collect for structured action ID extraction
+              collectedToolResults.push({ content: toolSummary.result });
             }
           }
+        }
+      }
+
+      // Extract action IDs: prefer structured tool results, regex on text as fallback
+      const structuredIds = extractActionIdsFromToolResults(collectedToolResults);
+      const regexIds: string[] = [];
+      const regexPattern = /"actionId"\s*:\s*"([^"]+)"/g;
+      let regexMatch;
+      while ((regexMatch = regexPattern.exec(fullText)) !== null) {
+        regexIds.push(regexMatch[1]);
+      }
+      const allActionIds = [...new Set([...structuredIds, ...regexIds])];
+      for (const actionId of allActionIds) {
+        if (!actionIds.includes(actionId)) {
+          actionIds.push(actionId);
+          emit({
+            type: 'action_proposed',
+            actionId,
+            summary: 'Action proposed — check AI Approvals queue',
+          });
         }
       }
 
