@@ -21,7 +21,7 @@ describe('Gateway Integration', () => {
       databaseUrl: 'postgresql://riskready:riskready_dev_password@localhost:5432/riskready',
       logLevel: 'warn',
       queue: { maxDepthPerUser: 5, jobTimeoutMs: 30000 },
-      skills: { configPath: '/tmp/test-skills.yaml', idleTimeoutMs: 600000 },
+      skills: { configPath: '/tmp/test-skills.yaml' },
       council: {
         enabled: false,
         classifierMode: 'heuristic',

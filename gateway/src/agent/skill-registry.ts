@@ -1,8 +1,13 @@
 import { readFileSync, watchFile, unwatchFile } from 'node:fs';
 import { parse as parseYaml } from 'yaml';
 import { join } from 'node:path';
-import { type ChildProcess, spawn } from 'node:child_process';
 import { logger } from '../logger.js';
+
+export interface ToolMetadata {
+  name: string;
+  description: string;
+  args: string[];
+}
 
 export interface SkillDefinition {
   name: string;
@@ -12,18 +17,16 @@ export interface SkillDefinition {
   command: string;
   args: string[];
   requiresDb: boolean;
+  tools?: ToolMetadata[];
 }
 
-interface ActiveSkill {
-  definition: SkillDefinition;
-  process: ChildProcess | null;
-  lastUsed: number;
+export interface ServerToolSet {
+  serverName: string;
+  tools: ToolMetadata[];
 }
 
 export class SkillRegistry {
   private definitions = new Map<string, SkillDefinition>();
-  private active = new Map<string, ActiveSkill>();
-  private reapInterval: ReturnType<typeof setInterval> | null = null;
 
   loadFromFile(path: string): void {
     const content = readFileSync(path, 'utf-8');
@@ -80,7 +83,14 @@ export class SkillRegistry {
     return servers;
   }
 
-  startWatching(configPath: string, idleTimeoutMs: number): void {
+  getToolSets(): ServerToolSet[] {
+    return Array.from(this.definitions.values()).map((skill) => ({
+      serverName: skill.name,
+      tools: skill.tools ?? [],
+    }));
+  }
+
+  startWatching(configPath: string): void {
     watchFile(configPath, { interval: 5000 }, () => {
       logger.info('Skill config changed, reloading...');
       try {
@@ -90,28 +100,9 @@ export class SkillRegistry {
         logger.error({ err }, 'Failed to reload skills');
       }
     });
-    this.reapInterval = setInterval(() => {
-      this.reapIdle(idleTimeoutMs);
-    }, 60_000);
   }
 
   stopWatching(configPath: string): void {
     unwatchFile(configPath);
-    if (this.reapInterval) {
-      clearInterval(this.reapInterval);
-      this.reapInterval = null;
-    }
-  }
-
-  private reapIdle(maxIdleMs: number): void {
-    const now = Date.now();
-    for (const [name, active] of this.active) {
-      if (active.process && now - active.lastUsed > maxIdleMs) {
-        logger.info({ skill: name }, 'Reaping idle skill');
-        active.process.kill();
-        active.process = null;
-        this.active.delete(name);
-      }
-    }
   }
 }

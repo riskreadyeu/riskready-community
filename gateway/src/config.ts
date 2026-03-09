@@ -13,7 +13,6 @@ export interface GatewayConfig {
   };
   skills: {
     configPath: string;
-    idleTimeoutMs: number;
   };
   slack?: {
     botToken: string;
@@ -49,7 +48,6 @@ export function loadConfig(): GatewayConfig {
     },
     skills: {
       configPath: process.env.SKILLS_CONFIG ?? './skills.yaml',
-      idleTimeoutMs: Number(process.env.SKILL_IDLE_MS ?? 600_000),
     },
     slack: (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN && process.env.SLACK_SIGNING_SECRET)
       ? {

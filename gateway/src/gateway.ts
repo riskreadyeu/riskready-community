@@ -128,7 +128,7 @@ export class Gateway {
 
   async start(): Promise<void> {
     // Start skill watching for hot-reload
-    this.skillRegistry.startWatching(this.config.skills.configPath, this.config.skills.idleTimeoutMs);
+    this.skillRegistry.startWatching(this.config.skills.configPath);
 
     // Wire up message handler for all adapters
     for (const adapter of this.adapters) {
