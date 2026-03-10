@@ -281,6 +281,56 @@ function registerScenarioMutations(server: McpServer) {
   );
 
   server.tool(
+    'propose_link_scenario_control',
+    'Propose linking a control to a risk scenario as a mitigating control. Requires human approval.',
+    {
+      scenarioId: z.string().describe('RiskScenario UUID'),
+      controlId: z.string().describe('Control UUID'),
+      effectivenessWeight: z.number().min(0).max(100).optional().describe('Effectiveness contribution weight (0-100, default 100)'),
+      isPrimaryControl: z.boolean().optional().describe('Is this the primary mitigating control?'),
+      notes: z.string().optional().describe('Notes about how this control mitigates the scenario'),
+      reason: z.string().optional().describe('Explain WHY this link is proposed — shown to human reviewers'),
+      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+    },
+    withErrorHandling('propose_link_scenario_control', async (params) => {
+      const [scenario, control] = await Promise.all([
+        prisma.riskScenario.findUnique({
+          where: { id: params.scenarioId },
+          select: { id: true, scenarioId: true, risk: { select: { riskId: true, organisationId: true } } },
+        }),
+        prisma.control.findUnique({
+          where: { id: params.controlId },
+          select: { id: true, controlId: true, name: true },
+        }),
+      ]);
+      if (!scenario) {
+        return { content: [{ type: 'text' as const, text: `Scenario ${params.scenarioId} not found` }], isError: true };
+      }
+      if (!control) {
+        return { content: [{ type: 'text' as const, text: `Control ${params.controlId} not found` }], isError: true };
+      }
+
+      // Check for existing link
+      const existing = await prisma.riskScenarioControl.findUnique({
+        where: { scenarioId_controlId: { scenarioId: params.scenarioId, controlId: params.controlId } },
+      });
+      if (existing) {
+        return { content: [{ type: 'text' as const, text: `Control ${control.controlId} is already linked to scenario ${scenario.scenarioId}` }], isError: true };
+      }
+
+      return createPendingAction({
+        actionType: McpActionType.LINK_SCENARIO_CONTROL,
+        summary: `Link control ${control.controlId} (${control.name}) to scenario ${scenario.scenarioId} under risk ${scenario.risk.riskId}`,
+        reason: params.reason,
+        payload: params,
+        mcpSessionId: params.mcpSessionId,
+        mcpToolName: 'propose_link_scenario_control',
+        organisationId: scenario.risk.organisationId,
+      });
+    }),
+  );
+
+  server.tool(
     'propose_assess_scenario',
     'Propose recording an inherent or residual assessment for a risk scenario. Requires human approval.',
     {

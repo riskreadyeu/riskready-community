@@ -58,6 +58,16 @@ export function registerRiskExecutors(executors: ExecutorMap, services: RiskExec
     } as any);
   });
 
+  // --- Scenario-Control link executors ---
+
+  executors.set('LINK_SCENARIO_CONTROL', (p) =>
+    scenarioService.linkControl(p['scenarioId'], p['controlId'], {
+      effectivenessWeight: p['effectivenessWeight'],
+      isPrimaryControl: p['isPrimaryControl'],
+      notes: p['notes'],
+    }),
+  );
+
   // --- KRI executors ---
 
   executors.set('CREATE_KRI', (p, userId) =>
