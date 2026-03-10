@@ -3,6 +3,8 @@
 import { prisma } from '../prisma.js';
 import { logger } from '../logger.js';
 import { AgentRunner } from '../agent/agent-runner.js';
+import { LaneQueue } from '../queue/lane-queue.js';
+import type { Job } from '../queue/types.js';
 import type { UnifiedMessage, ChatEvent } from '../channels/types.js';
 import { randomUUID } from 'node:crypto';
 
@@ -73,10 +75,12 @@ export class SchedulerService {
   private intervalHandle: ReturnType<typeof setInterval> | null = null;
   private running = false;
   private agentRunner: AgentRunner;
+  private queue: LaneQueue;
   private pollIntervalMs: number;
 
-  constructor(agentRunner: AgentRunner, pollIntervalMs = 60_000) {
+  constructor(agentRunner: AgentRunner, queue: LaneQueue, pollIntervalMs = 60_000) {
     this.agentRunner = agentRunner;
+    this.queue = queue;
     this.pollIntervalMs = pollIntervalMs;
   }
 
@@ -170,19 +174,16 @@ export class SchedulerService {
           timestamp: new Date(),
         };
 
-        // Execute with a 5-minute timeout
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
-
-        const noopEmit = (_event: ChatEvent) => {
-          // Scheduled runs don't stream to a UI
+        // Route through LaneQueue for mutual exclusion with user runs
+        const job: Job = {
+          id: syntheticMsg.id,
+          userId: `scheduler-${schedule.id}`,
+          execute: async (signal) => {
+            await this.agentRunner.execute(syntheticMsg, signal, (_event: ChatEvent) => {}, task.id);
+            return { success: true };
+          },
         };
-
-        try {
-          await this.agentRunner.execute(syntheticMsg, controller.signal, noopEmit, task.id);
-        } finally {
-          clearTimeout(timeout);
-        }
+        await this.queue.enqueue(job);
 
         // Update schedule
         const nextRunAt = getNextCronRun(schedule.cronExpression, now);
@@ -310,16 +311,20 @@ export class SchedulerService {
         timestamp: new Date(),
       };
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
-      const noopEmit = (_event: ChatEvent) => {};
+      // Route through LaneQueue for mutual exclusion
+      const resumeJob: Job = {
+        id: syntheticMsg.id,
+        userId: `scheduler-resume-${task.id}`,
+        execute: async (signal) => {
+          await this.agentRunner.execute(syntheticMsg, signal, (_event: ChatEvent) => {}, childTask.id);
+          return { success: true };
+        },
+      };
 
       try {
-        await this.agentRunner.execute(syntheticMsg, controller.signal, noopEmit, childTask.id);
+        await this.queue.enqueue(resumeJob);
       } catch (err) {
         logger.error({ err, taskId: childTask.id }, 'Approval resume task failed');
-      } finally {
-        clearTimeout(timeout);
       }
     }
   }

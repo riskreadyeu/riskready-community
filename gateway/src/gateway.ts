@@ -107,8 +107,8 @@ export class Gateway {
       });
     }
 
-    // Scheduler for autonomous runs
-    this.scheduler = new SchedulerService(this.agentRunner);
+    // Scheduler for autonomous runs — routed through LaneQueue
+    this.scheduler = new SchedulerService(this.agentRunner, this.queue);
 
     // Conditionally wire channel adapters
     // Note: Slack/Discord user mapping models are not available in Community Edition.
