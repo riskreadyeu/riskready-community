@@ -28,6 +28,13 @@ skills:
     command: echo
     args: [world]
     requiresDb: true
+    tools:
+      - name: list_risks
+        description: "List risks with optional filters"
+        args: [status, tier, framework]
+      - name: get_risk
+        description: "Get a single risk by ID"
+        args: [riskId]
 `;
 
 describe('SkillRegistry', () => {
@@ -70,5 +77,21 @@ describe('SkillRegistry', () => {
 
   it('returns undefined for unknown skill name', () => {
     expect(registry.get('nope')).toBeUndefined();
+  });
+
+  it('returns tool sets with tools from definitions', () => {
+    const toolSets = registry.getToolSets();
+    expect(toolSets).toHaveLength(2);
+
+    const setA = toolSets.find(s => s.serverName === 'test-skill-a');
+    expect(setA).toBeDefined();
+    expect(setA!.tools).toHaveLength(0);
+
+    const setB = toolSets.find(s => s.serverName === 'test-skill-b');
+    expect(setB).toBeDefined();
+    expect(setB!.tools).toHaveLength(2);
+    expect(setB!.tools[0].name).toBe('list_risks');
+    expect(setB!.tools[0].args).toEqual(['status', 'tier', 'framework']);
+    expect(setB!.tools[1].name).toBe('get_risk');
   });
 });
