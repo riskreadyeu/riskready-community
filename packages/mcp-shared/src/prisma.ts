@@ -3,11 +3,6 @@ import { PrismaClient } from '@prisma/client';
 export const prisma = new PrismaClient({
   datasourceUrl: process.env['DATABASE_URL'],
   log: process.env['MCP_DEBUG'] ? ['query', 'warn', 'error'] : ['warn', 'error'],
-  datasources: {
-    db: {
-      url: process.env['DATABASE_URL'],
-    },
-  },
 });
 
 // Configure connection pool via DATABASE_URL query params:
