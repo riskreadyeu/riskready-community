@@ -408,8 +408,6 @@ gateway/
 │   │   └── skill-registry.ts      # YAML-based MCP server registry
 │   ├── channels/
 │   │   ├── internal.adapter.ts    # Fastify HTTP/SSE adapter
-│   │   ├── slack.adapter.ts       # Slack Socket Mode adapter
-│   │   ├── discord.adapter.ts     # Discord bot adapter
 │   │   ├── channel.interface.ts   # Adapter interface
 │   │   └── types.ts               # Shared types
 │   ├── router/

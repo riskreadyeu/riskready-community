@@ -11,8 +11,7 @@ import { AgentRunner } from './agent/agent-runner.js';
 import { SkillRegistry } from './agent/skill-registry.js';
 import { Router } from './router/router.js';
 import { ToolCatalog } from './catalog/tool-catalog.js';
-import { SlackAdapter } from './channels/slack.adapter.js';
-import { DiscordAdapter } from './channels/discord.adapter.js';
+
 import { MemoryService } from './memory/memory.service.js';
 import { SearchService } from './memory/search.service.js';
 import { MemoryDistiller } from './memory/distiller.js';
@@ -110,24 +109,6 @@ export class Gateway {
     // Scheduler for autonomous runs — routed through LaneQueue
     this.scheduler = new SchedulerService(this.agentRunner, this.queue);
 
-    // Conditionally wire channel adapters
-    // Note: Slack/Discord user mapping models are not available in Community Edition.
-    // The resolveUser callback returns null, so unlinked users get a "not recognized" reply.
-    if (config.slack) {
-      const slackAdapter = new SlackAdapter({
-        ...config.slack,
-        resolveUser: async () => null,
-      });
-      this.addAdapter(slackAdapter);
-    }
-
-    if (config.discord) {
-      const discordAdapter = new DiscordAdapter({
-        ...config.discord,
-        resolveUser: async () => null,
-      });
-      this.addAdapter(discordAdapter);
-    }
   }
 
   async start(): Promise<void> {

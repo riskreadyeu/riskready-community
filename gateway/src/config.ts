@@ -14,14 +14,6 @@ export interface GatewayConfig {
   skills: {
     configPath: string;
   };
-  slack?: {
-    botToken: string;
-    appToken: string;
-    signingSecret: string;
-  };
-  discord?: {
-    botToken: string;
-  };
   gatewaySecret?: string;
   council: {
     enabled: boolean;
@@ -49,16 +41,6 @@ export function loadConfig(): GatewayConfig {
     skills: {
       configPath: process.env.SKILLS_CONFIG ?? './skills.yaml',
     },
-    slack: (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN && process.env.SLACK_SIGNING_SECRET)
-      ? {
-          botToken: process.env.SLACK_BOT_TOKEN,
-          appToken: process.env.SLACK_APP_TOKEN,
-          signingSecret: process.env.SLACK_SIGNING_SECRET,
-        }
-      : undefined,
-    discord: process.env.DISCORD_BOT_TOKEN ? {
-      botToken: process.env.DISCORD_BOT_TOKEN,
-    } : undefined,
     gatewaySecret: process.env.GATEWAY_SECRET,
     council: {
       enabled: process.env.COUNCIL_ENABLED !== 'false',

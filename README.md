@@ -213,6 +213,27 @@ All autonomous capabilities preserve the human-approval safety model. For full d
 
 ## Quick Start
 
+### Prerequisites
+
+| Resource | Minimum | Recommended |
+|----------|---------|-------------|
+| **RAM** | 4 GB | 8 GB |
+| **CPU** | 2 cores | 4 cores |
+| **Disk** | 8 GB free | 15 GB free |
+| **Docker** | Docker Engine 24+ with Compose v2 | Latest stable |
+| **OS** | Linux, macOS, or Windows (WSL2) | Linux |
+| **Architecture** | x86_64 (amd64) or ARM64 (Apple Silicon, AWS Graviton) | — |
+
+> **Build memory:** The first build compiles 4 Docker images in parallel and requires **4 GB RAM minimum**. On memory-constrained VMs, build sequentially to reduce peak usage:
+> ```bash
+> docker compose build --parallel 1
+> docker compose up -d
+> ```
+
+At idle, the full stack uses **~450 MB RAM**. Under load with AI gateway active, expect up to **2.5 GB**.
+
+### Install
+
 ```bash
 # 1. Clone the repository
 git clone https://github.com/riskreadyeu/riskready-community.git

@@ -11,7 +11,7 @@ export interface Attachment {
 
 export interface UnifiedMessage {
   id: string;
-  channel: 'web' | 'slack' | 'discord';
+  channel: 'web';
   channelMessageId: string;
   channelId: string;
   userId: string;
