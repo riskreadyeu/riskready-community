@@ -20,6 +20,16 @@ COPY gateway/skills.yaml ./skills.yaml
 # Rewrite MCP paths for container layout
 RUN sed -i 's|\.\./mcp-server-|./mcp-servers/mcp-server-|g' skills.yaml
 
+# --- Shared packages used by MCP servers ---
+COPY packages/mcp-shared/package.json packages/mcp-shared/package-lock.json* ./packages/mcp-shared/
+COPY packages/mcp-shared/src ./packages/mcp-shared/src
+COPY packages/mcp-shared/tsconfig.json ./packages/mcp-shared/tsconfig.json
+RUN cd /app/packages/mcp-shared \
+    && npm ci --ignore-scripts --legacy-peer-deps \
+    && mkdir -p node_modules/.prisma node_modules/@prisma \
+    && ln -sf /app/node_modules/.prisma/client node_modules/.prisma/client \
+    && ln -sf /app/node_modules/@prisma/client node_modules/@prisma/client
+
 # --- MCP servers ---
 # controls
 COPY apps/mcp-server-controls/package.json apps/mcp-server-controls/package-lock.json ./mcp-servers/mcp-server-controls/
@@ -61,8 +71,13 @@ COPY apps/mcp-server-incidents/package.json apps/mcp-server-incidents/package-lo
 COPY apps/mcp-server-incidents/src ./mcp-servers/mcp-server-incidents/src
 COPY apps/mcp-server-incidents/tsconfig.json ./mcp-servers/mcp-server-incidents/tsconfig.json
 
+# agent-ops
+COPY apps/mcp-server-agent-ops/package.json apps/mcp-server-agent-ops/package-lock.json* ./mcp-servers/mcp-server-agent-ops/
+COPY apps/mcp-server-agent-ops/src ./mcp-servers/mcp-server-agent-ops/src
+COPY apps/mcp-server-agent-ops/tsconfig.json ./mcp-servers/mcp-server-agent-ops/tsconfig.json
+
 # Install dependencies for all MCP servers + symlink Prisma client
-RUN for srv in controls risks evidence policies organisation itsm audits incidents; do \
+RUN for srv in controls risks evidence policies organisation itsm audits incidents agent-ops; do \
       cd /app/mcp-servers/mcp-server-${srv} \
       && npm ci --ignore-scripts --legacy-peer-deps \
       && mkdir -p node_modules/.prisma node_modules/@prisma \
