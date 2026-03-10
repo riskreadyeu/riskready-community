@@ -10,6 +10,7 @@ import type { Job, JobResult } from './queue/types.js';
 import { AgentRunner } from './agent/agent-runner.js';
 import { SkillRegistry } from './agent/skill-registry.js';
 import { Router } from './router/router.js';
+import { ToolCatalog } from './catalog/tool-catalog.js';
 import { SlackAdapter } from './channels/slack.adapter.js';
 import { DiscordAdapter } from './channels/discord.adapter.js';
 import { MemoryService } from './memory/memory.service.js';
@@ -32,6 +33,7 @@ export class Gateway {
   private agentRunner: AgentRunner;
   private skillRegistry: SkillRegistry;
   private router: Router;
+  private toolCatalog: ToolCatalog;
   private scheduler: SchedulerService;
 
   constructor(config: GatewayConfig) {
@@ -48,8 +50,10 @@ export class Gateway {
     this.skillRegistry.loadFromFile(config.skills.configPath);
     logger.info({ count: this.skillRegistry.listAll().length, path: config.skills.configPath }, 'Skills loaded');
 
-    // Create router
+    // Create router (fallback) and tool catalog (primary)
     this.router = new Router(this.skillRegistry);
+    this.toolCatalog = new ToolCatalog(this.skillRegistry.getToolSets());
+    logger.info({ tools: this.toolCatalog.getAllEntries().length }, 'Tool catalog initialized');
 
     // Wire memory services
     const memoryService = new MemoryService(prisma);
@@ -73,12 +77,12 @@ export class Gateway {
     this.agentRunner = new AgentRunner({
       databaseUrl: config.databaseUrl,
       getMcpServers: (messageText?: string) => {
-        const ALWAYS_INCLUDE = ['riskready-agent-ops'];
         if (messageText) {
-          const skills = this.router.route(messageText);
-          const skillNames = new Set(skills.map(s => s.name));
-          for (const name of ALWAYS_INCLUDE) skillNames.add(name);
-          return this.skillRegistry.getMcpServers(Array.from(skillNames), config.databaseUrl, join(PROJECT_ROOT, 'apps'));
+          // Use BM25 catalog search for server selection
+          const results = this.toolCatalog.search(messageText, 15);
+          const serverNames = this.toolCatalog.getServersForTools(results);
+          logger.debug({ query: messageText.substring(0, 80), servers: serverNames, matches: results.length }, 'Catalog routing');
+          return this.skillRegistry.getMcpServers(serverNames, config.databaseUrl, join(PROJECT_ROOT, 'apps'));
         }
         // Fallback: all servers
         const allSkillNames = this.skillRegistry.listAll().map(s => s.name);
