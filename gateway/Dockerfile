@@ -76,13 +76,21 @@ COPY apps/mcp-server-agent-ops/package.json apps/mcp-server-agent-ops/package-lo
 COPY apps/mcp-server-agent-ops/src ./mcp-servers/mcp-server-agent-ops/src
 COPY apps/mcp-server-agent-ops/tsconfig.json ./mcp-servers/mcp-server-agent-ops/tsconfig.json
 
-# Install dependencies for all MCP servers + symlink Prisma client
+# Install dependencies for all MCP servers + symlink Prisma client + fix #mcp-shared import
 RUN for srv in controls risks evidence policies organisation itsm audits incidents agent-ops; do \
       cd /app/mcp-servers/mcp-server-${srv} \
       && npm ci --ignore-scripts --legacy-peer-deps \
       && mkdir -p node_modules/.prisma node_modules/@prisma \
       && ln -sf /app/node_modules/.prisma/client node_modules/.prisma/client \
       && ln -sf /app/node_modules/@prisma/client node_modules/@prisma/client; \
+    done
+
+# Fix #mcp-shared imports: Node.js rejects targets that escape the package root (../../).
+# Create a local symlink inside each server and rewrite the import target.
+RUN for srv in controls risks evidence policies organisation itsm audits incidents agent-ops; do \
+      cd /app/mcp-servers/mcp-server-${srv} \
+      && ln -sf /app/packages/mcp-shared ./_mcp-shared \
+      && sed -i 's|"#mcp-shared": "../../packages/mcp-shared/src/index.ts"|"#mcp-shared": "./_mcp-shared/src/index.ts"|' package.json; \
     done
 
 # --- Production stage ---
