@@ -1,6 +1,8 @@
 services:
   db:
     image: postgres:16-alpine
+    ports:
+      - "${DB_PORT:-5434}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-riskready}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}

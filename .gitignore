@@ -34,9 +34,6 @@ _temp/
 # Local dev database
 dev.db
 
-# MCP configuration (contains local paths and credentials)
-.mcp.json
-
 # Internal dev files
 docs/
 scripts/
