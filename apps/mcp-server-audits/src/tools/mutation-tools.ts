@@ -43,7 +43,7 @@ function registerNonconformityMutations(server: McpServer) {
         mcpToolName: 'propose_create_nc',
         organisationId: params.organisationId,
       });
-    },
+    }),
   );
 
   server.tool(
