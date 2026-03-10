@@ -85,12 +85,9 @@ RUN for srv in controls risks evidence policies organisation itsm audits inciden
       && ln -sf /app/node_modules/@prisma/client node_modules/@prisma/client; \
     done
 
-# Fix #mcp-shared imports: Node.js rejects targets that escape the package root (../../).
-# Create a local symlink inside each server and rewrite the import target.
+# Symlink _mcp-shared inside each server (source symlinks don't survive COPY)
 RUN for srv in controls risks evidence policies organisation itsm audits incidents agent-ops; do \
-      cd /app/mcp-servers/mcp-server-${srv} \
-      && ln -sf /app/packages/mcp-shared ./_mcp-shared \
-      && sed -i 's|"#mcp-shared": "../../packages/mcp-shared/src/index.ts"|"#mcp-shared": "./_mcp-shared/src/index.ts"|' package.json; \
+      ln -sf /app/packages/mcp-shared /app/mcp-servers/mcp-server-${srv}/_mcp-shared; \
     done
 
 # --- Production stage ---
