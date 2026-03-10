@@ -72,7 +72,7 @@ COPY apps/mcp-server-incidents/src ./mcp-servers/mcp-server-incidents/src
 COPY apps/mcp-server-incidents/tsconfig.json ./mcp-servers/mcp-server-incidents/tsconfig.json
 
 # agent-ops
-COPY apps/mcp-server-agent-ops/package.json apps/mcp-server-agent-ops/package-lock.json* ./mcp-servers/mcp-server-agent-ops/
+COPY apps/mcp-server-agent-ops/package.json apps/mcp-server-agent-ops/package-lock.json ./mcp-servers/mcp-server-agent-ops/
 COPY apps/mcp-server-agent-ops/src ./mcp-servers/mcp-server-agent-ops/src
 COPY apps/mcp-server-agent-ops/tsconfig.json ./mcp-servers/mcp-server-agent-ops/tsconfig.json
 
