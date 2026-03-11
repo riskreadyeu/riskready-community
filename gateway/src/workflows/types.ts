@@ -155,3 +155,10 @@ export const BUILT_IN_WORKFLOWS: WorkflowDefinition[] = [
     ],
   },
 ];
+
+/**
+ * Look up a built-in workflow definition by its ID.
+ */
+export function getWorkflowById(id: string): WorkflowDefinition | undefined {
+  return BUILT_IN_WORKFLOWS.find((w) => w.id === id);
+}
