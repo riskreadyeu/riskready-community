@@ -7,6 +7,8 @@ import { LaneQueue } from '../queue/lane-queue.js';
 import type { Job } from '../queue/types.js';
 import type { UnifiedMessage, ChatEvent } from '../channels/types.js';
 import { randomUUID } from 'node:crypto';
+import { WorkflowExecutor } from '../workflows/workflow-executor.js';
+import { getWorkflowById } from '../workflows/types.js';
 
 /**
  * Minimal cron parser: supports standard 5-field cron expressions.
@@ -77,11 +79,13 @@ export class SchedulerService {
   private agentRunner: AgentRunner;
   private queue: LaneQueue;
   private pollIntervalMs: number;
+  private workflowExecutor: WorkflowExecutor;
 
   constructor(agentRunner: AgentRunner, queue: LaneQueue, pollIntervalMs = 60_000) {
     this.agentRunner = agentRunner;
     this.queue = queue;
     this.pollIntervalMs = pollIntervalMs;
+    this.workflowExecutor = new WorkflowExecutor(agentRunner);
   }
 
   start(): void {
@@ -111,6 +115,7 @@ export class SchedulerService {
     this.running = true;
     try {
       await this.processDueSchedules();
+      await this.processWorkflowTasks();
       await this.processAwaitingApprovalTasks();
     } finally {
       this.running = false;
@@ -219,15 +224,158 @@ export class SchedulerService {
   }
 
   /**
+   * Find PENDING workflow tasks (created by trigger endpoint) and execute them.
+   */
+  private async processWorkflowTasks(): Promise<void> {
+    const pendingWorkflows = await prisma.agentTask.findMany({
+      where: {
+        workflowId: { not: null },
+        status: 'PENDING',
+        parentTaskId: null,
+      },
+      take: 5,
+    });
+
+    for (const task of pendingWorkflows) {
+      const workflow = getWorkflowById(task.workflowId!);
+      if (!workflow) {
+        await prisma.agentTask.update({
+          where: { id: task.id },
+          data: {
+            status: 'FAILED',
+            errorMessage: `Unknown workflow: ${task.workflowId}`,
+            completedAt: new Date(),
+          },
+        });
+        logger.error({ taskId: task.id, workflowId: task.workflowId }, 'Unknown workflow definition');
+        continue;
+      }
+
+      // Mark IN_PROGRESS immediately to prevent re-pickup
+      await prisma.agentTask.update({
+        where: { id: task.id },
+        data: { status: 'IN_PROGRESS' },
+      });
+
+      logger.info({ taskId: task.id, workflowId: workflow.id }, 'Executing workflow');
+
+      const job: Job = {
+        id: `workflow-${task.id}`,
+        userId: `scheduler-workflow-${task.organisationId}`,
+        execute: async (_signal) => {
+          await this.workflowExecutor.execute(
+            workflow,
+            task.organisationId,
+            task.userId || 'system',
+            undefined,
+            task.id,
+          );
+          return { success: true };
+        },
+      };
+
+      try {
+        await this.queue.enqueue(job);
+      } catch (err) {
+        logger.warn({ err, taskId: task.id }, 'Failed to enqueue workflow, reverting to PENDING');
+        await prisma.agentTask.update({
+          where: { id: task.id },
+          data: { status: 'PENDING' },
+        });
+      }
+    }
+  }
+
+  /**
    * Check tasks in AWAITING_APPROVAL — if all linked actions are resolved, trigger a resume run.
    */
   private async processAwaitingApprovalTasks(): Promise<void> {
     const awaitingTasks = await prisma.agentTask.findMany({
-      where: { status: 'AWAITING_APPROVAL' },
+      where: {
+        status: 'AWAITING_APPROVAL',
+        parentTaskId: null,      // Only top-level tasks — child step tasks managed by executor
+      },
       take: 20,
     });
 
     for (const task of awaitingTasks) {
+      // --- WORKFLOW TASKS: actionIds live on child step tasks, not the parent ---
+      if (task.workflowId) {
+        const childTasks = await prisma.agentTask.findMany({
+          where: { parentTaskId: task.id, status: 'AWAITING_APPROVAL' },
+          select: { actionIds: true },
+        });
+        const allChildActionIds = childTasks.flatMap((c: { actionIds: string[] }) => c.actionIds);
+
+        if (allChildActionIds.length === 0) {
+          // No child actions to await — mark completed
+          await prisma.agentTask.update({
+            where: { id: task.id },
+            data: { status: 'COMPLETED', completedAt: new Date() },
+          });
+          continue;
+        }
+
+        // Check if all child actions are resolved
+        const childPendingCount = await prisma.mcpPendingAction.count({
+          where: { id: { in: allChildActionIds }, status: 'PENDING' },
+        });
+
+        if (childPendingCount > 0) continue; // Still waiting
+
+        // All resolved — get outcomes
+        const childActions = await prisma.mcpPendingAction.findMany({
+          where: { id: { in: allChildActionIds } },
+          select: { id: true, actionType: true, status: true, summary: true, reviewNotes: true, errorMessage: true },
+        });
+
+        const outcomes = childActions.map((a: { actionType: string; status: string; reviewNotes: string | null; errorMessage: string | null }) => {
+          let detail = `- ${a.actionType}: ${a.status}`;
+          if (a.reviewNotes) detail += ` (Notes: ${a.reviewNotes})`;
+          if (a.errorMessage) detail += ` (Error: ${a.errorMessage})`;
+          return detail;
+        }).join('\n');
+
+        const workflow = getWorkflowById(task.workflowId);
+        if (!workflow) {
+          await prisma.agentTask.update({
+            where: { id: task.id },
+            data: { status: 'FAILED', errorMessage: `Cannot resume: unknown workflow ${task.workflowId}`, completedAt: new Date() },
+          });
+          continue;
+        }
+
+        // Mark IN_PROGRESS before enqueueing to prevent re-pickup on next tick
+        await prisma.agentTask.update({
+          where: { id: task.id },
+          data: { status: 'IN_PROGRESS' },
+        });
+
+        logger.info({ taskId: task.id, workflowId: workflow.id }, 'Resuming workflow after approval');
+
+        const resumeJob: Job = {
+          id: `workflow-resume-${task.id}`,
+          userId: `scheduler-workflow-${task.organisationId}`,
+          execute: async (_signal) => {
+            await this.workflowExecutor.resume(workflow, task.id, outcomes);
+            return { success: true };
+          },
+        };
+
+        try {
+          await this.queue.enqueue(resumeJob);
+        } catch (err) {
+          logger.error({ err, taskId: task.id }, 'Workflow resume enqueue failed');
+          // Revert to AWAITING_APPROVAL for retry
+          await prisma.agentTask.update({
+            where: { id: task.id },
+            data: { status: 'AWAITING_APPROVAL' },
+          });
+        }
+        continue;
+      }
+
+      // --- STANDALONE (non-workflow) TASKS: existing logic unchanged ---
       if (task.actionIds.length === 0) {
         // No actions to await — move to COMPLETED
         await prisma.agentTask.update({
@@ -260,7 +408,7 @@ export class SchedulerService {
         },
       });
 
-      const outcomes = actions.map((a) => {
+      const outcomes = actions.map((a: { actionType: string; status: string; reviewNotes: string | null; errorMessage: string | null }) => {
         let detail = `- ${a.actionType}: ${a.status}`;
         if (a.reviewNotes) detail += ` (Notes: ${a.reviewNotes})`;
         if (a.errorMessage) detail += ` (Error: ${a.errorMessage})`;
