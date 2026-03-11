@@ -16,25 +16,41 @@ export class WorkflowExecutor {
 
   /**
    * Execute a workflow definition from start.
-   * Creates a parent AgentTask for the workflow and child tasks for each step.
+   * If existingTaskId is provided, updates that task instead of creating a new one.
    */
   async execute(
     workflow: WorkflowDefinition,
     organisationId: string,
     userId: string = 'system',
     emit?: (event: ChatEvent) => void,
+    existingTaskId?: string,
   ): Promise<WorkflowExecution> {
-    const parentTask = await prisma.agentTask.create({
-      data: {
-        organisationId,
-        title: `Workflow: ${workflow.name}`,
-        instruction: workflow.description,
-        workflowId: workflow.id,
-        trigger: 'USER_REQUEST',
-        status: 'IN_PROGRESS',
-        userId,
-      },
-    });
+    let parentTask: { id: string; organisationId: string; userId?: string | null };
+
+    if (existingTaskId) {
+      // Reuse the task created by the trigger endpoint
+      parentTask = await prisma.agentTask.update({
+        where: { id: existingTaskId },
+        data: {
+          status: 'IN_PROGRESS',
+          title: `Workflow: ${workflow.name}`,
+          instruction: workflow.description,
+          workflowId: workflow.id,
+        },
+      });
+    } else {
+      parentTask = await prisma.agentTask.create({
+        data: {
+          organisationId,
+          title: `Workflow: ${workflow.name}`,
+          instruction: workflow.description,
+          workflowId: workflow.id,
+          trigger: 'USER_REQUEST',
+          status: 'IN_PROGRESS',
+          userId,
+        },
+      });
+    }
 
     const execution: WorkflowExecution = {
       workflowId: workflow.id,
@@ -45,10 +61,95 @@ export class WorkflowExecutor {
       stepResults: [],
     };
 
-    // Build cumulative context from step results
-    let cumulativeContext = '';
+    return this.executeSteps(workflow, parentTask, 0, '', execution, emit);
+  }
 
-    for (let i = 0; i < workflow.steps.length; i++) {
+  /**
+   * Resume a workflow after an approval gate has been resolved.
+   * Rebuilds cumulative context from completed steps, then continues from the next step.
+   */
+  async resume(
+    workflow: WorkflowDefinition,
+    parentTaskId: string,
+    approvalOutcomes: string,
+    emit?: (event: ChatEvent) => void,
+  ): Promise<WorkflowExecution> {
+    const parentTask = await prisma.agentTask.findUnique({
+      where: { id: parentTaskId },
+      include: { childTasks: { orderBy: { stepIndex: 'asc' } } },
+    });
+
+    if (!parentTask) {
+      throw new Error(`Workflow parent task not found: ${parentTaskId}`);
+    }
+
+    // Find the last completed step index
+    const completedSteps = parentTask.childTasks.filter(
+      (t: { stepIndex: number | null }) => t.stepIndex !== null
+    );
+
+    const lastStepIndex = completedSteps.length > 0
+      ? Math.max(...completedSteps.map((t: { stepIndex: number | null }) => t.stepIndex!))
+      : -1;
+
+    const resumeFromStep = lastStepIndex + 1;
+
+    // Rebuild cumulative context from completed steps
+    let cumulativeContext = completedSteps
+      .filter((t: { result: string | null }) => t.result)
+      .map((t: { stepIndex: number | null; result: string | null }) =>
+        `**${workflow.steps[t.stepIndex!]!.name}:**\n${t.result!.slice(0, 3000)}`
+      )
+      .join('\n\n');
+
+    // Append approval outcomes
+    cumulativeContext += `\n\n**Approval Outcomes:**\n${approvalOutcomes}`;
+
+    // Mark parent as IN_PROGRESS again
+    await prisma.agentTask.update({
+      where: { id: parentTaskId },
+      data: { status: 'IN_PROGRESS' },
+    });
+
+    const execution: WorkflowExecution = {
+      workflowId: workflow.id,
+      parentTaskId,
+      organisationId: parentTask.organisationId,
+      currentStepIndex: resumeFromStep,
+      status: 'running',
+      stepResults: completedSteps.map((t: { stepIndex: number | null; id: string; status: string; result: string | null }) => ({
+        stepIndex: t.stepIndex!,
+        taskId: t.id,
+        status: t.status,
+        result: t.result || undefined,
+      })),
+    };
+
+    return this.executeSteps(
+      workflow,
+      { id: parentTaskId, organisationId: parentTask.organisationId, userId: parentTask.userId },
+      resumeFromStep,
+      cumulativeContext,
+      execution,
+      emit,
+    );
+  }
+
+  /**
+   * Shared step execution loop used by both execute() and resume().
+   * Handles zero remaining steps (marks parent COMPLETED immediately).
+   */
+  private async executeSteps(
+    workflow: WorkflowDefinition,
+    parentTask: { id: string; organisationId: string; userId?: string | null },
+    startIndex: number,
+    cumulativeContext: string,
+    execution: WorkflowExecution,
+    emit?: (event: ChatEvent) => void,
+  ): Promise<WorkflowExecution> {
+    const userId = parentTask.userId || 'system';
+
+    for (let i = startIndex; i < workflow.steps.length; i++) {
       const step = workflow.steps[i]!;
       execution.currentStepIndex = i;
 
@@ -61,7 +162,7 @@ export class WorkflowExecutor {
       // Create child task for this step
       const stepTask = await prisma.agentTask.create({
         data: {
-          organisationId,
+          organisationId: parentTask.organisationId,
           title: `Step ${i + 1}: ${step.name}`,
           instruction: step.instruction,
           parentTaskId: parentTask.id,
@@ -78,7 +179,7 @@ export class WorkflowExecutor {
         data: {
           title: `[Workflow] ${workflow.name} — Step ${i + 1}: ${step.name}`,
           userId,
-          organisationId,
+          organisationId: parentTask.organisationId,
         },
       });
 
@@ -93,7 +194,7 @@ export class WorkflowExecutor {
         channelMessageId: randomUUID(),
         channelId: conversation.id,
         userId,
-        organisationId,
+        organisationId: parentTask.organisationId,
         text: stepInstruction,
         attachments: [],
         metadata: {
@@ -141,7 +242,7 @@ export class WorkflowExecutor {
             taskId: stepTask.id,
           }, 'Workflow paused at approval gate');
 
-          // The scheduler will detect the AWAITING_APPROVAL task and resume
+          // The scheduler will detect the AWAITING_APPROVAL parent task and resume
           await prisma.agentTask.update({
             where: { id: parentTask.id },
             data: { status: 'AWAITING_APPROVAL' },
@@ -174,7 +275,7 @@ export class WorkflowExecutor {
       }
     }
 
-    // All steps completed
+    // All steps completed (including zero-step case on resume)
     execution.status = 'completed';
     await prisma.agentTask.update({
       where: { id: parentTask.id },
