@@ -127,11 +127,12 @@ The council produces structured deliberations with consensus, dissenting opinion
 
 | Capability | Description |
 |------------|-------------|
-| **Scheduled Workflows** | 4 built-in workflows (incident response, weekly risk review, control assurance, policy compliance) run on cron schedules |
+| **Cross-Domain Workflows** | 4 built-in workflows (incident response, weekly risk review, control assurance, policy compliance) execute multi-step analysis with cumulative context across GRC domains |
+| **Workflow Approval Gates** | Workflows pause at approval gates, then automatically resume with full context when proposals are approved or rejected — no human intervention needed to restart |
 | **Event-Driven Triggers** | Critical/high severity incidents automatically trigger AI analysis |
 | **Approval Feedback Loop** | Agent checks what happened to its proposals and adapts — if rejected, reads reviewer notes and offers revised proposals |
 | **Task Tracking** | Persistent multi-step work across sessions with parent/child task hierarchies |
-| **Approval-Triggered Resume** | When proposals are approved or rejected, the agent automatically resumes with the outcome |
+| **Scheduler Orchestration** | Scheduler picks up pending workflows, manages mutual exclusion via lane queue, and handles retry on queue contention |
 
 All autonomous capabilities preserve the human-approval safety model. For full details, see the [Agentic AI Platform Guide](documentation/AGENTIC_AI_PLATFORM.md).
 

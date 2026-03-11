@@ -159,14 +159,35 @@ Examples:
 ### Workflow Executor
 `gateway/src/workflows/workflow-executor.ts`
 
-Executes multi-step workflows sequentially:
-1. Creates a parent `AgentTask` for the workflow
+Executes multi-step workflows sequentially with full lifecycle management:
+1. Creates (or reuses) a parent `AgentTask` for the workflow
 2. For each step:
-   - Creates a child task
-   - Builds instruction with cumulative context from previous steps
+   - Creates a child task with `stepIndex` for ordering
+   - Builds instruction with cumulative context from all previous steps
    - Executes via `AgentRunner.execute()`
-   - If step has an `approvalGate`, pauses until all proposals are resolved
+   - If step has an `approvalGate`, pauses the entire workflow until all proposals are resolved
 3. Returns `WorkflowExecution` with step-by-step results
+
+### Scheduler Integration
+
+The `SchedulerService` fully manages workflow lifecycle:
+
+**Workflow Pickup** — The scheduler polls for `AgentTask` records with `workflowId` set and `status = PENDING`. For each:
+1. Marks the task `IN_PROGRESS` immediately (prevents re-pickup on next tick)
+2. Looks up the workflow definition via `getWorkflowById()`
+3. Enqueues execution through `LaneQueue` for mutual exclusion with user runs
+4. If the workflow definition is unknown, marks the task `FAILED`
+5. If the queue is full, reverts the task to `PENDING` for retry on the next tick
+
+**Workflow-Aware Approval Resume** — When a workflow step hits an approval gate:
+1. The step task enters `AWAITING_APPROVAL`, and the parent task follows
+2. The scheduler detects the parent task (filtering `parentTaskId: null` to avoid child step tasks)
+3. It collects `actionIds` from all child step tasks in `AWAITING_APPROVAL` status
+4. Once all linked `McpPendingAction` records are resolved (approved/rejected/executed/failed):
+   - Rebuilds cumulative context from all completed steps
+   - Appends approval outcomes (action type, status, reviewer notes)
+   - Calls `WorkflowExecutor.resume()` to continue from the next step
+5. The workflow continues seamlessly with full context preservation
 
 ### Built-in Workflows
 
@@ -309,10 +330,15 @@ gateway/
 │   │   ├── council-orchestrator.ts# Deliberation engine
 │   │   └── council-renderer.ts    # Markdown renderer
 │   ├── scheduler/
-│   │   └── scheduler.service.ts   # Cron + approval resume
+│   │   ├── scheduler.service.ts   # Cron + workflow pickup + approval resume
+│   │   └── __tests__/
+│   │       └── scheduler.service.test.ts
 │   ├── workflows/
-│   │   ├── types.ts               # Workflow definitions
-│   │   └── workflow-executor.ts   # Step-by-step execution
+│   │   ├── types.ts               # Workflow definitions + getWorkflowById()
+│   │   ├── workflow-executor.ts   # Step execution + resume after approval
+│   │   └── __tests__/
+│   │       ├── types.test.ts
+│   │       └── workflow-executor.test.ts
 │   ├── router/
 │   │   └── router.ts             # Expanded keywords + domain counting
 │   ├── channels/
