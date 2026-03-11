@@ -18,7 +18,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 // These tests are designed to run against a real database
 // Skip in CI environments without database access
-const isCI = process.env.CI === 'true';
+const isCI = process.env['CI'] === 'true';
 
 describe.skip('RiskScenario Integration (requires database)', () => {
   let app: INestApplication | undefined;

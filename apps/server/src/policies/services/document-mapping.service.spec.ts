@@ -635,13 +635,16 @@ describe('DocumentMappingService', () => {
       mockPrismaService.control.findMany.mockResolvedValue(mockControls);
 
       const result = await service.getControlCoverageReport(organisationId);
+      const [firstControl, , thirdControl] = result.controls;
 
       expect(result.controls).toHaveLength(3);
-      expect(result.controls[0].controlId).toBe('AC-1');
-      expect(result.controls[0].documentCount).toBe(1);
-      expect(result.controls[0].hasCoverage).toBe(true);
-      expect(result.controls[0].hasFullCoverage).toBe(true);
-      expect(result.controls[2].hasCoverage).toBe(false);
+      expect(firstControl).toBeDefined();
+      expect(thirdControl).toBeDefined();
+      expect(firstControl?.controlId).toBe('AC-1');
+      expect(firstControl?.documentCount).toBe(1);
+      expect(firstControl?.hasCoverage).toBe(true);
+      expect(firstControl?.hasFullCoverage).toBe(true);
+      expect(thirdControl?.hasCoverage).toBe(false);
 
       expect(result.summary.totalControls).toBe(3);
       expect(result.summary.covered).toBe(2);
@@ -688,10 +691,12 @@ describe('DocumentMappingService', () => {
       mockPrismaService.control.findMany.mockResolvedValue(mockControls);
 
       const result = await service.getControlCoverageReport(organisationId);
+      const [firstControl] = result.controls;
 
-      expect(result.controls[0].documentCount).toBe(2);
-      expect(result.controls[0].documents).toHaveLength(2);
-      expect(result.controls[0].hasFullCoverage).toBe(true);
+      expect(firstControl).toBeDefined();
+      expect(firstControl?.documentCount).toBe(2);
+      expect(firstControl?.documents).toHaveLength(2);
+      expect(firstControl?.hasFullCoverage).toBe(true);
     });
   });
 
@@ -728,12 +733,15 @@ describe('DocumentMappingService', () => {
       mockPrismaService.control.findMany.mockResolvedValue(mockGaps);
 
       const result = await service.getGapAnalysis(organisationId);
+      const [firstGap, secondGap] = result;
 
       expect(result).toHaveLength(2);
-      expect(result[0].gapType).toBe('NO_DOCUMENTATION');
-      expect(result[0].recommendation).toContain('Create a new policy');
-      expect(result[1].gapType).toBe('PARTIAL_COVERAGE');
-      expect(result[1].recommendation).toContain('Review and enhance existing documentation');
+      expect(firstGap).toBeDefined();
+      expect(secondGap).toBeDefined();
+      expect(firstGap?.gapType).toBe('NO_DOCUMENTATION');
+      expect(firstGap?.recommendation).toContain('Create a new policy');
+      expect(secondGap?.gapType).toBe('PARTIAL_COVERAGE');
+      expect(secondGap?.recommendation).toContain('Review and enhance existing documentation');
     });
 
     it('should provide appropriate recommendations for each gap type', async () => {
@@ -764,11 +772,14 @@ describe('DocumentMappingService', () => {
       mockPrismaService.control.findMany.mockResolvedValue(mockGaps);
 
       const result = await service.getGapAnalysis(organisationId);
+      const [firstGap, secondGap] = result;
 
-      expect(result[0].gapType).toBe('NO_DOCUMENTATION');
-      expect(result[0].recommendation).toBe('Create a new policy or procedure to address this control');
-      expect(result[1].gapType).toBe('PARTIAL_COVERAGE');
-      expect(result[1].recommendation).toBe('Review and enhance existing documentation to achieve full coverage');
+      expect(firstGap).toBeDefined();
+      expect(secondGap).toBeDefined();
+      expect(firstGap?.gapType).toBe('NO_DOCUMENTATION');
+      expect(firstGap?.recommendation).toBe('Create a new policy or procedure to address this control');
+      expect(secondGap?.gapType).toBe('PARTIAL_COVERAGE');
+      expect(secondGap?.recommendation).toBe('Review and enhance existing documentation to achieve full coverage');
     });
   });
 

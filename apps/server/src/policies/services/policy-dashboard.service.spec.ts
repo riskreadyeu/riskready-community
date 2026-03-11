@@ -17,6 +17,7 @@ describe('PolicyDashboardService', () => {
     },
     documentAcknowledgment: {
       count: jest.fn(),
+      findMany: jest.fn(),
     },
     documentException: {
       count: jest.fn(),
@@ -375,16 +376,24 @@ describe('PolicyDashboardService', () => {
       mockPrismaService.documentException.findMany.mockResolvedValue(mockExpiringExceptions);
 
       const result = await service.getActionsNeeded(organisationId);
+      const [firstOverdueReview] = result.overdueReviews;
+      const [firstPendingApproval] = result.pendingApprovals;
+      const [firstOverdueAcknowledgment] = result.overdueAcknowledgments;
+      const [firstExpiringException] = result.expiringExceptions;
 
       expect(result.overdueReviews).toHaveLength(2);
       expect(result.pendingApprovals).toHaveLength(1);
       expect(result.overdueAcknowledgments).toHaveLength(1);
       expect(result.expiringExceptions).toHaveLength(1);
 
-      expect(result.overdueReviews[0].documentId).toBe('POL-001');
-      expect(result.pendingApprovals[0].stepName).toBe('Legal Review');
-      expect(result.overdueAcknowledgments[0].user.firstName).toBe('John');
-      expect(result.expiringExceptions[0].exceptionId).toBe('EXC-001');
+      expect(firstOverdueReview).toBeDefined();
+      expect(firstPendingApproval).toBeDefined();
+      expect(firstOverdueAcknowledgment).toBeDefined();
+      expect(firstExpiringException).toBeDefined();
+      expect(firstOverdueReview?.documentId).toBe('POL-001');
+      expect(firstPendingApproval?.stepName).toBe('Legal Review');
+      expect(firstOverdueAcknowledgment?.user.firstName).toBe('John');
+      expect(firstExpiringException?.exceptionId).toBe('EXC-001');
     });
 
     it('should limit results to 5 items per category', async () => {
@@ -438,10 +447,11 @@ describe('PolicyDashboardService', () => {
 
       await service.getActionsNeeded(organisationId);
 
-      const exceptionCall = mockPrismaService.documentException.findMany.mock.calls[0][0];
-      expect(exceptionCall.where.status).toBe('ACTIVE');
-      expect(exceptionCall.where.expiryDate).toHaveProperty('lte');
-      expect(exceptionCall.where.expiryDate).toHaveProperty('gte');
+      const exceptionCall = mockPrismaService.documentException.findMany.mock.calls[0]?.[0];
+      expect(exceptionCall).toBeDefined();
+      expect(exceptionCall?.where.status).toBe('ACTIVE');
+      expect(exceptionCall?.where.expiryDate).toHaveProperty('lte');
+      expect(exceptionCall?.where.expiryDate).toHaveProperty('gte');
     });
 
     it('should handle empty results gracefully', async () => {
@@ -524,6 +534,8 @@ describe('PolicyDashboardService', () => {
         mockPrismaService.documentChangeRequest.count.mockResolvedValue(0);
 
         mockPrismaService.policyDocument.count
+          .mockResolvedValueOnce(0) // total documents
+          .mockResolvedValueOnce(0) // published documents
           .mockResolvedValueOnce(3) // overdue (< now)
           .mockResolvedValueOnce(5) // due soon (0-30 days)
           .mockResolvedValueOnce(7); // upcoming (30-90 days)

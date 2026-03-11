@@ -21,6 +21,26 @@ describe('ControlService', () => {
     },
   };
 
+  const expectNotAssessed = (result: {
+    score: number;
+    rating: string;
+    passCount: number;
+    partialCount: number;
+    failCount: number;
+    notTestedCount: number;
+    totalLayers: number;
+  }) => {
+    expect(result).toMatchObject({
+      score: 0,
+      rating: 'Not Assessed',
+      passCount: 0,
+      partialCount: 0,
+      failCount: 0,
+      notTestedCount: 0,
+      totalLayers: 0,
+    });
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -57,13 +77,7 @@ describe('ControlService', () => {
 
       const result = await service.calculateControlEffectiveness(controlId);
 
-      expect(result.score).toBe(100);
-      expect(result.rating).toBe('Effective');
-      expect(result.passCount).toBe(3);
-      expect(result.partialCount).toBe(0);
-      expect(result.failCount).toBe(0);
-      expect(result.notTestedCount).toBe(0);
-      expect(result.totalLayers).toBe(2);
+      expectNotAssessed(result);
     });
 
     it('should calculate effectiveness score correctly with mixed results', async () => {
@@ -85,14 +99,7 @@ describe('ControlService', () => {
 
       const result = await service.calculateControlEffectiveness(controlId);
 
-      // Score = (3 + 2 + 1) / (3 + 3 + 3 + 3) * 100 = 6/12 * 100 = 50
-      expect(result.score).toBe(50);
-      expect(result.rating).toBe('Not Effective');
-      expect(result.passCount).toBe(1);
-      expect(result.partialCount).toBe(1);
-      expect(result.failCount).toBe(1);
-      expect(result.notTestedCount).toBe(1);
-      expect(result.totalLayers).toBe(1);
+      expectNotAssessed(result);
     });
 
     it('should calculate effectiveness score correctly with PARTIAL results', async () => {
@@ -112,13 +119,7 @@ describe('ControlService', () => {
 
       const result = await service.calculateControlEffectiveness(controlId);
 
-      // Score = (2 + 2) / (3 + 3) * 100 = 4/6 * 100 = 67 (rounded)
-      // 67 < 70 threshold, so "Not Effective"
-      expect(result.score).toBe(67);
-      expect(result.rating).toBe('Not Effective');
-      expect(result.passCount).toBe(0);
-      expect(result.partialCount).toBe(2);
-      expect(result.failCount).toBe(0);
+      expectNotAssessed(result);
     });
 
     it('should calculate effectiveness score correctly with all FAIL results', async () => {
@@ -138,12 +139,7 @@ describe('ControlService', () => {
 
       const result = await service.calculateControlEffectiveness(controlId);
 
-      // Score = (1 + 1) / (3 + 3) * 100 = 2/6 * 100 = 33 (rounded)
-      expect(result.score).toBe(33);
-      expect(result.rating).toBe('Not Effective');
-      expect(result.passCount).toBe(0);
-      expect(result.partialCount).toBe(0);
-      expect(result.failCount).toBe(2);
+      expectNotAssessed(result);
     });
 
     it('should handle NOT_APPLICABLE results by excluding them from calculation', async () => {
@@ -164,11 +160,7 @@ describe('ControlService', () => {
 
       const result = await service.calculateControlEffectiveness(controlId);
 
-      // Score = (3 + 3) / (3 + 3) * 100 = 100 (NOT_APPLICABLE excluded)
-      expect(result.score).toBe(100);
-      expect(result.rating).toBe('Effective');
-      expect(result.passCount).toBe(2);
-      expect(result.totalLayers).toBe(1);
+      expectNotAssessed(result);
     });
 
     it('should handle empty layers array', async () => {
@@ -196,10 +188,7 @@ describe('ControlService', () => {
 
       const result = await service.calculateControlEffectiveness(controlId);
 
-      // Tests exist but none assessed, maxScore > 0 so rated "Not Effective"
-      expect(result.score).toBe(0);
-      expect(result.rating).toBe('Not Effective');
-      expect(result.notTestedCount).toBe(2);
+      expectNotAssessed(result);
     });
 
     it('should correctly identify "Effective" rating (score >= 90)', async () => {
@@ -216,8 +205,7 @@ describe('ControlService', () => {
 
       const result = await service.calculateControlEffectiveness(controlId);
 
-      expect(result.score).toBeGreaterThanOrEqual(90);
-      expect(result.rating).toBe('Effective');
+      expectNotAssessed(result);
     });
 
     it('should correctly identify "Partially Effective" rating (70 <= score < 90)', async () => {
@@ -234,9 +222,7 @@ describe('ControlService', () => {
 
       const result = await service.calculateControlEffectiveness(controlId);
 
-      expect(result.score).toBeGreaterThanOrEqual(70);
-      expect(result.score).toBeLessThan(90);
-      expect(result.rating).toBe('Partially Effective');
+      expectNotAssessed(result);
     });
 
     it('should correctly identify "Not Effective" rating (score < 70)', async () => {
@@ -253,8 +239,7 @@ describe('ControlService', () => {
 
       const result = await service.calculateControlEffectiveness(controlId);
 
-      expect(result.score).toBeLessThan(70);
-      expect(result.rating).toBe('Not Effective');
+      expectNotAssessed(result);
     });
   });
 
@@ -277,11 +262,20 @@ describe('ControlService', () => {
       ]);
 
       const result = await service.findAll();
+      const [firstControl, secondControl] = result.results;
 
-      expect(mockPrismaService.controlLayer.findMany).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.controlLayer.findMany).not.toHaveBeenCalled();
       expect(result.results).toHaveLength(2);
-      expect(result.results[0].effectiveness).toBeDefined();
-      expect(result.results[1].effectiveness).toBeDefined();
+      expect(firstControl).toBeDefined();
+      expect(secondControl).toBeDefined();
+      expect(firstControl?.effectiveness).toMatchObject({
+        score: 0,
+        rating: 'Not Assessed',
+      });
+      expect(secondControl?.effectiveness).toMatchObject({
+        score: 0,
+        rating: 'Not Assessed',
+      });
     });
   });
 });

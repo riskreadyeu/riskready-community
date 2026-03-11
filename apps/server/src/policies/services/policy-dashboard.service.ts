@@ -235,7 +235,7 @@ export class PolicyDashboardService {
       },
       mandatoryDocuments: mandatoryDocs,
       overallScore: this.calculateOverallScore(
-        coveredControls / totalControls,
+        totalControls > 0 ? coveredControls / totalControls : 0,
         mandatoryDocs.completed / mandatoryDocs.total
       ),
     };
@@ -271,6 +271,9 @@ export class PolicyDashboardService {
 
   private calculateOverallScore(controlCoverage: number, docCoverage: number): number {
     // Weighted average: 60% control coverage, 40% document coverage
+    if (!Number.isFinite(controlCoverage) || !Number.isFinite(docCoverage)) {
+      return 0;
+    }
     return Math.round((controlCoverage * 0.6 + docCoverage * 0.4) * 100);
   }
 

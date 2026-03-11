@@ -491,7 +491,9 @@ export class PolicyDocumentService {
         });
 
         // Extract numeric part from parent and append child number
-        const parentNum = parent.documentId.replace(/[^0-9-]/g, '');
+        const parentNum = parent.documentId
+          .replace(/[^0-9-]/g, '')
+          .replace(/^-+|-+$/g, '');
         return `${prefix}-${parentNum}-${String(childCount + 1).padStart(2, '0')}`;
       }
     }

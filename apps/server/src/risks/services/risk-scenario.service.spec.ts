@@ -22,6 +22,7 @@ describe('RiskScenarioService', () => {
       delete: jest.fn(),
       count: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
 
   const mockRiskService = {
@@ -37,6 +38,10 @@ describe('RiskScenarioService', () => {
   };
 
   beforeEach(async () => {
+    mockPrismaService.$transaction.mockImplementation(async (callback: (tx: typeof mockPrismaService) => unknown) =>
+      callback(mockPrismaService),
+    );
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RiskScenarioService,

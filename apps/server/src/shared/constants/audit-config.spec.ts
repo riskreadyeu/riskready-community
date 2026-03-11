@@ -41,11 +41,11 @@ describe('AuditConfig', () => {
 
       const masked = maskSensitiveData(data)!;
 
-      expect(masked.id).toBe('123');
-      expect(masked.email).toBe('user@test.com');
-      expect(masked.passwordHash).toBe('[REDACTED]');
-      expect(masked.apiKey).toBe('[REDACTED]');
-      expect(masked.name).toBe('Test User');
+      expect(masked['id']).toBe('123');
+      expect(masked['email']).toBe('user@test.com');
+      expect(masked['passwordHash']).toBe('[REDACTED]');
+      expect(masked['apiKey']).toBe('[REDACTED]');
+      expect(masked['name']).toBe('Test User');
     });
 
     it('should return null for null input', () => {

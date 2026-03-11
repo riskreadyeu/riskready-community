@@ -367,6 +367,12 @@ describe('PolicyDocumentService', () => {
         documentType: 'POLICY' as DocumentType,
         status: 'DRAFT' as DocumentStatus,
         version: '0.1',
+        purpose: 'Protect organisational information assets.',
+        scope: 'Applies to all staff and contractors.',
+        content: 'Policy content',
+        documentOwner: 'Security Team',
+        author: 'RiskReady',
+        approvalLevel: 'MANAGEMENT' as const,
         organisation: { connect: { id: 'org-1' } },
         owner: { connect: { id: 'user-1' } },
       };
@@ -410,6 +416,13 @@ describe('PolicyDocumentService', () => {
       const createData = {
         documentId: 'POL-001',
         title: 'New Policy',
+        documentType: 'POLICY' as DocumentType,
+        purpose: 'Protect customer data.',
+        scope: 'Applies to the product team.',
+        content: 'Policy content',
+        documentOwner: 'Product Team',
+        author: 'RiskReady',
+        approvalLevel: 'MANAGEMENT' as const,
         organisation: { connect: { id: 'org-1' } },
       };
 
@@ -659,7 +672,10 @@ describe('PolicyDocumentService', () => {
 
       const result = await service.delete('doc-1', 'user-1', true);
 
-      expect(result.status).toBe('ARCHIVED');
+      expect('status' in result).toBe(true);
+      if ('status' in result) {
+        expect(result.status).toBe('ARCHIVED');
+      }
       expect(mockPrismaService.policyDocument.delete).not.toHaveBeenCalled();
     });
 
@@ -753,15 +769,22 @@ describe('PolicyDocumentService', () => {
       mockPrismaService.policyDocument.findMany.mockResolvedValue(mockDocuments);
 
       const result = await service.getHierarchy('org-1');
+      const [firstRoot, secondRoot] = result;
+      const [firstChild] = firstRoot?.children ?? [];
+      const [firstGrandchild] = firstChild?.children ?? [];
 
       expect(result).toHaveLength(2); // Two root documents
-      expect(result[0].documentId).toBe('POL-001');
-      expect(result[0].children).toHaveLength(1);
-      expect(result[0].children[0].documentId).toBe('PRO-001');
-      expect(result[0].children[0].children).toHaveLength(1);
-      expect(result[0].children[0].children[0].documentId).toBe('WI-001');
-      expect(result[1].documentId).toBe('POL-002');
-      expect(result[1].children).toHaveLength(0);
+      expect(firstRoot).toBeDefined();
+      expect(secondRoot).toBeDefined();
+      expect(firstChild).toBeDefined();
+      expect(firstGrandchild).toBeDefined();
+      expect(firstRoot?.['documentId']).toBe('POL-001');
+      expect(firstRoot?.children).toHaveLength(1);
+      expect(firstChild?.['documentId']).toBe('PRO-001');
+      expect(firstChild?.children).toHaveLength(1);
+      expect(firstGrandchild?.['documentId']).toBe('WI-001');
+      expect(secondRoot?.['documentId']).toBe('POL-002');
+      expect(secondRoot?.children).toHaveLength(0);
     });
 
     it('should return empty array when no documents exist', async () => {
@@ -952,7 +975,7 @@ describe('PolicyDocumentService', () => {
     });
 
     it('should filter by control and risk mappings', async () => {
-      const mockSearchResults = [];
+      const mockSearchResults: Array<Record<string, unknown>> = [];
 
       mockPrismaService.policyDocument.findMany.mockResolvedValue(mockSearchResults);
       mockPrismaService.policyDocument.count.mockResolvedValue(0);
@@ -1127,9 +1150,9 @@ describe('PolicyDocumentService', () => {
       ];
       const expectedPrefixes = ['POL', 'STD', 'PRO', 'WI', 'FRM', 'TPL', 'CHK', 'GDL', 'REC'];
 
-      for (let i = 0; i < types.length; i++) {
-        const result = await service.generateDocumentId(types[i], 'org-1');
-        expect(result).toBe(`${expectedPrefixes[i]}-001`);
+      for (const [index, type] of types.entries()) {
+        const result = await service.generateDocumentId(type, 'org-1');
+        expect(result).toBe(`${expectedPrefixes[index]}-001`);
       }
     });
 
@@ -1165,7 +1188,7 @@ describe('PolicyDocumentService', () => {
 
       const result = await service.generateDocumentId('WORK_INSTRUCTION', 'org-1', 'parent-1');
 
-      expect(result).toBe('WI-123--01');
+      expect(result).toBe('WI-123-01');
     });
 
     it('should fall back to non-hierarchical when parent not found', async () => {

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DocumentReviewService } from './document-review.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PolicyAuditService } from './policy-audit.service';
+import { ChangeRequestService } from './change-request.service';
 import { NotFoundException } from '@nestjs/common';
 import { ReviewType, ReviewOutcome, ReviewFrequency } from '@prisma/client';
 
@@ -22,13 +23,38 @@ describe('DocumentReviewService', () => {
       count: jest.fn(),
       update: jest.fn(),
     },
+    policyDocumentAuditLog: {
+      create: jest.fn(),
+    },
+    $transaction: jest.fn(),
   };
 
   const mockAuditService = {
     log: jest.fn(),
   };
 
+  const mockChangeRequestService = {
+    create: jest.fn(),
+  };
+
   beforeEach(async () => {
+    mockPrismaService.$transaction.mockImplementation(
+      async (
+        callback: (tx: {
+          documentReview: typeof mockPrismaService.documentReview;
+          policyDocument: typeof mockPrismaService.policyDocument;
+          policyDocumentAuditLog: typeof mockPrismaService.policyDocumentAuditLog;
+        }) => unknown,
+      ) =>
+        callback({
+          documentReview: mockPrismaService.documentReview,
+          policyDocument: mockPrismaService.policyDocument,
+          policyDocumentAuditLog: mockPrismaService.policyDocumentAuditLog,
+        }),
+    );
+    mockPrismaService.policyDocumentAuditLog.create.mockResolvedValue({});
+    mockChangeRequestService.create.mockResolvedValue({ changeRequestId: 'CR-001' });
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DocumentReviewService,
@@ -39,6 +65,10 @@ describe('DocumentReviewService', () => {
         {
           provide: PolicyAuditService,
           useValue: mockAuditService,
+        },
+        {
+          provide: ChangeRequestService,
+          useValue: mockChangeRequestService,
         },
       ],
     }).compile();
@@ -190,7 +220,9 @@ describe('DocumentReviewService', () => {
 
       const mockDocument = {
         id: 'doc-1',
+        title: 'Security Policy',
         reviewFrequency: 'ANNUAL' as ReviewFrequency,
+        organisationId: 'org-1',
       };
 
       const nextReviewDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
@@ -215,21 +247,31 @@ describe('DocumentReviewService', () => {
       const result = await service.createReview(createData);
 
       expect(result).toEqual(mockReview);
-      expect(mockPrismaService.policyDocument.findUnique).toHaveBeenCalledWith({
-        where: { id: createData.documentId },
-        select: { reviewFrequency: true },
-      });
+      expect(mockPrismaService.policyDocument.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: createData.documentId },
+          select: expect.objectContaining({
+            id: true,
+            title: true,
+            reviewFrequency: true,
+            organisationId: true,
+          }),
+        }),
+      );
       expect(mockPrismaService.documentReview.create).toHaveBeenCalled();
       expect(mockPrismaService.policyDocument.update).toHaveBeenCalled();
-      expect(mockAuditService.log).toHaveBeenCalledWith({
-        documentId: createData.documentId,
-        action: 'REVIEWED',
-        description: `Document reviewed: ${createData.outcome}`,
-        performedById: createData.reviewedById,
-        newValue: expect.objectContaining({
-          reviewType: createData.reviewType,
-          outcome: createData.outcome,
-        }),
+      expect(mockPrismaService.policyDocumentAuditLog.create).toHaveBeenCalledWith({
+        data: {
+          document: { connect: { id: createData.documentId } },
+          action: 'REVIEWED',
+          description: `Document reviewed: ${createData.outcome}`,
+          performedBy: { connect: { id: createData.reviewedById } },
+          newValue: expect.objectContaining({
+            reviewType: createData.reviewType,
+            outcome: createData.outcome,
+            nextReviewDate: expect.any(String),
+          }),
+        },
       });
     });
 
@@ -248,7 +290,9 @@ describe('DocumentReviewService', () => {
 
       const mockDocument = {
         id: 'doc-1',
+        title: 'Security Policy',
         reviewFrequency: 'QUARTERLY' as ReviewFrequency,
+        organisationId: 'org-1',
       };
 
       const mockReview = {
@@ -290,7 +334,9 @@ describe('DocumentReviewService', () => {
 
       const mockDocument = {
         id: 'doc-1',
+        title: 'Security Policy',
         reviewFrequency: 'ANNUAL' as ReviewFrequency,
+        organisationId: 'org-1',
       };
 
       const mockReview = { id: 'review-new', ...createData };
@@ -323,7 +369,9 @@ describe('DocumentReviewService', () => {
 
       const mockDocument = {
         id: 'doc-1',
+        title: 'Security Policy',
         reviewFrequency: 'ANNUAL' as ReviewFrequency,
+        organisationId: 'org-1',
       };
 
       const mockReview = { id: 'review-new', ...createData };
@@ -626,7 +674,7 @@ describe('DocumentReviewService', () => {
         overdue: 5,
         dueSoon: 8,
         upcoming: 12,
-        onSchedule: 25, // total - overdue - dueSoon = 50 - 5 - 8
+        onSchedule: 37, // total - overdue - dueSoon = 50 - 5 - 8
         total: 50,
       });
     });

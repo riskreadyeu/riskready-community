@@ -67,7 +67,7 @@ describe('risks — registerMutationTools', () => {
   it('registers the correct total number of tools', () => {
     const toolSpy = vi.spyOn(server, 'tool');
     registerMutationTools(server);
-    // 6 risk + 3 scenario + 2 treatment = 11
-    expect(toolSpy).toHaveBeenCalledTimes(11);
+    // 6 risk + 4 scenario + 2 treatment = 12
+    expect(toolSpy).toHaveBeenCalledTimes(12);
   });
 });

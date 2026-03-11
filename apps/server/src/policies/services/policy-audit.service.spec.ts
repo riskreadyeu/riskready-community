@@ -43,7 +43,6 @@ describe('PolicyAuditService', () => {
         action: 'CREATED' as PolicyAuditAction,
         description: 'Document created',
         performedById: 'user-1',
-        previousValue: null,
         newValue: { title: 'New Policy' },
         ipAddress: '192.168.1.1',
         userAgent: 'Mozilla/5.0',
@@ -56,7 +55,7 @@ describe('PolicyAuditService', () => {
         action: logData.action,
         description: logData.description,
         performedById: logData.performedById,
-        previousValue: logData.previousValue,
+        previousValue: null,
         newValue: logData.newValue,
         ipAddress: logData.ipAddress,
         userAgent: logData.userAgent,
@@ -387,9 +386,11 @@ describe('PolicyAuditService', () => {
       const result = await service.getDocumentAuditLog(documentId, {
         action: 'APPROVED' as PolicyAuditAction,
       });
+      const [firstResult] = result.results;
 
       expect(result.results).toHaveLength(1);
-      expect(result.results[0].action).toBe('APPROVED');
+      expect(firstResult).toBeDefined();
+      expect(firstResult?.action).toBe('APPROVED');
       expect(mockPrismaService.policyDocumentAuditLog.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -503,7 +504,7 @@ describe('PolicyAuditService', () => {
 
     it('should combine multiple filters', async () => {
       const documentId = 'doc-1';
-      const mockLogs = [];
+      const mockLogs: Array<Record<string, unknown>> = [];
 
       mockPrismaService.policyDocumentAuditLog.findMany.mockResolvedValue(mockLogs);
       mockPrismaService.policyDocumentAuditLog.count.mockResolvedValue(0);
@@ -810,8 +811,10 @@ describe('PolicyAuditService', () => {
       mockPrismaService.policyDocumentAuditLog.findMany.mockResolvedValue(mockLogs);
 
       const result = await service.getRecentActivity(organisationId);
+      const [firstActivity] = result;
 
-      expect(result[0].document.documentType).toBe('POLICY');
+      expect(firstActivity).toBeDefined();
+      expect(firstActivity?.document.documentType).toBe('POLICY');
     });
 
     it('should return empty array when no recent activity', async () => {

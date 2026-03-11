@@ -35,9 +35,6 @@ _temp/
 dev.db
 
 # Internal dev files
-docs/
-scripts/
-*.toml
 INVENTORY.md
 apps/server/scripts/
 apps/server/*.md

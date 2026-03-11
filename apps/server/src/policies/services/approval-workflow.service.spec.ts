@@ -28,6 +28,10 @@ describe('ApprovalWorkflowService', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    policyDocumentAuditLog: {
+      create: jest.fn(),
+    },
+    $transaction: jest.fn(),
   };
 
   const mockAuditService = {
@@ -35,6 +39,30 @@ describe('ApprovalWorkflowService', () => {
   };
 
   beforeEach(async () => {
+    mockPrismaService.$transaction.mockImplementation(
+      async (
+        callback: (tx: {
+          documentApprovalWorkflow: typeof mockPrismaService.documentApprovalWorkflow;
+          approvalStep: typeof mockPrismaService.approvalStep;
+          policyDocument: typeof mockPrismaService.policyDocument;
+          policyDocumentAuditLog: typeof mockPrismaService.policyDocumentAuditLog;
+        }) => unknown,
+      ) =>
+        callback({
+          documentApprovalWorkflow: mockPrismaService.documentApprovalWorkflow,
+          approvalStep: mockPrismaService.approvalStep,
+          policyDocument: mockPrismaService.policyDocument,
+          policyDocumentAuditLog: mockPrismaService.policyDocumentAuditLog,
+        }),
+    );
+    mockPrismaService.policyDocument.findUnique.mockResolvedValue({
+      id: 'doc-1',
+      documentId: 'DOC-001',
+      documentType: 'POLICY',
+      title: 'Test Document',
+    });
+    mockPrismaService.policyDocumentAuditLog.create.mockResolvedValue({});
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ApprovalWorkflowService,
@@ -311,12 +339,14 @@ describe('ApprovalWorkflowService', () => {
         where: { id: createData.documentId },
         data: { status: 'PENDING_APPROVAL' },
       });
-      expect(mockAuditService.log).toHaveBeenCalledWith({
-        documentId: createData.documentId,
-        action: 'SUBMITTED_FOR_APPROVAL',
-        description: 'Approval workflow started: SEQUENTIAL',
-        performedById: createData.initiatedById,
-        newValue: { workflowType: createData.workflowType, stepsCount: 2 },
+      expect(mockPrismaService.policyDocumentAuditLog.create).toHaveBeenCalledWith({
+        data: {
+          document: { connect: { id: createData.documentId } },
+          action: 'SUBMITTED_FOR_APPROVAL',
+          description: 'Approval workflow started: SEQUENTIAL',
+          performedBy: { connect: { id: createData.initiatedById } },
+          newValue: { workflowType: createData.workflowType, stepsCount: 2 },
+        },
       });
     });
 
@@ -455,7 +485,6 @@ describe('ApprovalWorkflowService', () => {
       mockPrismaService.approvalStep.update.mockResolvedValue({});
       mockPrismaService.documentApprovalWorkflow.update.mockResolvedValue({});
       mockPrismaService.policyDocument.update.mockResolvedValue({});
-      mockAuditService.log.mockResolvedValue({});
       mockPrismaService.documentApprovalWorkflow.findUnique.mockResolvedValue({
         id: 'workflow-1',
         steps: [],
@@ -481,12 +510,14 @@ describe('ApprovalWorkflowService', () => {
           digitalSignature: processData.signature,
         },
       });
-      expect(mockAuditService.log).toHaveBeenCalledWith({
-        documentId: 'doc-1',
-        action: 'APPROVED',
-        description: 'Document approved through workflow',
-        performedById: processData.userId,
-        newValue: { decision: 'APPROVE', signature: true },
+      expect(mockPrismaService.policyDocumentAuditLog.create).toHaveBeenCalledWith({
+        data: {
+          document: { connect: { id: 'doc-1' } },
+          action: 'APPROVED',
+          description: 'Document approved through workflow',
+          performedBy: { connect: { id: processData.userId } },
+          newValue: { decision: 'APPROVE', signature: true },
+        },
       });
     });
 
@@ -501,7 +532,6 @@ describe('ApprovalWorkflowService', () => {
       mockPrismaService.approvalStep.update.mockResolvedValue({});
       mockPrismaService.documentApprovalWorkflow.update.mockResolvedValue({});
       mockPrismaService.policyDocument.update.mockResolvedValue({});
-      mockAuditService.log.mockResolvedValue({});
       mockPrismaService.documentApprovalWorkflow.findUnique.mockResolvedValue({
         id: 'workflow-1',
         steps: [],
@@ -532,12 +562,14 @@ describe('ApprovalWorkflowService', () => {
         where: { id: 'doc-1' },
         data: { status: 'DRAFT' },
       });
-      expect(mockAuditService.log).toHaveBeenCalledWith({
-        documentId: 'doc-1',
-        action: 'REJECTED',
-        description: 'Approval rejected at step: Technical Review',
-        performedById: processData.userId,
-        newValue: { decision: 'REJECT', comments: processData.comments },
+      expect(mockPrismaService.policyDocumentAuditLog.create).toHaveBeenCalledWith({
+        data: {
+          document: { connect: { id: 'doc-1' } },
+          action: 'REJECTED',
+          description: 'Approval rejected at step: Technical Review',
+          performedBy: { connect: { id: processData.userId } },
+          newValue: { decision: 'REJECT', comments: processData.comments },
+        },
       });
     });
 
@@ -580,7 +612,6 @@ describe('ApprovalWorkflowService', () => {
 
       mockPrismaService.approvalStep.findUnique.mockResolvedValue(mockStep);
       mockPrismaService.approvalStep.update.mockResolvedValue({});
-      mockAuditService.log.mockResolvedValue({});
       mockPrismaService.documentApprovalWorkflow.findUnique.mockResolvedValue({
         id: 'workflow-1',
         steps: [],
@@ -588,12 +619,14 @@ describe('ApprovalWorkflowService', () => {
 
       await service.processStep('step-1', processData);
 
-      expect(mockAuditService.log).toHaveBeenCalledWith({
-        documentId: 'doc-1',
-        action: 'REVIEWED',
-        description: 'Changes requested at step: Technical Review',
-        performedById: processData.userId,
-        newValue: { decision: 'REQUEST_CHANGES', comments: processData.comments },
+      expect(mockPrismaService.policyDocumentAuditLog.create).toHaveBeenCalledWith({
+        data: {
+          document: { connect: { id: 'doc-1' } },
+          action: 'REVIEWED',
+          description: 'Changes requested at step: Technical Review',
+          performedBy: { connect: { id: processData.userId } },
+          newValue: { decision: 'REQUEST_CHANGES', comments: processData.comments },
+        },
       });
     });
 
@@ -718,8 +751,6 @@ describe('ApprovalWorkflowService', () => {
       mockPrismaService.documentApprovalWorkflow.findUnique.mockResolvedValue(mockWorkflow);
       mockPrismaService.documentApprovalWorkflow.update.mockResolvedValue({});
       mockPrismaService.policyDocument.update.mockResolvedValue({});
-      mockAuditService.log.mockResolvedValue({});
-
       const result = await service.cancelWorkflow('workflow-1', 'user-1');
 
       expect(mockPrismaService.documentApprovalWorkflow.update).toHaveBeenCalledWith({
@@ -734,11 +765,13 @@ describe('ApprovalWorkflowService', () => {
         where: { id: 'doc-1' },
         data: { status: 'DRAFT' },
       });
-      expect(mockAuditService.log).toHaveBeenCalledWith({
-        documentId: 'doc-1',
-        action: 'UPDATED',
-        description: 'Approval workflow cancelled',
-        performedById: 'user-1',
+      expect(mockPrismaService.policyDocumentAuditLog.create).toHaveBeenCalledWith({
+        data: {
+          document: { connect: { id: 'doc-1' } },
+          action: 'UPDATED',
+          description: 'Approval workflow cancelled',
+          performedBy: { connect: { id: 'user-1' } },
+        },
       });
     });
 

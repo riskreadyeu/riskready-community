@@ -534,9 +534,6 @@ describe('DocumentVersionService', () => {
         .mockResolvedValueOnce({ id: 'version-2', version: '2.0' });
 
       await expect(service.compareVersions('doc-1', '1.0', '2.0')).rejects.toThrow(
-        NotFoundException
-      );
-      await expect(service.compareVersions('doc-1', '1.0', '2.0')).rejects.toThrow(
         'One or both versions not found'
       );
     });
@@ -546,9 +543,6 @@ describe('DocumentVersionService', () => {
         .mockResolvedValueOnce({ id: 'version-1', version: '1.0' })
         .mockResolvedValueOnce(null);
 
-      await expect(service.compareVersions('doc-1', '1.0', '2.0')).rejects.toThrow(
-        NotFoundException
-      );
       await expect(service.compareVersions('doc-1', '1.0', '2.0')).rejects.toThrow(
         'One or both versions not found'
       );

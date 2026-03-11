@@ -223,9 +223,11 @@ describe('RiskCalculationService', () => {
       mockPrismaService.riskCalculationHistory.findMany.mockResolvedValue(mockHistory);
 
       const result = await service.getCalculationHistory('scenario-1', 10);
+      const [latestCalculation] = result;
 
       expect(result).toHaveLength(3);
-      expect(result[0].id).toBe('calc-3'); // Most recent first
+      expect(latestCalculation).toBeDefined();
+      expect(latestCalculation?.id).toBe('calc-3'); // Most recent first
       expect(mockPrismaService.riskCalculationHistory.findMany).toHaveBeenCalledWith({
         where: { scenarioId: 'scenario-1' },
         orderBy: { calculatedAt: 'desc' },
@@ -305,7 +307,7 @@ describe('RiskCalculationService', () => {
           riskId: 'risk-1',
           title: 'High Risk Scenario',
           likelihood: 'ALMOST_CERTAIN',
-          impact: 'CATASTROPHIC',
+          impact: 'SEVERE',
           risk: { id: 'risk-1', riskId: 'R-01', title: 'Test Risk' },
           assetLinks: [],
           vendorLinks: [],

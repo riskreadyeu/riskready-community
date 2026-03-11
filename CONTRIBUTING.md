@@ -14,7 +14,7 @@ Thank you for your interest in contributing to RiskReady. This guide covers the 
 
 ```bash
 # Clone the repository
-git clone https://github.com/riskready/riskready-community.git
+git clone https://github.com/riskreadyeu/riskready-community.git
 cd riskready-community
 
 # Start PostgreSQL
