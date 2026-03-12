@@ -14,7 +14,17 @@ import { IncidentService } from '../services/incident.service';
 import { IncidentClassificationService } from '../services/incident-classification.service';
 import { IncidentNotificationService } from '../services/incident-notification.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateIncidentDto, UpdateIncidentDto } from '../dto/incident.dto';
+import {
+  CreateIncidentDto,
+  UpdateIncidentDto,
+  UpdateIncidentStatusDto,
+  NIS2AssessmentDto,
+  DORAAssessmentDto,
+  NIS2OverrideDto,
+  DORAOverrideDto,
+  LinkIncidentAssetDto,
+  LinkIncidentControlDto,
+} from '../dto/incident.dto';
 import {
   IncidentStatus,
   IncidentSeverity,
@@ -145,7 +155,7 @@ export class IncidentController {
   async updateStatus(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body() data: { status: IncidentStatus; notes?: string },
+    @Body() data: UpdateIncidentStatusDto,
   ) {
     return this.service.updateStatus(id, data.status, req.user.id, data.notes);
   }
@@ -168,24 +178,7 @@ export class IncidentController {
   async assessNIS2(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body()
-    data: {
-      entityType?: string;
-      sector?: string;
-      causedSevereOperationalDisruption?: boolean;
-      causedFinancialLoss?: boolean;
-      financialLossAmount?: number;
-      financialLossCurrency?: string;
-      affectedOtherPersons?: boolean;
-      affectedPersonsCount?: number;
-      causedMaterialDamage?: boolean;
-      materialDamageDescription?: string;
-      hasCrossBorderImpact?: boolean;
-      affectedMemberStates?: string[];
-      serviceAvailabilityImpactPercent?: number;
-      serviceDegradationDurationHours?: number;
-      affectedServiceIds?: string[];
-    },
+    @Body() data: NIS2AssessmentDto,
   ) {
     return this.classificationService.assessNIS2(id, data as Record<string, unknown>, req.user.id);
   }
@@ -194,38 +187,7 @@ export class IncidentController {
   async assessDORA(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body()
-    data: {
-      financialEntityType?: string;
-      affectedIctServiceIds?: string[];
-      thirdPartyProviderInvolved?: boolean;
-      thirdPartyProviderId?: string;
-      affectsCriticalFunction?: boolean;
-      criticalFunctionIds?: string[];
-      clientsAffectedCount?: number;
-      counterpartiesAffectedCount?: number;
-      clientsAffectedPercent?: number;
-      mediaCoverageOccurred?: boolean;
-      mediaCoverageType?: string;
-      clientComplaintsReceived?: number;
-      regulatoryInquiryTriggered?: boolean;
-      serviceDowntimeHours?: number;
-      recoveryTimeHours?: number;
-      affectedMemberStates?: string[];
-      affectedThirdCountries?: string[];
-      dataIntegrityAffected?: boolean;
-      dataConfidentialityAffected?: boolean;
-      dataAvailabilityAffected?: boolean;
-      recordsAffectedCount?: number;
-      involvesPersonalData?: boolean;
-      directCosts?: number;
-      indirectCosts?: number;
-      economicImpactPercentOfCET1?: number;
-      transactionsAffectedCount?: number;
-      transactionsAffectedValue?: number;
-      dailyAverageTransactions?: number;
-      transactionsAffectedPercent?: number;
-    },
+    @Body() data: DORAAssessmentDto,
   ) {
     return this.classificationService.assessDORA(id, data as Record<string, unknown>, req.user.id);
   }
@@ -234,7 +196,7 @@ export class IncidentController {
   async overrideNIS2(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body() data: { isSignificant: boolean; justification: string },
+    @Body() data: NIS2OverrideDto,
   ) {
     return this.classificationService.overrideNIS2Classification(
       id,
@@ -248,7 +210,7 @@ export class IncidentController {
   async overrideDORA(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body() data: { isMajor: boolean; justification: string },
+    @Body() data: DORAOverrideDto,
   ) {
     return this.classificationService.overrideDORAClassification(
       id,
@@ -265,7 +227,7 @@ export class IncidentController {
   @Post(':id/assets')
   async addAsset(
     @Param('id') id: string,
-    @Body() data: { assetId: string; impactType: string; notes?: string },
+    @Body() data: LinkIncidentAssetDto,
   ) {
     return this.service.addAffectedAsset(id, data.assetId, data.impactType, data.notes);
   }
@@ -282,7 +244,7 @@ export class IncidentController {
   @Post(':id/controls')
   async linkControl(
     @Param('id') id: string,
-    @Body() data: { controlId: string; linkType: string; notes?: string },
+    @Body() data: LinkIncidentControlDto,
   ) {
     return this.service.linkControl(id, data.controlId, data.linkType, data.notes);
   }
@@ -301,4 +263,3 @@ export class IncidentController {
     return this.notificationService.createRequiredNotifications(id, req.user.id);
   }
 }
-

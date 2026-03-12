@@ -3,6 +3,8 @@ import {
   IsOptional,
   IsEnum,
   IsDateString,
+  IsArray,
+  ArrayNotEmpty,
   MinLength,
   MaxLength,
 } from 'class-validator';
@@ -73,9 +75,6 @@ export class CreateNonconformityDto {
   @IsDateString()
   @IsOptional()
   targetClosureDate?: string;
-
-  @IsString()
-  raisedById!: string;
 }
 
 export class UpdateNonconformityDto {
@@ -141,10 +140,6 @@ export class UpdateNonconformityDto {
 
   @IsString()
   @IsOptional()
-  verifiedById?: string;
-
-  @IsString()
-  @IsOptional()
   @MaxLength(200)
   verificationResult?: string;
 
@@ -165,4 +160,42 @@ export class UpdateNonconformityDto {
   @IsOptional()
   @MaxLength(100)
   isoClause?: string;
+}
+
+export class LinkNonconformityRisksDto {
+  @IsArray()
+  @ArrayNotEmpty()
+  riskIds!: string[];
+}
+
+export class SaveCapDraftDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(5000)
+  correctiveAction!: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(5000)
+  rootCause?: string;
+
+  @IsString()
+  responsibleUserId!: string;
+
+  @IsDateString()
+  targetClosureDate!: string;
+}
+
+export class ApproveCapDto {
+  @IsString()
+  @IsOptional()
+  @MaxLength(2000)
+  approvalComments?: string;
+}
+
+export class RejectCapDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(2000)
+  rejectionReason!: string;
 }

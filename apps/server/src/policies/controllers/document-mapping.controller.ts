@@ -1,6 +1,13 @@
-import { Controller, Get, Post, Put, Delete, Param, Query, Body } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Query, Body, Request } from '@nestjs/common';
 import { DocumentMappingService } from '../services/document-mapping.service';
-import { ControlMappingType, CoverageLevel, RiskRelationshipType, DocumentRelationType } from '@prisma/client';
+import {
+  AddControlMappingDto,
+  UpdateControlMappingDto,
+  AddRiskMappingDto,
+  UpdateRiskMappingDto,
+  AddDocumentRelationDto,
+} from '../dto/mapping.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('policies')
 export class DocumentMappingController {
@@ -17,30 +24,17 @@ export class DocumentMappingController {
 
   @Post(':documentId/controls')
   async addControlMapping(
+    @Request() req: AuthenticatedRequest,
     @Param('documentId') documentId: string,
-    @Body() data: {
-      controlId: string;
-      mappingType?: ControlMappingType;
-      coverage?: CoverageLevel;
-      notes?: string;
-      evidenceRequired?: boolean;
-      evidenceDescription?: string;
-      createdById?: string;
-    },
+    @Body() data: AddControlMappingDto,
   ) {
-    return this.service.addControlMapping({ documentId, ...data });
+    return this.service.addControlMapping({ documentId, ...data, createdById: req.user.id });
   }
 
   @Put('control-mappings/:id')
   async updateControlMapping(
     @Param('id') id: string,
-    @Body() data: {
-      mappingType?: ControlMappingType;
-      coverage?: CoverageLevel;
-      notes?: string;
-      evidenceRequired?: boolean;
-      evidenceDescription?: string;
-    },
+    @Body() data: UpdateControlMappingDto,
   ) {
     return this.service.updateControlMapping(id, data);
   }
@@ -66,24 +60,17 @@ export class DocumentMappingController {
 
   @Post(':documentId/risks')
   async addRiskMapping(
+    @Request() req: AuthenticatedRequest,
     @Param('documentId') documentId: string,
-    @Body() data: {
-      riskId: string;
-      relationshipType?: RiskRelationshipType;
-      notes?: string;
-      createdById?: string;
-    },
+    @Body() data: AddRiskMappingDto,
   ) {
-    return this.service.addRiskMapping({ documentId, ...data });
+    return this.service.addRiskMapping({ documentId, ...data, createdById: req.user.id });
   }
 
   @Put('risk-mappings/:id')
   async updateRiskMapping(
     @Param('id') id: string,
-    @Body() data: {
-      relationshipType?: RiskRelationshipType;
-      notes?: string;
-    },
+    @Body() data: UpdateRiskMappingDto,
   ) {
     return this.service.updateRiskMapping(id, data);
   }
@@ -109,15 +96,11 @@ export class DocumentMappingController {
 
   @Post(':documentId/relations')
   async addDocumentRelation(
+    @Request() req: AuthenticatedRequest,
     @Param('documentId') sourceDocumentId: string,
-    @Body() data: {
-      targetDocumentId: string;
-      relationType: DocumentRelationType;
-      description?: string;
-      createdById?: string;
-    },
+    @Body() data: AddDocumentRelationDto,
   ) {
-    return this.service.addDocumentRelation({ sourceDocumentId, ...data });
+    return this.service.addDocumentRelation({ sourceDocumentId, ...data, createdById: req.user.id });
   }
 
   @Delete('relations/:id')

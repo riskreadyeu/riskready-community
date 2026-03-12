@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import {
+  CreateBusinessProcessDto,
+  UpdateBusinessProcessDto,
+} from '../dto/organisation-crud.dto';
 
 @Injectable()
 export class BusinessProcessService {
@@ -46,12 +50,17 @@ export class BusinessProcessService {
     });
   }
 
-  async create(data: Prisma.BusinessProcessCreateInput) {
-    return this.prisma.businessProcess.create({ data });
+  async create(data: CreateBusinessProcessDto) {
+    return this.prisma.businessProcess.create({
+      data: data as Prisma.BusinessProcessUncheckedCreateInput,
+    });
   }
 
-  async update(id: string, data: Prisma.BusinessProcessUpdateInput) {
-    return this.prisma.businessProcess.update({ where: { id }, data });
+  async update(id: string, data: UpdateBusinessProcessDto) {
+    return this.prisma.businessProcess.update({
+      where: { id },
+      data: data as Prisma.BusinessProcessUncheckedUpdateInput,
+    });
   }
 
   async delete(id: string) {

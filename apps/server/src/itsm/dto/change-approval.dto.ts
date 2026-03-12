@@ -70,3 +70,18 @@ export class RejectDto {
     @IsString()
     comments?: string;
 }
+
+export class ApproveChangeApprovalDto {
+    @IsOptional()
+    @IsString()
+    comments?: string;
+
+    @IsOptional()
+    @IsString()
+    conditions?: string;
+}
+
+export class RejectChangeApprovalDto {
+    @IsString()
+    comments!: string;
+}

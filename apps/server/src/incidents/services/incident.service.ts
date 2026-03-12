@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, IncidentStatus, IncidentSeverity, IncidentCategory, IncidentSource, IncidentResolutionType, IncidentImpactType } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { resolveSingleOrganisationId } from '../../shared/utils/single-organisation.util';
 import { PrismaService } from '../../prisma/prisma.service';
 
 // ============================================
@@ -270,18 +271,10 @@ export class IncidentService {
   }
 
   async create(data: CreateIncidentDto, userId: string) {
-    // Get organisation ID
-    let organisationId = data.organisationId;
-    if (!organisationId) {
-      const org = await this.prisma.organisationProfile.findFirst();
-      if (!org) {
-        throw new BadRequestException('No organisation found. Please create an organisation first.');
-      }
-      organisationId = org.id;
-    }
+    const organisationId = await resolveSingleOrganisationId(this.prisma, data.organisationId);
 
     // Generate reference number
-    const referenceNumber = await this.generateReferenceNumber(organisationId);
+    const referenceNumber = await this.generateReferenceNumber(organisationId!);
 
     // Create incident
     const incident = await this.prisma.incident.create({
@@ -300,7 +293,7 @@ export class IncidentService {
         incidentManagerId: data.incidentManagerId,
         incidentTypeId: data.incidentTypeId,
         attackVectorId: data.attackVectorId,
-        organisationId,
+        organisationId: organisationId!,
         confidentialityBreach: data.confidentialityBreach || false,
         integrityBreach: data.integrityBreach || false,
         availabilityBreach: data.availabilityBreach || false,
@@ -336,7 +329,7 @@ export class IncidentService {
       referenceNumber,
       title: data.title,
       severity: data.severity,
-      organisationId,
+      organisationId: organisationId!,
     });
 
     return incident;
@@ -842,4 +835,3 @@ export class IncidentService {
     });
   }
 }
-

@@ -19,7 +19,7 @@ import { prisma, disconnectPrisma } from './prisma.js';
 import { join } from 'node:path';
 import { RunManager } from './run/run-manager.js';
 import Anthropic from '@anthropic-ai/sdk';
-import { loadFirstDbConfig } from './db-config.js';
+import { loadDbConfig } from './db-config.js';
 import { SchedulerService } from './scheduler/scheduler.service.js';
 import { CouncilOrchestrator } from './council/council-orchestrator.js';
 
@@ -31,12 +31,14 @@ export class Gateway {
   private runManager = new RunManager();
   private agentRunner: AgentRunner;
   private skillRegistry: SkillRegistry;
+  private readonly hotReloadSkills: boolean;
   private router: Router;
   private toolCatalog: ToolCatalog;
   private scheduler: SchedulerService;
 
   constructor(config: GatewayConfig) {
     this.config = config;
+    this.hotReloadSkills = process.env.SKILLS_HOT_RELOAD === 'true';
     this.queue = new LaneQueue({
       maxDepthPerUser: config.queue.maxDepthPerUser,
       jobTimeoutMs: config.queue.jobTimeoutMs,
@@ -57,20 +59,24 @@ export class Gateway {
     // Wire memory services
     const memoryService = new MemoryService(prisma);
     const searchService = new SearchService(prisma);
-    const distiller = config.anthropicApiKey
-      ? new MemoryDistiller(memoryService, async (prompt: string) => {
-          const client = new Anthropic({ apiKey: config.anthropicApiKey });
-          const response = await client.messages.create({
-            model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 1024,
-            messages: [{ role: 'user', content: prompt }],
-          });
-          return response.content
-            .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-            .map((b) => b.text)
-            .join('');
-        })
-      : undefined;
+    const distiller = new MemoryDistiller(memoryService, async (prompt: string, organisationId: string) => {
+      const dbConfig = await loadDbConfig(organisationId);
+      const apiKey = dbConfig?.anthropicApiKey ?? config.anthropicApiKey;
+      if (!apiKey) {
+        return '[]';
+      }
+
+      const client = new Anthropic({ apiKey });
+      const response = await client.messages.create({
+        model: dbConfig?.agentModel || 'claude-sonnet-4-5-20250929',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      return response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('');
+    });
 
     const PROJECT_ROOT = join(process.cwd(), '..');
     this.agentRunner = new AgentRunner({
@@ -90,7 +96,7 @@ export class Gateway {
       memoryService,
       searchService,
       distiller,
-      getDbConfig: loadFirstDbConfig,
+      getDbConfig: loadDbConfig,
     });
 
     // Council orchestrator for multi-agent deliberation
@@ -101,8 +107,8 @@ export class Gateway {
       });
       this.agentRunner.setCouncilHook({
         shouldConvene: (message: string) => councilOrchestrator.shouldConvene(message),
-        deliberate: (question, organisationId, signal, emit, mcpServers, getDbConfig) =>
-          councilOrchestrator.deliberate(question, organisationId, signal, emit, mcpServers, getDbConfig),
+        deliberate: (question, organisationId, conversationId, signal, emit, mcpServers, getDbConfig) =>
+          councilOrchestrator.deliberate(question, organisationId, conversationId, signal, emit, mcpServers, getDbConfig),
       });
     }
 
@@ -113,7 +119,10 @@ export class Gateway {
 
   async start(): Promise<void> {
     // Start skill watching for hot-reload
-    this.skillRegistry.startWatching(this.config.skills.configPath);
+    if (this.hotReloadSkills) {
+      this.skillRegistry.startWatching(this.config.skills.configPath);
+      logger.info({ path: this.config.skills.configPath }, 'Skills hot-reload enabled');
+    }
 
     // Wire up message handler for all adapters
     for (const adapter of this.adapters) {
@@ -144,7 +153,9 @@ export class Gateway {
 
   async stop(): Promise<void> {
     this.scheduler.stop();
-    this.skillRegistry.stopWatching(this.config.skills.configPath);
+    if (this.hotReloadSkills) {
+      this.skillRegistry.stopWatching(this.config.skills.configPath);
+    }
 
     // Stop accepting new connections
     for (const adapter of this.adapters) {

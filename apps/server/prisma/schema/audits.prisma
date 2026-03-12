@@ -104,7 +104,6 @@ model Nonconformity {
   // Link to Application (for ISRA_GAP source)
   applicationId String?
 
-
   // Link to Incidents
   incidentLinks IncidentNonconformity[]
 

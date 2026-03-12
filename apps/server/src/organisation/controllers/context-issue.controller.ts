@@ -1,6 +1,10 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ContextIssueService } from '../services/context-issue.service';
+import {
+  CreateContextIssueDto,
+  UpdateContextIssueDto,
+} from '../dto/organisation-crud.dto';
 
 @Controller('organisation/context-issues')
 export class ContextIssueController {
@@ -39,12 +43,12 @@ export class ContextIssueController {
   }
 
   @Post()
-  async create(@Body() data: Prisma.ContextIssueCreateInput) {
+  async create(@Body() data: CreateContextIssueDto) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: Prisma.ContextIssueUpdateInput) {
+  async update(@Param('id') id: string, @Body() data: UpdateContextIssueDto) {
     return this.service.update(id, data);
   }
 

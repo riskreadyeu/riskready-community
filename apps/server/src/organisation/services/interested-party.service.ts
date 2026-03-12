@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { CreateInterestedPartyDto, UpdateInterestedPartyDto } from '../dto/interested-party.dto';
 
 @Injectable()
 export class InterestedPartyService {
@@ -31,11 +32,11 @@ export class InterestedPartyService {
     });
   }
 
-  async create(data: Prisma.InterestedPartyCreateInput) {
+  async create(data: CreateInterestedPartyDto) {
     return this.prisma.interestedParty.create({ data });
   }
 
-  async update(id: string, data: Prisma.InterestedPartyUpdateInput) {
+  async update(id: string, data: UpdateInterestedPartyDto) {
     return this.prisma.interestedParty.update({
       where: { id },
       data,

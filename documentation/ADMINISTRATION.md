@@ -226,7 +226,7 @@ Before exposing RiskReady to users, verify each of the following:
   ```
 - [ ] Set `COOKIE_SECURE=true` (requires HTTPS)
 - [ ] Set `COOKIE_DOMAIN` to your production domain
-- [ ] Firewall ports `3000`, `3100`, and `5433` from public access -- only expose ports `80` and `443` via Caddy
+- [ ] Firewall ports `3000`, `3100`, and `5434` from public access -- only expose ports `80` and `443` via Caddy
 - [ ] Use a real domain with Caddy automatic HTTPS (remove `tls internal` from the Caddyfile)
 - [ ] Set `CORS_ORIGIN` to your production domain only (e.g. `https://yourdomain.com`)
 - [ ] Optionally set a dedicated `ENCRYPTION_KEY` for stored credential encryption (defaults to `JWT_SECRET` if not set)
@@ -246,7 +246,7 @@ Internet --> Caddy (:80/:443) --> server (:3000) / web (:80)
                                   gateway (:3100) --> db (:5432)
 ```
 
-Ports `3000`, `3100`, and `5433` are exposed on the host for local development
+Ports `3000`, `3100`, and `5434` are exposed on the host for local development
 convenience. In production, either remove those port mappings from
 `docker-compose.yml` or block them with firewall rules.
 
@@ -445,7 +445,7 @@ For quick reference, the following services make up a RiskReady deployment:
 | `db`        | `postgres:16-alpine` | 5432  | PostgreSQL database.                       |
 | `migrate`   | `./apps/server`      | --    | One-shot schema migration (exits on completion). |
 | `server`    | `./apps/server`      | 3000  | NestJS API server.                         |
-| `gateway`   | `./gateway`          | 3100  | AI gateway with 8 MCP servers.             |
+| `gateway`   | `./gateway`          | 3100  | AI gateway with 9 MCP servers.             |
 | `web`       | `./apps/web`         | 80    | React frontend (served by nginx).          |
 | `caddy`     | `caddy:2-alpine`     | 80/443| Reverse proxy with automatic HTTPS.        |
 

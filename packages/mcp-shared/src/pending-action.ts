@@ -2,9 +2,18 @@ import { McpActionType } from '@prisma/client';
 import { prisma } from './prisma.js';
 
 export async function getDefaultOrganisationId(): Promise<string> {
-  const org = await prisma.organisationProfile.findFirst({ select: { id: true } });
-  if (!org) throw new Error('No organisation found in the database. Please create one first.');
-  return org.id;
+  const organisations = await prisma.organisationProfile.findMany({
+    select: { id: true },
+    orderBy: { createdAt: 'asc' },
+    take: 2,
+  });
+  if (organisations.length === 0) {
+    throw new Error('No organisation found in the database. Please create one first.');
+  }
+  if (organisations.length > 1) {
+    throw new Error('Single-organisation mode supports exactly one organisation profile. Multiple organisations were found.');
+  }
+  return organisations[0]!.id;
 }
 
 export async function createPendingAction(params: {

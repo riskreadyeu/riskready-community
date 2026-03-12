@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import {
+  CreateContextIssueDto,
+  UpdateContextIssueDto,
+} from '../dto/organisation-crud.dto';
 
 @Injectable()
 export class ContextIssueService {
@@ -31,14 +35,16 @@ export class ContextIssueService {
     });
   }
 
-  async create(data: Prisma.ContextIssueCreateInput) {
-    return this.prisma.contextIssue.create({ data });
+  async create(data: CreateContextIssueDto) {
+    return this.prisma.contextIssue.create({
+      data: data as Prisma.ContextIssueUncheckedCreateInput,
+    });
   }
 
-  async update(id: string, data: Prisma.ContextIssueUpdateInput) {
+  async update(id: string, data: UpdateContextIssueDto) {
     return this.prisma.contextIssue.update({
       where: { id },
-      data,
+      data: data as Prisma.ContextIssueUncheckedUpdateInput,
     });
   }
 

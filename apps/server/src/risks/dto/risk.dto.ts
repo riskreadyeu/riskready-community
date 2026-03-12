@@ -621,6 +621,10 @@ export class CreateKRIDto {
   @MaxLength(200)
   dataSource?: string;
 
+  @IsBoolean()
+  @IsOptional()
+  automated?: boolean;
+
   @IsString()
   @IsOptional()
   @MaxLength(200)
@@ -628,6 +632,66 @@ export class CreateKRIDto {
 
   @IsString()
   riskId!: string;
+}
+
+export class UpdateKRIDto {
+  @IsString()
+  @IsOptional()
+  @MinLength(3)
+  @MaxLength(200)
+  name?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(1000)
+  description?: string;
+
+  @IsEnum(RiskTier)
+  @IsOptional()
+  tier?: RiskTier;
+
+  @IsEnum(CollectionFrequency)
+  @IsOptional()
+  frequency?: CollectionFrequency;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  unit?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  thresholdGreen?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  thresholdAmber?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  thresholdRed?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(1000)
+  formula?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  dataSource?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  automated?: boolean;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  soc2Criteria?: string;
 }
 
 export class UpdateKRIValueDto {

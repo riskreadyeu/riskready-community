@@ -3,10 +3,15 @@ import { RiskToleranceStatementService } from '../services/rts.service';
 import { ToleranceLevel, RTSStatus, ControlFramework, ImpactCategory, Prisma } from '@prisma/client';
 import { CreateRTSDto, UpdateRTSDto, LinkRisksDto, UnlinkRisksDto } from '../dto/rts.dto';
 import { AuthenticatedRequest } from '../../shared/types';
+import { PrismaService } from '../../prisma/prisma.service';
+import { resolveSingleOrganisationId } from '../../shared/utils/single-organisation.util';
 
 @Controller('risks/rts')
 export class RiskToleranceStatementController {
-  constructor(private readonly rtsService: RiskToleranceStatementService) {}
+  constructor(
+    private readonly rtsService: RiskToleranceStatementService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Get()
   async findAll(
@@ -51,15 +56,10 @@ export class RiskToleranceStatementController {
     @Request() req: AuthenticatedRequest,
     @Body() data: CreateRTSDto,
   ) {
-    // Get organisation ID from first available source
-    let organisationId = data.organisationId;
-    if (!organisationId) {
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
-      const org = await prisma.organisationProfile.findFirst();
-      organisationId = org?.id;
-      await prisma.$disconnect();
-    }
+    const organisationId = await resolveSingleOrganisationId(
+      this.prisma,
+      data.organisationId || req.user.organisationId,
+    );
 
     return this.rtsService.create({
       ...data,

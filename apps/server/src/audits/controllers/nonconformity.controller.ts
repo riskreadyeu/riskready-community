@@ -7,11 +7,20 @@ import {
   Param,
   Body,
   Query,
+  Request,
 } from '@nestjs/common';
 import { NonconformityService } from '../services/nonconformity.service';
-import { CreateNonconformityDto, UpdateNonconformityDto } from '../dto/nonconformity.dto';
-import { NonconformitySource, NCSeverity, NCCategory, NCStatus } from '@prisma/client';
+import {
+  CreateNonconformityDto,
+  UpdateNonconformityDto,
+  LinkNonconformityRisksDto,
+  SaveCapDraftDto,
+  ApproveCapDto,
+  RejectCapDto,
+} from '../dto/nonconformity.dto';
+import { NonconformitySource, NCSeverity, NCStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('nonconformities')
 export class NonconformityController {
@@ -69,33 +78,47 @@ export class NonconformityController {
 
   @Post()
   async create(
+    @Request() req: AuthenticatedRequest,
     @Body() data: CreateNonconformityDto,
   ) {
     return this.service.create({
       ...data,
       targetClosureDate: data.targetClosureDate ? new Date(data.targetClosureDate) : undefined,
+      raisedById: req.user.id,
     });
   }
 
   @Put(':id')
   async update(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() data: UpdateNonconformityDto,
   ) {
+    const isVerificationUpdate = Boolean(
+      data.verificationMethod ||
+      data.verificationDate ||
+      data.verificationResult ||
+      data.verificationNotes,
+    );
+
     return this.service.update(id, {
       ...data,
       targetClosureDate: data.targetClosureDate ? new Date(data.targetClosureDate) : undefined,
       verificationDate: data.verificationDate ? new Date(data.verificationDate) : undefined,
+      verifiedById: isVerificationUpdate ? req.user.id : undefined,
     });
   }
 
   @Put(':id/close')
-  async close(@Param('id') id: string, @Body() data: { closedById: string }) {
-    return this.service.close(id, data.closedById);
+  async close(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.service.close(id, req.user.id);
   }
 
   @Put(':id/link-risks')
-  async linkRisks(@Param('id') id: string, @Body() data: { riskIds: string[] }) {
+  async linkRisks(@Param('id') id: string, @Body() data: LinkNonconformityRisksDto) {
     return this.service.linkRisks(id, data.riskIds);
   }
 
@@ -114,15 +137,9 @@ export class NonconformityController {
    */
   @Post(':id/cap/draft')
   async saveCapDraft(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body()
-    data: {
-      correctiveAction: string;
-      rootCause?: string;
-      responsibleUserId: string;
-      targetClosureDate: string;
-      draftedById: string;
-    },
+    @Body() data: SaveCapDraftDto,
   ) {
     return this.service.saveCapDraft(
       id,
@@ -132,7 +149,7 @@ export class NonconformityController {
         responsibleUserId: data.responsibleUserId,
         targetClosureDate: new Date(data.targetClosureDate),
       },
-      data.draftedById,
+      req.user.id,
     );
   }
 
@@ -142,10 +159,10 @@ export class NonconformityController {
    */
   @Post(':id/cap/submit')
   async submitCapForApproval(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { submittedById: string },
   ) {
-    return this.service.submitCapForApproval(id, data.submittedById);
+    return this.service.submitCapForApproval(id, req.user.id);
   }
 
   /**
@@ -154,10 +171,11 @@ export class NonconformityController {
    */
   @Post(':id/cap/approve')
   async approveCap(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { approvedById: string; approvalComments?: string },
+    @Body() data: ApproveCapDto,
   ) {
-    return this.service.approveCap(id, data.approvedById, data.approvalComments);
+    return this.service.approveCap(id, req.user.id, data.approvalComments);
   }
 
   /**
@@ -166,10 +184,11 @@ export class NonconformityController {
    */
   @Post(':id/cap/reject')
   async rejectCap(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { rejectedById: string; rejectionReason: string },
+    @Body() data: RejectCapDto,
   ) {
-    return this.service.rejectCap(id, data.rejectedById, data.rejectionReason);
+    return this.service.rejectCap(id, req.user.id, data.rejectionReason);
   }
 
   /**
@@ -178,9 +197,9 @@ export class NonconformityController {
    */
   @Post(':id/cap/skip')
   async markCapNotRequired(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { userId: string },
   ) {
-    return this.service.markCapNotRequired(id, data.userId);
+    return this.service.markCapNotRequired(id, req.user.id);
   }
 }

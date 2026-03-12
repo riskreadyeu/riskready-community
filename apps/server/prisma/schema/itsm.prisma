@@ -74,6 +74,7 @@ enum DataClassification {
   CONFIDENTIAL
   RESTRICTED
 }
+
 // We reuse it here for consistency
 
 enum CloudProvider {
@@ -486,7 +487,6 @@ model Asset {
 
   // Risk Scenario Links (for F3, F5, I1, I2 calculation)
   scenarioLinks RiskScenarioAsset[]
-
 
   // Risk Score History (for trending and audit)
 

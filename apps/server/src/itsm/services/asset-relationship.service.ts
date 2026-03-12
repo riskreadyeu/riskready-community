@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma, RelationshipType } from '@prisma/client';
+import { CreateRelationshipDto, UpdateRelationshipDto } from '../dto/asset-relationship.dto';
 
 @Injectable()
 export class AssetRelationshipService {
@@ -46,15 +47,7 @@ export class AssetRelationshipService {
     });
   }
 
-  async create(data: {
-    fromAssetId: string;
-    toAssetId: string;
-    relationshipType: string;
-    description?: string;
-    isCritical?: boolean;
-    notes?: string;
-    createdById?: string;
-  }) {
+  async create(data: CreateRelationshipDto & { createdById?: string }) {
     // Prevent self-reference
     if (data.fromAssetId === data.toAssetId) {
       throw new BadRequestException('An asset cannot have a relationship with itself');
@@ -90,10 +83,10 @@ export class AssetRelationshipService {
     });
   }
 
-  async update(id: string, data: Prisma.AssetRelationshipUpdateInput) {
+  async update(id: string, data: UpdateRelationshipDto) {
     return this.prisma.assetRelationship.update({
       where: { id },
-      data,
+      data: data as Prisma.AssetRelationshipUncheckedUpdateInput,
       include: {
         fromAsset: { select: { id: true, assetTag: true, name: true, assetType: true } },
         toAsset: { select: { id: true, assetTag: true, name: true, assetType: true } },

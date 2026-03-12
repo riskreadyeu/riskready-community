@@ -7,9 +7,34 @@ import {
   Param,
   Query,
   Body,
+  Request,
 } from '@nestjs/common';
 import { DocumentSectionService } from '../services/document-section.service';
-import { DocumentSectionType, DocumentType, Prisma } from '@prisma/client';
+import {
+  CreateSectionDto,
+  UpdateSectionDto,
+  ReorderSectionsDto,
+  CloneSectionsFromTemplateDto,
+  CreateDefinitionDto,
+  UpdateDefinitionDto,
+  BulkCreateDefinitionsDto,
+  CreateProcessStepDto,
+  UpdateProcessStepDto,
+  BulkCreateProcessStepsDto,
+  CreatePrerequisiteDto,
+  UpdatePrerequisiteDto,
+  BulkCreatePrerequisitesDto,
+  CreateRoleDto,
+  UpdateRoleDto,
+  BulkCreateRolesDto,
+  CreateRevisionDto,
+  UpdateRevisionDto,
+  BulkCreateRevisionsDto,
+  CreateSectionTemplateDto,
+  UpdateSectionTemplateDto,
+  CloneDocumentStructureDto,
+} from '../dto/section.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('policies')
 export class DocumentSectionController {
@@ -31,35 +56,17 @@ export class DocumentSectionController {
 
   @Post(':documentId/sections')
   async createSection(
+    @Request() req: AuthenticatedRequest,
     @Param('documentId') documentId: string,
-    @Body()
-    data: {
-      sectionType: DocumentSectionType;
-      title: string;
-      order?: number;
-      content?: string;
-      structuredData?: Prisma.InputJsonValue;
-      templateId?: string;
-      isVisible?: boolean;
-      isCollapsed?: boolean;
-      createdById?: string;
-    },
+    @Body() data: CreateSectionDto,
   ) {
-    return this.service.createSection({ documentId, ...data });
+    return this.service.createSection({ documentId, ...data, createdById: req.user.id });
   }
 
   @Put('sections/:id')
   async updateSection(
     @Param('id') id: string,
-    @Body()
-    data: {
-      title?: string;
-      order?: number;
-      content?: string;
-      structuredData?: Prisma.InputJsonValue;
-      isVisible?: boolean;
-      isCollapsed?: boolean;
-    },
+    @Body() data: UpdateSectionDto,
   ) {
     return this.service.updateSection(id, data);
   }
@@ -72,17 +79,18 @@ export class DocumentSectionController {
   @Put(':documentId/sections/reorder')
   async reorderSections(
     @Param('documentId') documentId: string,
-    @Body() data: { sectionOrders: Array<{ id: string; order: number }> },
+    @Body() data: ReorderSectionsDto,
   ) {
     return this.service.reorderSections(documentId, data.sectionOrders);
   }
 
   @Post(':documentId/sections/from-template')
   async cloneSectionsFromTemplate(
+    @Request() req: AuthenticatedRequest,
     @Param('documentId') documentId: string,
-    @Body() data: { templateId: string; startOrder?: number; createdById?: string },
+    @Body() data: CloneSectionsFromTemplateDto,
   ) {
-    return this.service.cloneSectionsFromTemplate({ documentId, ...data });
+    return this.service.cloneSectionsFromTemplate({ documentId, ...data, createdById: req.user.id });
   }
 
   // =============================================
@@ -102,7 +110,7 @@ export class DocumentSectionController {
   @Post(':documentId/definitions')
   async createDefinition(
     @Param('documentId') documentId: string,
-    @Body() data: { term: string; definition: string; source?: string; order?: number },
+    @Body() data: CreateDefinitionDto,
   ) {
     return this.service.createDefinition({ documentId, ...data });
   }
@@ -110,7 +118,7 @@ export class DocumentSectionController {
   @Put('definitions/:id')
   async updateDefinition(
     @Param('id') id: string,
-    @Body() data: { term?: string; definition?: string; source?: string; order?: number },
+    @Body() data: UpdateDefinitionDto,
   ) {
     return this.service.updateDefinition(id, data);
   }
@@ -123,15 +131,7 @@ export class DocumentSectionController {
   @Post(':documentId/definitions/bulk')
   async bulkCreateDefinitions(
     @Param('documentId') documentId: string,
-    @Body()
-    data: {
-      definitions: Array<{
-        term: string;
-        definition: string;
-        source?: string;
-        order?: number;
-      }>;
-    },
+    @Body() data: BulkCreateDefinitionsDto,
   ) {
     return this.service.bulkCreateDefinitions(documentId, data.definitions);
   }
@@ -153,22 +153,7 @@ export class DocumentSectionController {
   @Post(':documentId/process-steps')
   async createProcessStep(
     @Param('documentId') documentId: string,
-    @Body()
-    data: {
-      stepNumber: string;
-      title: string;
-      description: string;
-      order?: number;
-      responsible?: string;
-      accountable?: string;
-      consulted?: string[];
-      informed?: string[];
-      estimatedDuration?: string;
-      inputs?: string[];
-      outputs?: string[];
-      isDecisionPoint?: boolean;
-      decisionOptions?: Prisma.InputJsonValue;
-    },
+    @Body() data: CreateProcessStepDto,
   ) {
     return this.service.createProcessStep({ documentId, ...data });
   }
@@ -176,22 +161,7 @@ export class DocumentSectionController {
   @Put('process-steps/:id')
   async updateProcessStep(
     @Param('id') id: string,
-    @Body()
-    data: {
-      stepNumber?: string;
-      title?: string;
-      description?: string;
-      order?: number;
-      responsible?: string;
-      accountable?: string;
-      consulted?: string[];
-      informed?: string[];
-      estimatedDuration?: string;
-      inputs?: string[];
-      outputs?: string[];
-      isDecisionPoint?: boolean;
-      decisionOptions?: Prisma.InputJsonValue;
-    },
+    @Body() data: UpdateProcessStepDto,
   ) {
     return this.service.updateProcessStep(id, data);
   }
@@ -204,24 +174,7 @@ export class DocumentSectionController {
   @Post(':documentId/process-steps/bulk')
   async bulkCreateProcessSteps(
     @Param('documentId') documentId: string,
-    @Body()
-    data: {
-      steps: Array<{
-        stepNumber: string;
-        title: string;
-        description: string;
-        order?: number;
-        responsible?: string;
-        accountable?: string;
-        consulted?: string[];
-        informed?: string[];
-        estimatedDuration?: string;
-        inputs?: string[];
-        outputs?: string[];
-        isDecisionPoint?: boolean;
-        decisionOptions?: Prisma.InputJsonValue;
-      }>;
-    },
+    @Body() data: BulkCreateProcessStepsDto,
   ) {
     return this.service.bulkCreateProcessSteps(documentId, data.steps);
   }
@@ -243,13 +196,7 @@ export class DocumentSectionController {
   @Post(':documentId/prerequisites')
   async createPrerequisite(
     @Param('documentId') documentId: string,
-    @Body()
-    data: {
-      item: string;
-      category?: string;
-      isMandatory?: boolean;
-      order?: number;
-    },
+    @Body() data: CreatePrerequisiteDto,
   ) {
     return this.service.createPrerequisite({ documentId, ...data });
   }
@@ -257,13 +204,7 @@ export class DocumentSectionController {
   @Put('prerequisites/:id')
   async updatePrerequisite(
     @Param('id') id: string,
-    @Body()
-    data: {
-      item?: string;
-      category?: string;
-      isMandatory?: boolean;
-      order?: number;
-    },
+    @Body() data: UpdatePrerequisiteDto,
   ) {
     return this.service.updatePrerequisite(id, data);
   }
@@ -276,15 +217,7 @@ export class DocumentSectionController {
   @Post(':documentId/prerequisites/bulk')
   async bulkCreatePrerequisites(
     @Param('documentId') documentId: string,
-    @Body()
-    data: {
-      prerequisites: Array<{
-        item: string;
-        category?: string;
-        isMandatory?: boolean;
-        order?: number;
-      }>;
-    },
+    @Body() data: BulkCreatePrerequisitesDto,
   ) {
     return this.service.bulkCreatePrerequisites(documentId, data.prerequisites);
   }
@@ -306,13 +239,7 @@ export class DocumentSectionController {
   @Post(':documentId/roles')
   async createRole(
     @Param('documentId') documentId: string,
-    @Body()
-    data: {
-      role: string;
-      responsibilities?: string[];
-      raciMatrix?: Prisma.InputJsonValue;
-      order?: number;
-    },
+    @Body() data: CreateRoleDto,
   ) {
     return this.service.createRole({ documentId, ...data });
   }
@@ -320,13 +247,7 @@ export class DocumentSectionController {
   @Put('roles/:id')
   async updateRole(
     @Param('id') id: string,
-    @Body()
-    data: {
-      role?: string;
-      responsibilities?: string[];
-      raciMatrix?: Prisma.InputJsonValue;
-      order?: number;
-    },
+    @Body() data: UpdateRoleDto,
   ) {
     return this.service.updateRole(id, data);
   }
@@ -339,15 +260,7 @@ export class DocumentSectionController {
   @Post(':documentId/roles/bulk')
   async bulkCreateRoles(
     @Param('documentId') documentId: string,
-    @Body()
-    data: {
-      roles: Array<{
-        role: string;
-        responsibilities?: string[];
-        raciMatrix?: Prisma.InputJsonValue;
-        order?: number;
-      }>;
-    },
+    @Body() data: BulkCreateRolesDto,
   ) {
     return this.service.bulkCreateRoles(documentId, data.roles);
   }
@@ -369,15 +282,7 @@ export class DocumentSectionController {
   @Post(':documentId/revisions')
   async createRevision(
     @Param('documentId') documentId: string,
-    @Body()
-    data: {
-      version: string;
-      date: string;
-      author: string;
-      description: string;
-      approvedBy?: string;
-      order?: number;
-    },
+    @Body() data: CreateRevisionDto,
   ) {
     return this.service.createRevision({
       documentId,
@@ -389,15 +294,7 @@ export class DocumentSectionController {
   @Put('revisions/:id')
   async updateRevision(
     @Param('id') id: string,
-    @Body()
-    data: {
-      version?: string;
-      date?: string;
-      author?: string;
-      description?: string;
-      approvedBy?: string;
-      order?: number;
-    },
+    @Body() data: UpdateRevisionDto,
   ) {
     return this.service.updateRevision(id, {
       ...data,
@@ -413,17 +310,7 @@ export class DocumentSectionController {
   @Post(':documentId/revisions/bulk')
   async bulkCreateRevisions(
     @Param('documentId') documentId: string,
-    @Body()
-    data: {
-      revisions: Array<{
-        version: string;
-        date: string;
-        author: string;
-        description: string;
-        approvedBy?: string;
-        order?: number;
-      }>;
-    },
+    @Body() data: BulkCreateRevisionsDto,
   ) {
     return this.service.bulkCreateRevisions(
       documentId,
@@ -447,21 +334,7 @@ export class DocumentSectionController {
 
   @Post('section-templates')
   async createTemplate(
-    @Body()
-    data: {
-      name: string;
-      sectionType: DocumentSectionType;
-      applicableTypes?: DocumentType[];
-      isRequired?: boolean;
-      defaultOrder?: number;
-      defaultTitle?: string;
-      defaultContent?: string;
-      schema?: Prisma.InputJsonValue;
-      description?: string;
-      helpText?: string;
-      organisationId?: string;
-      isSystemTemplate?: boolean;
-    },
+    @Body() data: CreateSectionTemplateDto,
   ) {
     return this.service.createTemplate(data);
   }
@@ -469,18 +342,7 @@ export class DocumentSectionController {
   @Put('section-templates/:id')
   async updateTemplate(
     @Param('id') id: string,
-    @Body()
-    data: {
-      name?: string;
-      applicableTypes?: DocumentType[];
-      isRequired?: boolean;
-      defaultOrder?: number;
-      defaultTitle?: string;
-      defaultContent?: string;
-      schema?: Prisma.InputJsonValue;
-      description?: string;
-      helpText?: string;
-    },
+    @Body() data: UpdateSectionTemplateDto,
   ) {
     return this.service.updateTemplate(id, data);
   }
@@ -501,13 +363,14 @@ export class DocumentSectionController {
 
   @Post(':documentId/structure/clone')
   async cloneDocumentStructure(
+    @Request() req: AuthenticatedRequest,
     @Param('documentId') targetDocumentId: string,
-    @Body() data: { sourceDocumentId: string; createdById?: string },
+    @Body() data: CloneDocumentStructureDto,
   ) {
     return this.service.cloneDocumentStructure(
       data.sourceDocumentId,
       targetDocumentId,
-      data.createdById,
+      req.user.id,
     );
   }
 

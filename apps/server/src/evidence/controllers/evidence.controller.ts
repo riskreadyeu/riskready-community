@@ -7,16 +7,23 @@ import {
   Param,
   Body,
   Query,
+  Request,
 } from '@nestjs/common';
 import { EvidenceService } from '../services/evidence.service';
-import { CreateEvidenceDto } from '../dto/evidence.dto';
+import {
+  CreateEvidenceRecordDto,
+  UpdateEvidenceDto,
+  ApproveEvidenceDto,
+  RejectEvidenceDto,
+  CreateEvidenceVersionDto,
+} from '../dto/evidence.dto';
 import {
   EvidenceType,
   EvidenceStatus,
   EvidenceClassification,
   EvidenceSourceType,
-  Prisma,
 } from '@prisma/client';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('evidence')
 export class EvidenceController {
@@ -68,19 +75,8 @@ export class EvidenceController {
 
   @Post()
   async create(
-    @Body() data: CreateEvidenceDto & {
-      fileName?: string;
-      originalFileName?: string;
-      fileUrl?: string;
-      fileSizeBytes?: number;
-      mimeType?: string;
-      storagePath?: string;
-      storageProvider?: string;
-      isEncrypted?: boolean;
-      hashSha256?: string;
-      hashMd5?: string;
-      metadata?: Prisma.InputJsonValue;
-    },
+    @Request() req: AuthenticatedRequest,
+    @Body() data: CreateEvidenceRecordDto,
   ) {
     return this.service.create({
       ...data,
@@ -88,52 +84,22 @@ export class EvidenceController {
       validFrom: data.validFrom ? new Date(data.validFrom) : undefined,
       validUntil: data.validUntil ? new Date(data.validUntil) : undefined,
       retainUntil: data.retainUntil ? new Date(data.retainUntil) : undefined,
+      createdById: req.user.id,
     });
   }
 
   @Put(':id')
   async update(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body()
-    data: {
-      title?: string;
-      description?: string;
-      evidenceType?: EvidenceType;
-      classification?: EvidenceClassification;
-      tags?: string[];
-      category?: string;
-      subcategory?: string;
-      fileName?: string;
-      originalFileName?: string;
-      fileUrl?: string;
-      fileSizeBytes?: number;
-      mimeType?: string;
-      storagePath?: string;
-      storageProvider?: string;
-      isEncrypted?: boolean;
-      hashSha256?: string;
-      hashMd5?: string;
-      isForensicallySound?: boolean;
-      chainOfCustodyNotes?: string;
-      sourceType?: EvidenceSourceType;
-      sourceSystem?: string;
-      sourceReference?: string;
-      collectionMethod?: string;
-      validFrom?: string;
-      validUntil?: string;
-      retainUntil?: string;
-      renewalRequired?: boolean;
-      renewalReminderDays?: number;
-      metadata?: Prisma.InputJsonValue;
-      notes?: string;
-      updatedById: string;
-    },
+    @Body() data: UpdateEvidenceDto,
   ) {
     return this.service.update(id, {
       ...data,
       validFrom: data.validFrom ? new Date(data.validFrom) : undefined,
       validUntil: data.validUntil ? new Date(data.validUntil) : undefined,
       retainUntil: data.retainUntil ? new Date(data.retainUntil) : undefined,
+      updatedById: req.user.id,
     });
   }
 
@@ -148,62 +114,49 @@ export class EvidenceController {
 
   @Post(':id/submit-for-review')
   async submitForReview(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { userId: string },
   ) {
-    return this.service.submitForReview(id, data.userId);
+    return this.service.submitForReview(id, req.user.id);
   }
 
   @Post(':id/approve')
   async approve(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { userId: string; notes?: string },
+    @Body() data: ApproveEvidenceDto,
   ) {
-    return this.service.approve(id, data.userId, data.notes);
+    return this.service.approve(id, req.user.id, data.notes);
   }
 
   @Post(':id/reject')
   async reject(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { userId: string; reason: string },
+    @Body() data: RejectEvidenceDto,
   ) {
-    return this.service.reject(id, data.userId, data.reason);
+    return this.service.reject(id, req.user.id, data.reason);
   }
 
   @Post(':id/archive')
   async archive(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { userId: string },
   ) {
-    return this.service.archive(id, data.userId);
+    return this.service.archive(id, req.user.id);
   }
 
   @Post(':id/new-version')
   async createNewVersion(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body()
-    data: {
-      title: string;
-      description?: string;
-      evidenceType: EvidenceType;
-      classification?: EvidenceClassification;
-      fileName?: string;
-      fileUrl?: string;
-      fileSizeBytes?: number;
-      mimeType?: string;
-      hashSha256?: string;
-      hashMd5?: string;
-      validFrom?: string;
-      validUntil?: string;
-      notes?: string;
-      createdById: string;
-    },
+    @Body() data: CreateEvidenceVersionDto,
   ) {
     return this.service.createNewVersion(id, {
       ...data,
       validFrom: data.validFrom ? new Date(data.validFrom) : undefined,
       validUntil: data.validUntil ? new Date(data.validUntil) : undefined,
+      createdById: req.user.id,
     });
   }
 }
-

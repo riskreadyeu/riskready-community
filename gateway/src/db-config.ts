@@ -54,15 +54,10 @@ export interface DbGatewayConfig {
   maxAgentTurns: number;
 }
 
-/**
- * Load the first available GatewayConfig from any organisation.
- * Community Edition typically has one org, so this finds its config.
- * Returns null if no config row exists (caller falls back to env vars).
- */
-export async function loadFirstDbConfig(): Promise<DbGatewayConfig | null> {
+export async function loadDbConfig(organisationId: string): Promise<DbGatewayConfig | null> {
   try {
-    const row = await (prisma as any).gatewayConfig.findFirst({
-      orderBy: { updatedAt: 'desc' },
+    const row = await (prisma as any).gatewayConfig.findUnique({
+      where: { organisationId },
     });
     if (!row) return null;
 

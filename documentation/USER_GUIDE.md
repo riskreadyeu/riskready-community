@@ -27,7 +27,7 @@ This guide covers the day-to-day use of RiskReady Community Edition, an open-sou
 
 ### Logging In
 
-Open your browser and navigate to your configured deployment URL. The default for local installations is `http://localhost:8080`.
+Open your browser and navigate to your configured deployment URL. The default for local installations is `http://localhost:9380`.
 
 On first login, use the administrator credentials that were set during deployment via the `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables in the `.env` file. Enter your email and password on the sign-in screen, then select **Sign in**.
 

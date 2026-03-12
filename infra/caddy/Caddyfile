@@ -5,14 +5,9 @@
     output stdout
   }
 
-  header {
-    X-Frame-Options "DENY"
-    X-Content-Type-Options "nosniff"
-    Referrer-Policy "strict-origin-when-cross-origin"
-    Permissions-Policy "camera=(), microphone=(), geolocation=()"
-    # Uncomment the line below when serving over HTTPS
-    # Strict-Transport-Security "max-age=31536000; includeSubDomains"
-  }
+  # Security headers are set by nginx (frontend) and Helmet (API).
+  # Caddy only strips its own Via header to avoid leaking proxy stack info.
+  header -Via
 
   handle /api/* {
     reverse_proxy server:3000

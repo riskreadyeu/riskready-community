@@ -1,6 +1,10 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { MeetingDecisionService } from '../services/meeting-decision.service';
+import {
+  CreateMeetingDecisionDto,
+  UpdateMeetingDecisionDto,
+} from '../dto/organisation-crud.dto';
 
 @Controller('organisation/meeting-decisions')
 export class MeetingDecisionController {
@@ -37,12 +41,12 @@ export class MeetingDecisionController {
   }
 
   @Post()
-  async create(@Body() data: Prisma.MeetingDecisionCreateInput) {
+  async create(@Body() data: CreateMeetingDecisionDto) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: Prisma.MeetingDecisionUpdateInput) {
+  async update(@Param('id') id: string, @Body() data: UpdateMeetingDecisionDto) {
     return this.service.update(id, data);
   }
 

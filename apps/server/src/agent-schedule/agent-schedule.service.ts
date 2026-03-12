@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { resolveSingleOrganisationId } from '../shared/utils/single-organisation.util';
 
 @Injectable()
 export class AgentScheduleService {
@@ -51,12 +52,13 @@ export class AgentScheduleService {
     enabled?: boolean;
     createdBy?: string;
   }) {
+    const organisationId = await resolveSingleOrganisationId(this.prisma, data.organisationId);
     // Compute initial nextRunAt
     const nextRunAt = data.enabled !== false ? this.computeNextRun(data.cronExpression) : null;
 
     return this.prisma.agentSchedule.create({
       data: {
-        organisationId: data.organisationId,
+        organisationId: organisationId!,
         name: data.name,
         description: data.description,
         cronExpression: data.cronExpression,

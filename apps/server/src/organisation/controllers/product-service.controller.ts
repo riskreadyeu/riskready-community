@@ -1,6 +1,10 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ProductServiceService } from '../services/product-service.service';
+import {
+  CreateProductServiceDto,
+  UpdateProductServiceDto,
+} from '../dto/organisation-crud.dto';
 
 @Controller('organisation/products-services')
 export class ProductServiceController {
@@ -37,12 +41,12 @@ export class ProductServiceController {
   }
 
   @Post()
-  async create(@Body() data: Prisma.ProductServiceCreateInput) {
+  async create(@Body() data: CreateProductServiceDto) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: Prisma.ProductServiceUpdateInput) {
+  async update(@Param('id') id: string, @Body() data: UpdateProductServiceDto) {
     return this.service.update(id, data);
   }
 

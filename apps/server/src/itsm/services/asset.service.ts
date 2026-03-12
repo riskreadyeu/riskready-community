@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { CreateAssetDto, UpdateAssetDto } from '../dto/asset.dto';
 
 interface AssetImportRow {
   assetTag?: string;
@@ -35,6 +36,8 @@ interface AssetImportRow {
   targetAvailability?: string;
   hasRedundancy?: string | boolean;
 }
+
+type AssetWriteDto = Partial<CreateAssetDto & UpdateAssetDto>;
 
 @Injectable()
 export class AssetService {
@@ -178,9 +181,9 @@ export class AssetService {
     });
   }
 
-  async create(data: Prisma.AssetCreateInput) {
+  async create(data: CreateAssetDto) {
     return this.prisma.asset.create({
-      data,
+      data: this.toAssetWriteData(data) as Prisma.AssetUncheckedCreateInput,
       include: {
         owner: { select: { id: true, email: true, firstName: true, lastName: true } },
         department: { select: { id: true, name: true, departmentCode: true } },
@@ -189,10 +192,10 @@ export class AssetService {
     });
   }
 
-  async update(id: string, data: Prisma.AssetUpdateInput) {
+  async update(id: string, data: UpdateAssetDto) {
     return this.prisma.asset.update({
       where: { id },
-      data,
+      data: this.toAssetWriteData(data) as Prisma.AssetUncheckedUpdateInput,
       include: {
         owner: { select: { id: true, email: true, firstName: true, lastName: true } },
         department: { select: { id: true, name: true, departmentCode: true } },
@@ -426,11 +429,11 @@ export class AssetService {
         if (existing) {
           await this.prisma.asset.update({
             where: { id: existing.id },
-            data: data as Prisma.AssetUpdateInput,
+            data: data as Prisma.AssetUncheckedUpdateInput,
           });
           results.updated++;
         } else {
-          await this.prisma.asset.create({ data: data as Prisma.AssetCreateInput });
+          await this.prisma.asset.create({ data: data as Prisma.AssetUncheckedCreateInput });
           results.imported++;
         }
       } catch (error) {
@@ -906,5 +909,86 @@ export class AssetService {
 
     return { updated };
   }
-}
 
+  private toAssetWriteData(data: AssetWriteDto): Record<string, unknown> {
+    const assetData = data as AssetWriteDto & {
+      deploymentDate?: string;
+      cpuUtilization?: number;
+      memoryUtilization?: number;
+      diskUtilization?: number;
+    };
+
+    return {
+      assetTag: assetData.assetTag,
+      name: assetData.name,
+      description: assetData.description,
+      assetType: assetData.assetType,
+      status: assetData.status,
+      businessCriticality: assetData.businessCriticality,
+      dataClassification: assetData.dataClassification,
+      ownerId: assetData.ownerId,
+      custodianId: assetData.custodianId,
+      departmentId: assetData.departmentId,
+      locationId: assetData.locationId,
+      ipAddresses: assetData.ipAddresses,
+      macAddresses: assetData.macAddresses,
+      fqdn: assetData.fqdn,
+      manufacturer: assetData.manufacturer,
+      model: assetData.model,
+      serialNumber: assetData.serialNumber,
+      operatingSystem: assetData.osName,
+      osVersion: assetData.osVersion,
+      patchLevel: assetData.osPatchLevel,
+      cloudProvider: assetData.cloudProvider,
+      cloudAccountId: assetData.cloudAccountId,
+      cloudRegion: assetData.cloudRegion,
+      cloudResourceId: assetData.cloudResourceId,
+      purchaseDate: this.toDate(assetData.purchaseDate),
+      deploymentDate: this.toDate(assetData.deploymentDate ?? assetData.installDate),
+      warrantyExpiry: this.toDate(assetData.warrantyExpiry),
+      supportExpiry: this.toDate(assetData.supportExpiry),
+      endOfLife: this.toDate(assetData.endOfLifeDate),
+      handlesPersonalData: assetData.handlesPersonalData,
+      handlesFinancialData: assetData.handlesFinancialData,
+      handlesHealthData: assetData.handlesHealthData,
+      handlesConfidentialData: assetData.handlesConfidentialData,
+      inIsmsScope: assetData.inIsmsScope,
+      inPciScope: assetData.pciInScope,
+      inGdprScope: assetData.gdprInScope,
+      inNis2Scope: assetData.inNis2Scope,
+      inSoc2Scope: assetData.inSoc2Scope,
+      inDoraScope: assetData.inDoraScope,
+      scopeNotes: assetData.scopeNotes,
+      datacenter: assetData.datacenter,
+      rack: assetData.rack,
+      rackPosition: assetData.rackPosition,
+      purchaseCost: assetData.purchaseCost,
+      costCurrency: assetData.costCurrency,
+      annualCost: assetData.annualCost,
+      costCenter: assetData.costCenter,
+      disposalDate: this.toDate(assetData.disposalDate),
+      lifecycleNotes: assetData.lifecycleNotes,
+      encryptionAtRest: assetData.encryptionAtRest,
+      encryptionInTransit: assetData.encryptionInTransit,
+      encryptionMethod: assetData.encryptionMethod,
+      backupEnabled: assetData.backupEnabled,
+      backupFrequency: assetData.backupFrequency,
+      backupRetention: assetData.backupRetention,
+      monitoringEnabled: assetData.monitoringEnabled,
+      loggingEnabled: assetData.loggingEnabled,
+      mtpdMinutes: assetData.mtpdMinutes,
+      redundancyType: assetData.redundancyType,
+      hasRedundancy: assetData.hasRedundancy,
+      vendorId: assetData.vendorId,
+      capacityStatus: assetData.capacityStatus,
+      cpuUsagePercent: assetData.cpuUtilization,
+      memoryUsagePercent: assetData.memoryUtilization,
+      storageUsagePercent: assetData.diskUtilization,
+      typeAttributes: assetData.typeAttributes,
+    };
+  }
+
+  private toDate(value?: string): Date | undefined {
+    return value ? new Date(value) : undefined;
+  }
+}

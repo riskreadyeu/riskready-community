@@ -1,6 +1,12 @@
-import { Controller, Get, Post, Put, Param, Query, Body } from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Query, Body, Request } from '@nestjs/common';
 import { ApprovalWorkflowService } from '../services/approval-workflow.service';
-import { ApprovalWorkflowType, ApprovalDecision, ApprovalLevel } from '@prisma/client';
+import { ApprovalLevel } from '@prisma/client';
+import {
+  CreateApprovalWorkflowDto,
+  ProcessApprovalStepDto,
+  DelegateApprovalStepDto,
+} from '../dto/workflow.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('policies')
 export class ApprovalWorkflowController {
@@ -9,8 +15,11 @@ export class ApprovalWorkflowController {
   // Static routes MUST come before parameterized routes
 
   @Get('approvals/pending')
-  async getPendingApprovals(@Query('userId') userId: string) {
-    return this.service.getPendingApprovals(userId);
+  async getPendingApprovals(
+    @Request() req: AuthenticatedRequest,
+    @Query('userId') _userId: string,
+  ) {
+    return this.service.getPendingApprovals(req.user.id);
   }
 
   @Get('workflows/default-steps')
@@ -62,19 +71,9 @@ export class ApprovalWorkflowController {
 
   @Post(':documentId/workflows')
   async createWorkflow(
+    @Request() req: AuthenticatedRequest,
     @Param('documentId') documentId: string,
-    @Body() data: {
-      workflowType: ApprovalWorkflowType;
-      steps: Array<{
-        stepOrder: number;
-        stepName: string;
-        approverId?: string;
-        approverRole?: string;
-        dueDate?: string;
-      }>;
-      initiatedById: string;
-      comments?: string;
-    },
+    @Body() data: CreateApprovalWorkflowDto,
   ) {
     return this.service.createWorkflow({
       documentId,
@@ -83,37 +82,34 @@ export class ApprovalWorkflowController {
         ...s,
         dueDate: s.dueDate ? new Date(s.dueDate) : undefined,
       })),
-      initiatedById: data.initiatedById,
+      initiatedById: req.user.id,
       comments: data.comments,
     });
   }
 
   @Post('workflows/steps/:stepId/process')
   async processStep(
+    @Request() req: AuthenticatedRequest,
     @Param('stepId') stepId: string,
-    @Body() data: {
-      decision: ApprovalDecision;
-      comments?: string;
-      signature?: string;
-      userId: string;
-    },
+    @Body() data: ProcessApprovalStepDto,
   ) {
-    return this.service.processStep(stepId, data);
+    return this.service.processStep(stepId, { ...data, userId: req.user.id });
   }
 
   @Post('workflows/steps/:stepId/delegate')
   async delegateStep(
+    @Request() req: AuthenticatedRequest,
     @Param('stepId') stepId: string,
-    @Body() data: { delegatedToId: string; userId: string },
+    @Body() data: DelegateApprovalStepDto,
   ) {
-    return this.service.delegateStep(stepId, data.delegatedToId, data.userId);
+    return this.service.delegateStep(stepId, data.delegatedToId, req.user.id);
   }
 
   @Post('workflows/:id/cancel')
   async cancelWorkflow(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { userId: string },
   ) {
-    return this.service.cancelWorkflow(id, data.userId);
+    return this.service.cancelWorkflow(id, req.user.id);
   }
 }

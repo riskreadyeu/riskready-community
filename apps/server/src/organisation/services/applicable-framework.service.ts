@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import {
+  CreateApplicableFrameworkDto,
+  UpdateApplicableFrameworkDto,
+} from '../dto/organisation-crud.dto';
 
 @Injectable()
 export class ApplicableFrameworkService {
@@ -39,19 +43,19 @@ export class ApplicableFrameworkService {
     });
   }
 
-  async create(data: Prisma.ApplicableFrameworkCreateInput) {
+  async create(data: CreateApplicableFrameworkDto) {
     return this.prisma.applicableFramework.create({
-      data,
+      data: data as Prisma.ApplicableFrameworkUncheckedCreateInput,
       include: {
         createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
       },
     });
   }
 
-  async update(id: string, data: Prisma.ApplicableFrameworkUpdateInput) {
+  async update(id: string, data: UpdateApplicableFrameworkDto) {
     return this.prisma.applicableFramework.update({
       where: { id },
-      data,
+      data: data as Prisma.ApplicableFrameworkUncheckedUpdateInput,
       include: {
         createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
         updatedBy: { select: { id: true, email: true, firstName: true, lastName: true } },

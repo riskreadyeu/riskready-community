@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import {
+  CreateTechnologyPlatformDto,
+  UpdateTechnologyPlatformDto,
+} from '../dto/organisation-crud.dto';
 
 @Injectable()
 export class TechnologyPlatformService {
@@ -31,14 +35,16 @@ export class TechnologyPlatformService {
     });
   }
 
-  async create(data: Prisma.TechnologyPlatformCreateInput) {
-    return this.prisma.technologyPlatform.create({ data });
+  async create(data: CreateTechnologyPlatformDto) {
+    return this.prisma.technologyPlatform.create({
+      data: data as Prisma.TechnologyPlatformUncheckedCreateInput,
+    });
   }
 
-  async update(id: string, data: Prisma.TechnologyPlatformUpdateInput) {
+  async update(id: string, data: UpdateTechnologyPlatformDto) {
     return this.prisma.technologyPlatform.update({
       where: { id },
-      data,
+      data: data as Prisma.TechnologyPlatformUncheckedUpdateInput,
     });
   }
 

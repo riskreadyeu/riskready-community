@@ -174,11 +174,10 @@ model OrganisationProfile {
   updatedBy User? @relation("OrgProfileUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   // Controls Module Relations
-  controls           Control[]
-  soas               StatementOfApplicability[]
-  scopeItems         ScopeItem[]
-  assessments        Assessment[]
-
+  controls    Control[]
+  soas        StatementOfApplicability[]
+  scopeItems  ScopeItem[]
+  assessments Assessment[]
 
   // Risk Module Relations
   risks                   Risk[]
@@ -1402,4 +1401,3 @@ model SurveyResponse {
   @@unique([surveyId, questionId])
   @@index([surveyId])
 }
-

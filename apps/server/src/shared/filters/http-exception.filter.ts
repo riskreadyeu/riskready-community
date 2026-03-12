@@ -16,6 +16,15 @@ export interface ErrorResponse {
   path: string;
 }
 
+/** Error names from Prisma that must never leak to clients. */
+const PRISMA_ERROR_NAMES = new Set([
+  'PrismaClientKnownRequestError',
+  'PrismaClientUnknownRequestError',
+  'PrismaClientValidationError',
+  'PrismaClientInitializationError',
+  'PrismaClientRustPanicError',
+]);
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
@@ -28,6 +37,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
     let error = 'Internal Server Error';
+
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
@@ -43,14 +53,29 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         error = (responseObj['error'] as string) || exception.name;
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
-      error = exception.name;
-
-      // Log unexpected errors
+      // Log the full error internally for debugging
       this.logger.error(
         `Unexpected error: ${exception.message}`,
         exception.stack,
       );
+
+      // Suppress internal details from client responses
+      if (PRISMA_ERROR_NAMES.has(exception.constructor.name)) {
+        message = 'A database error occurred';
+        error = 'DatabaseError';
+      } else if (exception.name === 'SyntaxError' && exception.message.includes('JSON')) {
+        status = HttpStatus.BAD_REQUEST;
+        message = 'Invalid request body';
+        error = 'Bad Request';
+      } else if (exception.name === 'PayloadTooLargeError' || exception.message.includes('entity too large')) {
+        status = HttpStatus.PAYLOAD_TOO_LARGE;
+        message = 'Request payload too large';
+        error = 'Payload Too Large';
+      } else {
+        // Generic fallback — never leak internal error messages
+        message = 'Internal server error';
+        error = 'Internal Server Error';
+      }
     }
 
     const errorResponse: ErrorResponse = {

@@ -3,16 +3,16 @@
 // ============================================
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  firstName    String?
-  lastName     String?
-  isActive     Boolean  @default(true)
-  failedLoginAttempts Int      @default(0)
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  passwordHash        String
+  firstName           String?
+  lastName            String?
+  isActive            Boolean   @default(true)
+  failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   refreshSessions RefreshSession[]
   auditEvents     AuditEvent[]     @relation("AuditActor")
@@ -91,22 +91,19 @@ model User {
   frameworksCreated ApplicableFramework[] @relation("FrameworkCreatedBy")
   frameworksUpdated ApplicableFramework[] @relation("FrameworkUpdatedBy")
 
-
   // Controls Module Relations
   controlsCreated  Control[] @relation("ControlCreatedBy")
   controlsUpdated  Control[] @relation("ControlUpdatedBy")
   controlsDisabled Control[] @relation("ControlDisabledBy")
 
-
-
   // Assessment Module Relations
   assessmentsLead         Assessment[]          @relation("AssessmentLead")
   assessmentsReviewer     Assessment[]          @relation("AssessmentReviewer")
   assessmentsCreated      Assessment[]          @relation("AssessmentCreatedBy")
-  assessmentTestsAssigned AssessmentTest[]       @relation("AssessmentTestAssignee")
-  assessmentTestsOwned    AssessmentTest[]       @relation("AssessmentTestOwner")
-  assessmentTestsAssessor AssessmentTest[]       @relation("AssessmentTestAssessor")
-  assessmentExecutions    AssessmentExecution[]  @relation("AssessmentExecutor")
+  assessmentTestsAssigned AssessmentTest[]      @relation("AssessmentTestAssignee")
+  assessmentTestsOwned    AssessmentTest[]      @relation("AssessmentTestOwner")
+  assessmentTestsAssessor AssessmentTest[]      @relation("AssessmentTestAssessor")
+  assessmentExecutions    AssessmentExecution[] @relation("AssessmentExecutor")
 
   // SOA Relations
   soasCreated  StatementOfApplicability[] @relation("SOACreatedBy")
@@ -137,7 +134,6 @@ model User {
   rtsUpdated  RiskToleranceStatement[] @relation("RTSUpdatedBy")
   rtsApproved RiskToleranceStatement[] @relation("RTSApprovedBy")
 
-
   // Treatment Plan Relations
   treatmentPlansCreated     TreatmentPlan[] @relation("TreatmentCreatedBy")
   treatmentPlansUpdated     TreatmentPlan[] @relation("TreatmentUpdatedBy")
@@ -148,12 +144,6 @@ model User {
   // Treatment Action Relations
   treatmentActionsCreated  TreatmentAction[] @relation("ActionCreatedBy")
   treatmentActionsAssigned TreatmentAction[] @relation("ActionAssignee")
-
-
-
-
-
-
 
   // Audit Module Relations (Nonconformities)
   nonconformitiesRaised      Nonconformity[] @relation("NCRaisedBy")
@@ -212,15 +202,6 @@ model User {
   changeHistoryEntries   ChangeHistory[]  @relation("ChangeHistoryBy")
   changeTemplatesCreated ChangeTemplate[] @relation("ChangeTemplateCreatedBy")
 
-
-
-
-
-
-
-
-
-
   // Incident Module Relations
   incidentsReported Incident[] @relation("IncidentReporter")
   incidentsHandled  Incident[] @relation("IncidentHandler")
@@ -259,26 +240,25 @@ model User {
 
   evidenceFulfillmentsSubmitted EvidenceRequestFulfillment[] @relation("FulfillmentSubmittedBy")
 
-  evidenceControlLinksCreated     EvidenceControl[]       @relation("EvidenceControlCreatedBy")
-  evidenceNCLinksCreated          EvidenceNonconformity[] @relation("EvidenceNCCreatedBy")
-  evidenceIncidentLinksCreated    EvidenceIncident[]      @relation("EvidenceIncidentCreatedBy")
-  evidenceRiskLinksCreated        EvidenceRisk[]          @relation("EvidenceRiskCreatedBy")
-  evidenceTreatmentLinksCreated   EvidenceTreatment[]     @relation("EvidenceTreatmentCreatedBy")
-  evidencePolicyLinksCreated      EvidencePolicy[]        @relation("EvidencePolicyCreatedBy")
-  evidenceAssetLinksCreated       EvidenceAsset[]         @relation("EvidenceAssetCreatedBy")
-  evidenceChangeLinksCreated      EvidenceChange[]        @relation("EvidenceChangeCreatedBy")
+  evidenceControlLinksCreated   EvidenceControl[]       @relation("EvidenceControlCreatedBy")
+  evidenceNCLinksCreated        EvidenceNonconformity[] @relation("EvidenceNCCreatedBy")
+  evidenceIncidentLinksCreated  EvidenceIncident[]      @relation("EvidenceIncidentCreatedBy")
+  evidenceRiskLinksCreated      EvidenceRisk[]          @relation("EvidenceRiskCreatedBy")
+  evidenceTreatmentLinksCreated EvidenceTreatment[]     @relation("EvidenceTreatmentCreatedBy")
+  evidencePolicyLinksCreated    EvidencePolicy[]        @relation("EvidencePolicyCreatedBy")
+  evidenceAssetLinksCreated     EvidenceAsset[]         @relation("EvidenceAssetCreatedBy")
+  evidenceChangeLinksCreated    EvidenceChange[]        @relation("EvidenceChangeCreatedBy")
 
   // Treatment Enhancement Relations
   treatmentTemplatesCreated    TreatmentTemplate[]    @relation("TemplateCreatedBy")
   treatmentDependenciesCreated TreatmentDependency[]  @relation("DependencyCreatedBy")
   treatmentHistoryEntries      TreatmentPlanHistory[] @relation("TreatmentHistoryUser")
 
-
   // Control Evidence (Automated compliance)
 
-  metricsCreated    ControlMetric[]   @relation("MetricCreatedBy")
-  metricsUpdated    ControlMetric[]   @relation("MetricUpdatedBy")
-  scopeItemsCreated ScopeItem[]  @relation("ScopeItemCreatedBy")
+  metricsCreated    ControlMetric[] @relation("MetricCreatedBy")
+  metricsUpdated    ControlMetric[] @relation("MetricUpdatedBy")
+  scopeItemsCreated ScopeItem[]     @relation("ScopeItemCreatedBy")
 
   // MCP Pending Action Relations
   mcpActionsReviewed McpPendingAction[] @relation("McpActionReviewedBy")

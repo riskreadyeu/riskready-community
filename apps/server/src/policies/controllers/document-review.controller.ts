@@ -1,6 +1,10 @@
-import { Controller, Get, Post, Put, Param, Query, Body } from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Query, Body, Request } from '@nestjs/common';
 import { DocumentReviewService } from '../services/document-review.service';
-import { ReviewType, ReviewOutcome } from '@prisma/client';
+import {
+  CreateDocumentReviewDto,
+  RescheduleDocumentReviewDto,
+} from '../dto/workflow.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('policies')
 export class DocumentReviewController {
@@ -31,26 +35,19 @@ export class DocumentReviewController {
 
   @Post(':documentId/reviews')
   async createReview(
+    @Request() req: AuthenticatedRequest,
     @Param('documentId') documentId: string,
-    @Body() data: {
-      reviewType: ReviewType;
-      outcome: ReviewOutcome;
-      findings?: string;
-      recommendations?: string;
-      actionItems?: string;
-      changesRequired?: boolean;
-      changeDescription?: string;
-      reviewedById: string;
-    },
+    @Body() data: CreateDocumentReviewDto,
   ) {
-    return this.service.createReview({ documentId, ...data });
+    return this.service.createReview({ documentId, ...data, reviewedById: req.user.id });
   }
 
   @Put(':documentId/reschedule-review')
   async rescheduleReview(
+    @Request() req: AuthenticatedRequest,
     @Param('documentId') documentId: string,
-    @Body() data: { nextReviewDate: string; userId?: string },
+    @Body() data: RescheduleDocumentReviewDto,
   ) {
-    return this.service.rescheduleReview(documentId, new Date(data.nextReviewDate), data.userId);
+    return this.service.rescheduleReview(documentId, new Date(data.nextReviewDate), req.user.id);
   }
 }

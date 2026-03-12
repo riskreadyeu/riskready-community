@@ -2,6 +2,7 @@ import {
   IsString,
   IsEnum,
   IsOptional,
+  IsBoolean,
   IsInt,
   IsArray,
   IsDateString,
@@ -12,6 +13,7 @@ import {
   ValidateNested,
   Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import {
   ChangeType,
   ReviewType,
@@ -83,26 +85,42 @@ export class CreateDocumentVersionDto {
   createdById?: string;
 }
 
+export class CreateDocumentVersionRequestDto {
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(10)
+  changeDescription!: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  changeSummary?: string;
+
+  @IsEnum(ChangeType)
+  @IsNotEmpty()
+  changeType!: ChangeType;
+
+  @IsBoolean()
+  @IsOptional()
+  isMajor?: boolean;
+}
+
+export class RollbackDocumentVersionDto {
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(20)
+  targetVersion!: string;
+}
+
 // =============================================
 // DOCUMENT REVIEW DTOs
 // =============================================
 
 export class CreateDocumentReviewDto {
-  @IsString()
-  @IsNotEmpty()
-  documentId!: string;
-
   @IsEnum(ReviewType)
   @IsNotEmpty()
   reviewType!: ReviewType;
-
-  @IsDateString()
-  @IsOptional()
-  reviewDate?: string;
-
-  @IsString()
-  @IsOptional()
-  reviewedById?: string;
 
   @IsEnum(ReviewOutcome)
   @IsNotEmpty()
@@ -127,24 +145,19 @@ export class CreateDocumentReviewDto {
   @IsString()
   @IsOptional()
   changeDescription?: string;
+}
 
+export class RescheduleDocumentReviewDto {
   @IsDateString()
-  @IsOptional()
-  nextReviewDate?: string;
+  @IsNotEmpty()
+  nextReviewDate!: string;
 }
 
 // =============================================
 // APPROVAL WORKFLOW DTOs
 // =============================================
 
-import { Type } from 'class-transformer';
-import { IsBoolean } from 'class-validator';
-
 export class CreateApprovalWorkflowDto {
-  @IsString()
-  @IsNotEmpty()
-  documentId!: string;
-
   @IsEnum(ApprovalWorkflowType)
   @IsNotEmpty()
   workflowType!: ApprovalWorkflowType;
@@ -159,10 +172,6 @@ export class CreateApprovalWorkflowDto {
   @IsOptional()
   @MaxLength(2000)
   comments?: string;
-
-  @IsString()
-  @IsOptional()
-  initiatedById?: string;
 }
 
 class ApprovalStepDto {
@@ -211,6 +220,27 @@ export class UpdateApprovalStepDto {
   @IsString()
   @IsOptional()
   delegatedToId?: string;
+}
+
+export class ProcessApprovalStepDto {
+  @IsEnum(ApprovalDecision)
+  @IsNotEmpty()
+  decision!: ApprovalDecision;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(2000)
+  comments?: string;
+
+  @IsString()
+  @IsOptional()
+  signature?: string;
+}
+
+export class DelegateApprovalStepDto {
+  @IsString()
+  @IsNotEmpty()
+  delegatedToId!: string;
 }
 
 export class CompleteApprovalWorkflowDto {

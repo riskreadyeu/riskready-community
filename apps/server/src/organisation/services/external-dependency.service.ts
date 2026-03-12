@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import {
+  CreateExternalDependencyDto,
+  UpdateExternalDependencyDto,
+} from '../dto/organisation-crud.dto';
 
 @Injectable()
 export class ExternalDependencyService {
@@ -40,12 +44,17 @@ export class ExternalDependencyService {
     });
   }
 
-  async create(data: Prisma.ExternalDependencyCreateInput) {
-    return this.prisma.externalDependency.create({ data });
+  async create(data: CreateExternalDependencyDto) {
+    return this.prisma.externalDependency.create({
+      data: data as Prisma.ExternalDependencyUncheckedCreateInput,
+    });
   }
 
-  async update(id: string, data: Prisma.ExternalDependencyUpdateInput) {
-    return this.prisma.externalDependency.update({ where: { id }, data });
+  async update(id: string, data: UpdateExternalDependencyDto) {
+    return this.prisma.externalDependency.update({
+      where: { id },
+      data: data as Prisma.ExternalDependencyUncheckedUpdateInput,
+    });
   }
 
   async delete(id: string) {

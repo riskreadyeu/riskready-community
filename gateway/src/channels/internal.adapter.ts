@@ -10,6 +10,10 @@ interface InternalAdapterOptions {
   secret?: string;
 }
 
+function readHeader(value: string | string[] | undefined): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+}
+
 export class InternalAdapter implements ChannelAdapter {
   readonly name = 'web';
   private server: FastifyInstance;
@@ -46,9 +50,16 @@ export class InternalAdapter implements ChannelAdapter {
         conversationId?: string;
         text?: string;
         fileIds?: string[];
+        metadata?: Record<string, unknown>;
       };
+      const trustedUserId = readHeader(request.headers['x-user-id']);
+      const trustedOrganisationId = readHeader(request.headers['x-organisation-id']);
+      const trustedConversationId = readHeader(request.headers['x-conversation-id']);
+      const userId = this.secret ? trustedUserId : body.userId;
+      const organisationId = this.secret ? trustedOrganisationId : body.organisationId;
+      const conversationId = trustedConversationId ?? body.conversationId;
 
-      if (!body?.text?.trim() || !body.userId || !body.organisationId) {
+      if (!body?.text?.trim() || !userId || !organisationId) {
         return reply.status(400).send({ error: 'userId, organisationId, and text are required' });
       }
 
@@ -56,10 +67,10 @@ export class InternalAdapter implements ChannelAdapter {
       const msg: UnifiedMessage = {
         id: runId,
         channel: 'web',
-        channelMessageId: body.conversationId ?? runId,
-        channelId: body.conversationId ?? runId,
-        userId: body.userId,
-        organisationId: body.organisationId,
+        channelMessageId: conversationId ?? runId,
+        channelId: conversationId ?? runId,
+        userId,
+        organisationId,
         text: body.text.trim(),
         attachments: (body.fileIds ?? []).map((fid) => ({
           id: fid,
@@ -68,7 +79,10 @@ export class InternalAdapter implements ChannelAdapter {
           sizeBytes: 0,
           storedFileId: fid,
         })),
-        metadata: { conversationId: body.conversationId },
+        metadata: {
+          ...(body.metadata ?? {}),
+          conversationId,
+        },
         timestamp: new Date(),
       };
 

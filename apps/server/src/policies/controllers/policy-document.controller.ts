@@ -1,7 +1,12 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Request } from '@nestjs/common';
 import { PolicyDocumentService } from '../services/policy-document.service';
-import { CreatePolicyDocumentDto, UpdatePolicyDocumentDto } from '../dto/policy.dto';
+import {
+  CreatePolicyDocumentDto,
+  UpdatePolicyDocumentDto,
+  UpdatePolicyStatusDto,
+} from '../dto/policy.dto';
 import { DocumentType, DocumentStatus, Prisma } from '@prisma/client';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('policies')
 export class PolicyDocumentController {
@@ -102,34 +107,41 @@ export class PolicyDocumentController {
   }
 
   @Post()
-  async create(@Body() dto: CreatePolicyDocumentDto & { userId?: string }) {
-    const { userId, organisationId, ...rest } = dto;
+  async create(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: CreatePolicyDocumentDto,
+  ) {
+    const { organisationId, ...rest } = dto;
     return this.service.create({
       ...rest,
       organisation: { connect: { id: organisationId } },
-    }, userId);
+    }, req.user.id);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdatePolicyDocumentDto & { userId?: string }) {
-    const { userId, ...rest } = dto;
-    return this.service.update(id, rest, userId);
+  async update(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: UpdatePolicyDocumentDto,
+  ) {
+    return this.service.update(id, dto, req.user.id);
   }
 
   @Put(':id/status')
   async updateStatus(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { status: DocumentStatus; userId?: string },
+    @Body() data: UpdatePolicyStatusDto,
   ) {
-    return this.service.updateStatus(id, data.status, data.userId);
+    return this.service.updateStatus(id, data.status, req.user.id);
   }
 
   @Delete(':id')
   async delete(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Query('hard') hard?: string,
-    @Body() data?: { userId?: string },
   ) {
-    return this.service.delete(id, data?.userId, hard !== 'true');
+    return this.service.delete(id, req.user.id, hard !== 'true');
   }
 }

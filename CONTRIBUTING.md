@@ -23,7 +23,7 @@ docker compose up db -d
 # Set up the backend
 cd apps/server
 cp .env.example .env
-# Edit .env: set DATABASE_URL to postgresql://riskready:your-password@localhost:5433/riskready
+# Edit .env: set DATABASE_URL to postgresql://riskready:your-password@localhost:5434/riskready
 npm install
 npx prisma db push --schema=prisma/schema
 npm run prisma:seed

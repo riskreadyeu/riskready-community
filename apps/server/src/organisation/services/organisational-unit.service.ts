@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import {
+  CreateOrganisationalUnitDto,
+  UpdateOrganisationalUnitDto,
+} from '../dto/organisation-crud.dto';
 
 @Injectable()
 export class OrganisationalUnitService {
@@ -42,12 +46,17 @@ export class OrganisationalUnitService {
     });
   }
 
-  async create(data: Prisma.OrganisationalUnitCreateInput) {
-    return this.prisma.organisationalUnit.create({ data });
+  async create(data: CreateOrganisationalUnitDto) {
+    return this.prisma.organisationalUnit.create({
+      data: data as Prisma.OrganisationalUnitUncheckedCreateInput,
+    });
   }
 
-  async update(id: string, data: Prisma.OrganisationalUnitUpdateInput) {
-    return this.prisma.organisationalUnit.update({ where: { id }, data });
+  async update(id: string, data: UpdateOrganisationalUnitDto) {
+    return this.prisma.organisationalUnit.update({
+      where: { id },
+      data: data as Prisma.OrganisationalUnitUncheckedUpdateInput,
+    });
   }
 
   async delete(id: string) {

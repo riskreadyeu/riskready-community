@@ -1,24 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import {
+  CreateCapacityPlanDto,
+  RecordCapacityDto,
+  UpdateCapacityPlanDto,
+} from '../dto/capacity.dto';
 
 @Injectable()
 export class CapacityService {
   constructor(private prisma: PrismaService) {}
 
-  async recordCapacity(assetId: string, data: {
-    cpuUsagePercent?: number;
-    memoryUsagePercent?: number;
-    storageUsagePercent?: number;
-    networkUsagePercent?: number;
-    customMetrics?: Prisma.InputJsonValue;
-    source?: string;
-  }) {
+  async recordCapacity(assetId: string, data: RecordCapacityDto) {
     // Create capacity record
     const record = await this.prisma.capacityRecord.create({
       data: {
-        assetId,
         ...data,
+        assetId,
       },
     });
 
@@ -186,19 +184,19 @@ export class CapacityService {
     });
   }
 
-  async createCapacityPlan(data: Prisma.CapacityPlanCreateInput) {
+  async createCapacityPlan(data: CreateCapacityPlanDto) {
     return this.prisma.capacityPlan.create({
-      data,
+      data: data as Prisma.CapacityPlanUncheckedCreateInput,
       include: {
         asset: { select: { id: true, assetTag: true, name: true, assetType: true } },
       },
     });
   }
 
-  async updateCapacityPlan(id: string, data: Prisma.CapacityPlanUpdateInput) {
+  async updateCapacityPlan(id: string, data: UpdateCapacityPlanDto) {
     return this.prisma.capacityPlan.update({
       where: { id },
-      data,
+      data: data as Prisma.CapacityPlanUncheckedUpdateInput,
     });
   }
 

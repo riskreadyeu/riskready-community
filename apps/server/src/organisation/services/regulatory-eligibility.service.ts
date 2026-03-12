@@ -6,6 +6,13 @@ import {
   RegulatoryProfile,
   PropagationResult,
 } from './regulatory-scope-propagation.service';
+import { resolveSingleOrganisationId } from '../../shared/utils/single-organisation.util';
+import {
+  CreateRegulatoryEligibilitySurveyDto,
+  CreateSurveyQuestionDto,
+  UpdateRegulatoryEligibilitySurveyDto,
+  UpdateSurveyQuestionDto,
+} from '../dto/organisation-crud.dto';
 
 export interface CompleteSurveyResult {
   survey: Record<string, unknown>;
@@ -60,12 +67,17 @@ export class RegulatoryEligibilityService {
     });
   }
 
-  async createSurvey(data: Prisma.RegulatoryEligibilitySurveyCreateInput) {
-    return this.prisma.regulatoryEligibilitySurvey.create({ data });
+  async createSurvey(data: CreateRegulatoryEligibilitySurveyDto) {
+    return this.prisma.regulatoryEligibilitySurvey.create({
+      data: data as Prisma.RegulatoryEligibilitySurveyUncheckedCreateInput,
+    });
   }
 
-  async updateSurvey(id: string, data: Prisma.RegulatoryEligibilitySurveyUpdateInput) {
-    return this.prisma.regulatoryEligibilitySurvey.update({ where: { id }, data });
+  async updateSurvey(id: string, data: UpdateRegulatoryEligibilitySurveyDto) {
+    return this.prisma.regulatoryEligibilitySurvey.update({
+      where: { id },
+      data: data as Prisma.RegulatoryEligibilitySurveyUncheckedUpdateInput,
+    });
   }
 
   async deleteSurvey(id: string) {
@@ -80,12 +92,17 @@ export class RegulatoryEligibilityService {
     });
   }
 
-  async createQuestion(data: Prisma.SurveyQuestionCreateInput) {
-    return this.prisma.surveyQuestion.create({ data });
+  async createQuestion(data: CreateSurveyQuestionDto) {
+    return this.prisma.surveyQuestion.create({
+      data: data as Prisma.SurveyQuestionUncheckedCreateInput,
+    });
   }
 
-  async updateQuestion(id: string, data: Prisma.SurveyQuestionUpdateInput) {
-    return this.prisma.surveyQuestion.update({ where: { id }, data });
+  async updateQuestion(id: string, data: UpdateSurveyQuestionDto) {
+    return this.prisma.surveyQuestion.update({
+      where: { id },
+      data: data as Prisma.SurveyQuestionUncheckedUpdateInput,
+    });
   }
 
   // Responses
@@ -151,8 +168,11 @@ export class RegulatoryEligibilityService {
 
     // If propagation is requested and we have an organisation
     let propagation: PropagationResult | undefined;
+    const resolvedOrganisationId = propagateScope
+      ? await resolveSingleOrganisationId(this.prisma, organisationId)
+      : undefined;
 
-    if (propagateScope && organisationId) {
+    if (propagateScope && resolvedOrganisationId) {
       // Build regulatory profile from survey result
       let profile: RegulatoryProfile;
 
@@ -160,7 +180,7 @@ export class RegulatoryEligibilityService {
         const doraProfile = this.propagationService.parseDoraResult(result);
         // Get existing NIS2 profile from organisation
         const org = await this.prisma.organisationProfile.findUnique({
-          where: { id: organisationId },
+          where: { id: resolvedOrganisationId },
           select: {
             isNis2Applicable: true,
             nis2EntityClassification: true,
@@ -181,7 +201,7 @@ export class RegulatoryEligibilityService {
 
         // Update organisation with DORA assessment link
         await this.prisma.organisationProfile.update({
-          where: { id: organisationId },
+          where: { id: resolvedOrganisationId },
           data: { lastDoraAssessmentId: surveyId },
         });
       } else {
@@ -189,7 +209,7 @@ export class RegulatoryEligibilityService {
         const nis2Profile = this.propagationService.parseNis2Result(result);
         // Get existing DORA profile from organisation
         const org = await this.prisma.organisationProfile.findUnique({
-          where: { id: organisationId },
+          where: { id: resolvedOrganisationId },
           select: {
             isDoraApplicable: true,
             doraEntityType: true,
@@ -209,14 +229,14 @@ export class RegulatoryEligibilityService {
 
         // Update organisation with NIS2 assessment link
         await this.prisma.organisationProfile.update({
-          where: { id: organisationId },
+          where: { id: resolvedOrganisationId },
           data: { lastNis2AssessmentId: surveyId },
         });
       }
 
       // Propagate scope to all entities
       propagation = await this.propagationService.propagateRegulatoryScope(
-        organisationId,
+        resolvedOrganisationId,
         profile,
       );
 
@@ -241,15 +261,10 @@ export class RegulatoryEligibilityService {
    * control/risk applicability based on DORA/NIS2 scope
    */
   async propagateCurrentScope(organisationId?: string): Promise<PropagationResult> {
-    // Get the organisation (use first if not specified)
-    let org;
-    if (organisationId) {
-      org = await this.prisma.organisationProfile.findUnique({
-        where: { id: organisationId },
-      });
-    } else {
-      org = await this.prisma.organisationProfile.findFirst();
-    }
+    const resolvedOrganisationId = await resolveSingleOrganisationId(this.prisma, organisationId);
+    const org = await this.prisma.organisationProfile.findUnique({
+      where: { id: resolvedOrganisationId },
+    });
 
     if (!org) {
       throw new Error('Organisation not found');

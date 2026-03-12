@@ -21,12 +21,6 @@ import {
 export class CreateDocumentExceptionDto {
   @IsString()
   @IsNotEmpty()
-  @MinLength(1)
-  @MaxLength(50)
-  exceptionId!: string;
-
-  @IsString()
-  @IsNotEmpty()
   documentId!: string;
 
   @IsString()
@@ -74,8 +68,8 @@ export class CreateDocumentExceptionDto {
   startDate?: string;
 
   @IsDateString()
-  @IsOptional()
-  expiryDate?: string;
+  @IsNotEmpty()
+  expiryDate!: string;
 
   @IsEnum(ApprovalLevel)
   @IsNotEmpty()
@@ -84,10 +78,6 @@ export class CreateDocumentExceptionDto {
   @IsEnum(ReviewFrequency)
   @IsOptional()
   reviewFrequency?: ReviewFrequency;
-
-  @IsString()
-  @IsOptional()
-  requestedById?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -155,14 +145,6 @@ export class UpdateDocumentExceptionDto {
 export class ApproveExceptionDto {
   @IsString()
   @IsOptional()
-  approvedById?: string;
-
-  @IsDateString()
-  @IsOptional()
-  approvalDate?: string;
-
-  @IsString()
-  @IsOptional()
   @MaxLength(2000)
   approvalComments?: string;
 }
@@ -172,5 +154,12 @@ export class CloseExceptionDto {
   @IsNotEmpty()
   @MinLength(10)
   @MaxLength(1000)
-  closureReason!: string;
+  reason!: string;
+}
+
+export class ReviewExceptionDto {
+  @IsString()
+  @IsOptional()
+  @MaxLength(2000)
+  notes?: string;
 }

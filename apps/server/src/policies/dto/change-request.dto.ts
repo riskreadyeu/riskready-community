@@ -11,7 +11,6 @@ import {
 import {
   ChangeType,
   ChangePriority,
-  ChangeRequestStatus,
 } from '@prisma/client';
 
 // =============================================
@@ -19,12 +18,6 @@ import {
 // =============================================
 
 export class CreateChangeRequestDto {
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(1)
-  @MaxLength(50)
-  changeRequestId!: string;
-
   @IsString()
   @IsNotEmpty()
   documentId!: string;
@@ -74,10 +67,6 @@ export class CreateChangeRequestDto {
   targetDate?: string;
 
   @IsString()
-  @IsOptional()
-  requestedById?: string;
-
-  @IsString()
   @IsNotEmpty()
   organisationId!: string;
 }
@@ -107,10 +96,6 @@ export class UpdateChangeRequestDto {
   @IsOptional()
   priority?: ChangePriority;
 
-  @IsEnum(ChangeRequestStatus)
-  @IsOptional()
-  status?: ChangeRequestStatus;
-
   @IsString()
   @IsOptional()
   impactAssessment?: string;
@@ -130,29 +115,23 @@ export class UpdateChangeRequestDto {
   @IsDateString()
   @IsOptional()
   targetDate?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(2000)
-  approvalComments?: string;
 }
 
 export class ApproveChangeRequestDto {
   @IsString()
   @IsOptional()
-  approverId?: string;
-
-  @IsString()
-  @IsOptional()
   @MaxLength(2000)
   approvalComments?: string;
 }
 
-export class ImplementChangeRequestDto {
+export class RejectChangeRequestDto {
   @IsString()
-  @IsOptional()
-  implementedById?: string;
+  @IsNotEmpty()
+  @MaxLength(2000)
+  approvalComments!: string;
+}
 
+export class ImplementChangeRequestDto {
   @IsString()
   @IsOptional()
   newVersionId?: string;

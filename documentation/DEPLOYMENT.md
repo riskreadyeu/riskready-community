@@ -205,7 +205,7 @@ Let's Encrypt:
 
 5. **Firewall internal service ports** to prevent public access:
 
-   Block inbound traffic on ports `3000`, `3100`, and `5433`. Only ports `80`
+   Block inbound traffic on ports `3000`, `3100`, and `5434`. Only ports `80`
    and `443` should be reachable from the internet.
 
 6. **Restart the stack:**

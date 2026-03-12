@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { InterestedPartyService } from '../services/interested-party.service';
+import { CreateInterestedPartyDto, UpdateInterestedPartyDto } from '../dto/interested-party.dto';
 
 @Controller('organisation/interested-parties')
 export class InterestedPartyController {
@@ -37,12 +38,12 @@ export class InterestedPartyController {
   }
 
   @Post()
-  async create(@Body() data: Prisma.InterestedPartyCreateInput) {
+  async create(@Body() data: CreateInterestedPartyDto) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: Prisma.InterestedPartyUpdateInput) {
+  async update(@Param('id') id: string, @Body() data: UpdateInterestedPartyDto) {
     return this.service.update(id, data);
   }
 

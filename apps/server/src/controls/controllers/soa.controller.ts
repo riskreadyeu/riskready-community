@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Query, Body, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Query, Body, NotFoundException, BadRequestException, Request } from '@nestjs/common';
 import { SOAService } from '../services/soa.service';
 import { SOAEntryService } from '../services/soa-entry.service';
 import { Prisma } from '@prisma/client';
@@ -12,6 +12,7 @@ import {
   UpdateSOAEntryDto,
   BulkUpdateSOAEntriesDto,
 } from '../dto/soa.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('soa')
 export class SOAController {
@@ -63,14 +64,14 @@ export class SOAController {
   }
 
   @Post()
-  async create(@Body() data: CreateSOADto) {
-    return this.service.create(data);
+  async create(@Request() req: AuthenticatedRequest, @Body() data: CreateSOADto) {
+    return this.service.create({ ...data, createdById: req.user.id });
   }
 
   @Post('from-controls')
-  async createFromControls(@Body() data: CreateSOAFromControlsDto) {
+  async createFromControls(@Request() req: AuthenticatedRequest, @Body() data: CreateSOAFromControlsDto) {
     try {
-      return await this.service.createFromControls(data);
+      return await this.service.createFromControls({ ...data, createdById: req.user.id });
     } catch (error: unknown) {
       if (error instanceof Error && 'code' in error && (error as Record<string, unknown>)['code'] === 'P2002') {
         throw new BadRequestException(`SOA version ${data.version} already exists for this organisation`);
@@ -81,34 +82,38 @@ export class SOAController {
 
   @Post(':id/new-version')
   async createNewVersion(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() data: CreateSOAVersionDto
   ) {
-    return this.service.createNewVersion(id, data);
+    return this.service.createNewVersion(id, { ...data, createdById: req.user.id });
   }
 
   @Put(':id')
   async update(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() data: UpdateSOADto
   ) {
-    return this.service.update(id, data);
+    return this.service.update(id, { ...data, updatedById: req.user.id });
   }
 
   @Put(':id/submit')
   async submitForReview(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: SubmitSOAForReviewDto
+    @Body() _data: SubmitSOAForReviewDto
   ) {
-    return this.service.submitForReview(id, data.updatedById);
+    return this.service.submitForReview(id, req.user.id);
   }
 
   @Put(':id/approve')
   async approve(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: ApproveSOADto
+    @Body() _data: ApproveSOADto
   ) {
-    return this.service.approve(id, data.approvedById);
+    return this.service.approve(id, req.user.id);
   }
 
   @Put(':id/sync-to-controls')

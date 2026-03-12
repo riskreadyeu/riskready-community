@@ -1,6 +1,10 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { BusinessProcessService } from '../services/business-process.service';
+import {
+  CreateBusinessProcessDto,
+  UpdateBusinessProcessDto,
+} from '../dto/organisation-crud.dto';
 
 @Controller('organisation/processes')
 export class BusinessProcessController {
@@ -39,12 +43,12 @@ export class BusinessProcessController {
   }
 
   @Post()
-  async create(@Body() data: Prisma.BusinessProcessCreateInput) {
+  async create(@Body() data: CreateBusinessProcessDto) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: Prisma.BusinessProcessUpdateInput) {
+  async update(@Param('id') id: string, @Body() data: UpdateBusinessProcessDto) {
     return this.service.update(id, data);
   }
 

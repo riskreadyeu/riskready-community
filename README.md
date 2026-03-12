@@ -175,6 +175,10 @@ All autonomous capabilities preserve the human-approval safety model. For full d
 
 ![Controls Library](screenshots/03b-controls-library.png)
 
+**Policy Management** — Document lifecycle, version control, reviews, exceptions, and acknowledgments
+
+![Policy Management](screenshots/05-policies.png)
+
 **Incident Management** — NIS2/DORA compliance tracking, response metrics, recent incidents
 
 ![Incident Management](screenshots/04-incidents.png)
@@ -263,12 +267,12 @@ The demo includes: 15 risks with 30 scenarios, 40 ISO 27001 controls, 12 policie
 | `ciso@clearstream.ie` | CISO (recommended) | `password123` |
 | `ceo@clearstream.ie` | CEO | `password123` |
 | `cto@clearstream.ie` | CTO | `password123` |
-| `isms@clearstream.ie` | ISMS Manager | `password123` |
+| `isms.manager@clearstream.ie` | ISMS Manager | `password123` |
 | `security.lead@clearstream.ie` | IT Security Lead | `password123` |
 | `compliance@clearstream.ie` | Compliance Officer | `password123` |
 | `risk.analyst@clearstream.ie` | Risk Analyst | `password123` |
 | `dpo@clearstream.ie` | Data Protection Officer | `password123` |
-| `champion@clearstream.ie` | Security Champion | `password123` |
+| `cfo@clearstream.ie` | CFO | `password123` |
 
 > The CISO account provides the most complete view of all modules and dashboards.
 

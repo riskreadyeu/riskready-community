@@ -228,8 +228,6 @@ model Evidence {
   // Change links
   changeLinks EvidenceChange[]
 
-
-
   // Evidence request fulfillment
   requestFulfillments EvidenceRequestFulfillment[]
 
@@ -496,6 +494,7 @@ model EvidencePolicy {
   @@index([evidenceId])
   @@index([policyId])
 }
+
 // Evidence <-> Asset
 model EvidenceAsset {
   id          String   @id @default(cuid())

@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
 import { withErrorHandling } from '#mcp-shared';
+import { getSingleOrganisation } from './single-org.js';
 
 export function registerOrgProfileTools(server: McpServer) {
   server.tool(
@@ -13,7 +14,7 @@ export function registerOrgProfileTools(server: McpServer) {
     withErrorHandling('get_organisation_profile', async ({ id }) => {
       const org = id
         ? await prisma.organisationProfile.findUnique({ where: { id } })
-        : await prisma.organisationProfile.findFirst();
+        : await getSingleOrganisation();
 
       if (!org) {
         return { content: [{ type: 'text' as const, text: id ? `Organisation ${id} not found` : 'No organisation found in the database' }], isError: true };
@@ -58,26 +59,24 @@ export function registerOrgProfileTools(server: McpServer) {
               regulatoryProfileUpdatedAt: true,
             },
           })
-        : await prisma.organisationProfile.findFirst({
-            select: {
-              id: true,
-              name: true,
-              isDoraApplicable: true,
-              doraEntityType: true,
-              doraRegime: true,
-              doraExemptionReason: true,
-              isNis2Applicable: true,
-              nis2EntityClassification: true,
-              nis2Sector: true,
-              nis2AnnexType: true,
-              primarySupervisoryAuthority: true,
-              supervisoryAuthorityCountry: true,
-              supervisoryRegistrationNumber: true,
-              supervisoryRegistrationDate: true,
-              lastDoraAssessmentId: true,
-              lastNis2AssessmentId: true,
-              regulatoryProfileUpdatedAt: true,
-            },
+        : await getSingleOrganisation({
+            id: true,
+            name: true,
+            isDoraApplicable: true,
+            doraEntityType: true,
+            doraRegime: true,
+            doraExemptionReason: true,
+            isNis2Applicable: true,
+            nis2EntityClassification: true,
+            nis2Sector: true,
+            nis2AnnexType: true,
+            primarySupervisoryAuthority: true,
+            supervisoryAuthorityCountry: true,
+            supervisoryRegistrationNumber: true,
+            supervisoryRegistrationDate: true,
+            lastDoraAssessmentId: true,
+            lastNis2AssessmentId: true,
+            regulatoryProfileUpdatedAt: true,
           });
 
       if (!org) {

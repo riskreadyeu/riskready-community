@@ -7,9 +7,17 @@ import {
   Param,
   Body,
   Query,
+  Request,
 } from '@nestjs/common';
 import { EvidenceRequestService } from '../services/evidence-request.service';
-import { EvidenceType, EvidenceRequestStatus, EvidenceRequestPriority } from '@prisma/client';
+import { EvidenceRequestStatus, EvidenceRequestPriority } from '@prisma/client';
+import {
+  CreateEvidenceRequestDto,
+  UpdateEvidenceRequestDto,
+  SubmitEvidenceRequestDto,
+  RejectEvidenceSubmissionDto,
+} from '../dto/evidence.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('evidence-requests')
 export class EvidenceRequestController {
@@ -48,8 +56,11 @@ export class EvidenceRequestController {
   }
 
   @Get('my-requests/:userId')
-  async getMyRequests(@Param('userId') userId: string) {
-    return this.service.getMyRequests(userId);
+  async getMyRequests(
+    @Request() req: AuthenticatedRequest,
+    @Param('userId') _userId: string,
+  ) {
+    return this.service.getMyRequests(req.user.id);
   }
 
   @Get(':id')
@@ -59,46 +70,21 @@ export class EvidenceRequestController {
 
   @Post()
   async create(
-    @Body()
-    data: {
-      title: string;
-      description: string;
-      evidenceType?: EvidenceType;
-      requiredFormat?: string;
-      acceptanceCriteria?: string;
-      priority?: EvidenceRequestPriority;
-      dueDate: string;
-      assignedToId?: string;
-      assignedDepartmentId?: string;
-      contextType?: string;
-      contextId?: string;
-      contextRef?: string;
-      requestedById: string;
-      createdById: string;
-    },
+    @Request() req: AuthenticatedRequest,
+    @Body() data: CreateEvidenceRequestDto,
   ) {
     return this.service.create({
       ...data,
       dueDate: new Date(data.dueDate),
+      requestedById: req.user.id,
+      createdById: req.user.id,
     });
   }
 
   @Put(':id')
   async update(
     @Param('id') id: string,
-    @Body()
-    data: {
-      title?: string;
-      description?: string;
-      evidenceType?: EvidenceType;
-      requiredFormat?: string;
-      acceptanceCriteria?: string;
-      priority?: EvidenceRequestPriority;
-      dueDate?: string;
-      assignedToId?: string;
-      assignedDepartmentId?: string;
-      notes?: string;
-    },
+    @Body() data: UpdateEvidenceRequestDto,
   ) {
     return this.service.update(id, {
       ...data,
@@ -122,10 +108,11 @@ export class EvidenceRequestController {
 
   @Post(':id/submit')
   async submitEvidence(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { evidenceId: string; userId: string; notes?: string },
+    @Body() data: SubmitEvidenceRequestDto,
   ) {
-    return this.service.submitEvidence(id, data.evidenceId, data.userId, data.notes);
+    return this.service.submitEvidence(id, data.evidenceId, req.user.id, data.notes);
   }
 
   @Post(':id/accept')
@@ -136,7 +123,7 @@ export class EvidenceRequestController {
   @Post(':id/reject')
   async rejectSubmission(
     @Param('id') id: string,
-    @Body() data: { reason: string },
+    @Body() data: RejectEvidenceSubmissionDto,
   ) {
     return this.service.rejectSubmission(id, data.reason);
   }
@@ -146,4 +133,3 @@ export class EvidenceRequestController {
     return this.service.cancel(id);
   }
 }
-

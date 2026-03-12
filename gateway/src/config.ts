@@ -28,6 +28,10 @@ export interface GatewayConfig {
 export function loadConfig(): GatewayConfig {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error('DATABASE_URL is required');
+  const gatewaySecret = process.env.GATEWAY_SECRET ?? process.env.JWT_SECRET;
+  if (!gatewaySecret) {
+    throw new Error('GATEWAY_SECRET or JWT_SECRET is required');
+  }
 
   return {
     port: Number(process.env.GATEWAY_PORT ?? 3100),
@@ -41,7 +45,7 @@ export function loadConfig(): GatewayConfig {
     skills: {
       configPath: process.env.SKILLS_CONFIG ?? './skills.yaml',
     },
-    gatewaySecret: process.env.GATEWAY_SECRET,
+    gatewaySecret,
     council: {
       enabled: process.env.COUNCIL_ENABLED !== 'false',
       classifierMode: (process.env.COUNCIL_CLASSIFIER_MODE as 'heuristic' | 'llm') ?? 'heuristic',

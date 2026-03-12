@@ -7,6 +7,11 @@ import {
   Request,
 } from '@nestjs/common';
 import { ChangeApprovalService } from '../services/change-approval.service';
+import {
+  ApproveChangeApprovalDto,
+  RejectChangeApprovalDto,
+  RequestApprovalDto,
+} from '../dto/change-approval.dto';
 import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('itsm/change-approvals')
@@ -26,7 +31,7 @@ export class ChangeApprovalController {
   @Post('request/:changeId')
   async requestApproval(
     @Param('changeId') changeId: string,
-    @Body() data: { approvers: Array<{ userId: string; role: string; isRequired?: boolean }> },
+    @Body() data: RequestApprovalDto,
   ) {
     return this.service.requestApproval(changeId, data.approvers);
   }
@@ -35,7 +40,7 @@ export class ChangeApprovalController {
   async approve(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body() data: { comments?: string; conditions?: string },
+    @Body() data: ApproveChangeApprovalDto,
   ) {
     return this.service.approve(id, req.user.id, data.comments, data.conditions);
   }
@@ -44,7 +49,7 @@ export class ChangeApprovalController {
   async reject(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body() data: { comments: string },
+    @Body() data: RejectChangeApprovalDto,
   ) {
     return this.service.reject(id, req.user.id, data.comments);
   }

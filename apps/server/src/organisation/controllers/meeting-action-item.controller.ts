@@ -1,6 +1,10 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { MeetingActionItemService } from '../services/meeting-action-item.service';
+import {
+  CreateMeetingActionItemDto,
+  UpdateMeetingActionItemDto,
+} from '../dto/organisation-crud.dto';
 
 @Controller('organisation/meeting-action-items')
 export class MeetingActionItemController {
@@ -49,12 +53,12 @@ export class MeetingActionItemController {
   }
 
   @Post()
-  async create(@Body() data: Prisma.MeetingActionItemCreateInput) {
+  async create(@Body() data: CreateMeetingActionItemDto) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: Prisma.MeetingActionItemUpdateInput) {
+  async update(@Param('id') id: string, @Body() data: UpdateMeetingActionItemDto) {
     return this.service.update(id, data);
   }
 

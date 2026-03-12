@@ -1,6 +1,10 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ApplicableFrameworkService } from '../services/applicable-framework.service';
+import {
+  CreateApplicableFrameworkDto,
+  UpdateApplicableFrameworkDto,
+} from '../dto/organisation-crud.dto';
 
 @Controller('organisation/applicable-frameworks')
 export class ApplicableFrameworkController {
@@ -47,12 +51,12 @@ export class ApplicableFrameworkController {
   }
 
   @Post()
-  async create(@Body() data: Prisma.ApplicableFrameworkCreateInput) {
+  async create(@Body() data: CreateApplicableFrameworkDto) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: Prisma.ApplicableFrameworkUpdateInput) {
+  async update(@Param('id') id: string, @Body() data: UpdateApplicableFrameworkDto) {
     return this.service.update(id, data);
   }
 

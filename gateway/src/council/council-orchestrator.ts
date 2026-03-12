@@ -52,10 +52,11 @@ export class CouncilOrchestrator {
   async deliberate(
     question: string,
     organisationId: string,
+    conversationId: string,
     signal: AbortSignal,
     emit: (event: ChatEvent) => void,
     allMcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>,
-    getDbConfig?: () => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
+    getDbConfig?: (organisationId: string) => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
   ): Promise<{ text: string; sessionId: string }> {
     const queryFn = await this.getQueryFn();
     const decision = this.classifier.classify(question);
@@ -67,7 +68,7 @@ export class CouncilOrchestrator {
     // Create council session in DB
     const session = await prisma.councilSession.create({
       data: {
-        conversationId: '', // Will be set by the caller
+        conversationId,
         question,
         pattern: decision.deliberationPattern,
         participatingAgents: decision.memberRoles,
@@ -163,7 +164,7 @@ export class CouncilOrchestrator {
     emit: (event: ChatEvent) => void,
     allMcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>,
     queryFn: QueryFn,
-    getDbConfig?: () => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
+    getDbConfig?: (organisationId: string) => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
   ): Promise<CouncilOpinionData[]> {
     // Exclude ciso-strategist from member analysis (they do synthesis)
     const analysisMembers = decision.memberRoles.filter((r) => r !== 'ciso-strategist');
@@ -234,7 +235,7 @@ export class CouncilOrchestrator {
     emit: (event: ChatEvent) => void,
     allMcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>,
     queryFn: QueryFn,
-    getDbConfig?: () => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
+    getDbConfig?: (organisationId: string) => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
   ): Promise<CouncilOpinionData> {
     emit({ type: 'council_member_start', agentRole: role, message: `${role} analyzing...` });
 
@@ -254,7 +255,7 @@ export class CouncilOrchestrator {
       model = this.config.memberModel;
     }
     if (getDbConfig) {
-      const dbConfig = await getDbConfig();
+      const dbConfig = await getDbConfig(organisationId);
       if (dbConfig) {
         if (!this.config.memberModel) model = dbConfig.agentModel || model;
         if (dbConfig.anthropicApiKey) cleanEnv.ANTHROPIC_API_KEY = dbConfig.anthropicApiKey;
@@ -275,8 +276,7 @@ export class CouncilOrchestrator {
           model,
           mcpServers: memberServers,
           allowedTools: ['mcp__*'],
-          permissionMode: 'bypassPermissions',
-          allowDangerouslySkipPermissions: true,
+          permissionMode: 'dontAsk',
           maxTurns: this.config.maxTurnsPerMember,
           tools: [],
           systemPrompt,
@@ -396,7 +396,7 @@ export class CouncilOrchestrator {
     signal: AbortSignal,
     allMcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>,
     queryFn: QueryFn,
-    getDbConfig?: () => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
+    getDbConfig?: (organisationId: string) => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
   ): Promise<CouncilDeliberation> {
     // Build synthesis prompt with all opinions
     const opinionSummaries = opinions.map((o) => this.summarizeOpinion(o)).join('\n\n---\n\n');
@@ -429,7 +429,7 @@ Format your response using the structured output format from your instructions.`
 
     let model = process.env.AGENT_MODEL || 'claude-haiku-4-5-20251001';
     if (getDbConfig) {
-      const dbConfig = await getDbConfig();
+      const dbConfig = await getDbConfig(organisationId);
       if (dbConfig) {
         model = dbConfig.agentModel || model;
         if (dbConfig.anthropicApiKey) cleanEnv.ANTHROPIC_API_KEY = dbConfig.anthropicApiKey;
@@ -450,8 +450,7 @@ Format your response using the structured output format from your instructions.`
           model,
           mcpServers: cisoServers,
           allowedTools: ['mcp__*'],
-          permissionMode: 'bypassPermissions',
-          allowDangerouslySkipPermissions: true,
+          permissionMode: 'dontAsk',
           maxTurns: this.config.maxTurnsPerMember,
           tools: [],
           systemPrompt: cisoPrompt,

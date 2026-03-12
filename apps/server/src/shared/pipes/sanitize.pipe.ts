@@ -1,5 +1,22 @@
-import { PipeTransform, Injectable, ArgumentMetadata } from '@nestjs/common';
+import { PipeTransform, Injectable, ArgumentMetadata, BadRequestException } from '@nestjs/common';
 import xss from 'xss';
+
+const FORBIDDEN_REQUEST_KEYS = new Set([
+  '__proto__',
+  'constructor',
+  'prototype',
+  'connect',
+  'connectOrCreate',
+  'create',
+  'createMany',
+  'delete',
+  'deleteMany',
+  'disconnect',
+  'set',
+  'update',
+  'updateMany',
+  'upsert',
+]);
 
 @Injectable()
 export class SanitizePipe implements PipeTransform {
@@ -20,6 +37,9 @@ export class SanitizePipe implements PipeTransform {
     if (value !== null && typeof value === 'object') {
       const sanitized: Record<string, unknown> = {};
       for (const key of Object.keys(value)) {
+        if (FORBIDDEN_REQUEST_KEYS.has(key)) {
+          throw new BadRequestException(`Request body contains a forbidden field: ${key}`);
+        }
         sanitized[key] = this.sanitize((value as Record<string, unknown>)[key]);
       }
       return sanitized;

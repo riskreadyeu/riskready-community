@@ -235,8 +235,6 @@ model Incident {
   // Evidence Module Relations (central evidence)
   centralEvidenceLinks EvidenceIncident[]
 
-
-
   // Risk Scenario Links
   scenarioLinks IncidentScenario[]
 

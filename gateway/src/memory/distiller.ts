@@ -24,7 +24,7 @@ Example:
 export class MemoryDistiller {
   constructor(
     private memoryService: MemoryService,
-    private callLLM: (prompt: string) => Promise<string>,
+    private callLLM: (prompt: string, organisationId: string) => Promise<string>,
   ) {}
 
   async distillConversation(
@@ -41,7 +41,7 @@ export class MemoryDistiller {
     const prompt = `${DISTILL_PROMPT}\n\nConversation:\n${transcript}`;
 
     try {
-      const response = await this.callLLM(prompt);
+      const response = await this.callLLM(prompt, organisationId);
 
       const jsonMatch = response.match(/\[[\s\S]*\]/);
       if (!jsonMatch) return 0;

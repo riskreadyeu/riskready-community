@@ -66,17 +66,17 @@ export class AgentTriggerService {
     triggerData?: Record<string, unknown>;
   }): Promise<void> {
     try {
+      const gatewaySecret = process.env['GATEWAY_SECRET'] || process.env['JWT_SECRET'];
       const response = await fetch(`${this.gatewayUrl}/dispatch`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(process.env['GATEWAY_SECRET'] ? { 'x-gateway-secret': process.env['GATEWAY_SECRET'] } : {}),
+          ...(gatewaySecret ? { 'x-gateway-secret': gatewaySecret } : {}),
+          'x-user-id': 'system',
+          'x-organisation-id': params.organisationId,
         },
         body: JSON.stringify({
-          organisationId: params.organisationId,
           text: params.text,
-          channel: 'web',
-          userId: 'system',
           metadata: {
             isEvent: true,
             trigger: params.trigger,

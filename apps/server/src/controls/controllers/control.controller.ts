@@ -3,7 +3,12 @@ import { Prisma } from '@prisma/client';
 import { ControlService } from '../services/control.service';
 import { ControlReportingService } from '../services/control-reporting.service';
 import { GapAnalysisService } from '../services/gap-analysis.service';
-import { CreateControlDto, UpdateControlDto } from '../dto/control.dto';
+import {
+  CreateControlDto,
+  UpdateControlDto,
+  FindControlsByIdsDto,
+  DisableControlDto,
+} from '../dto/control.dto';
 import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('controls')
@@ -83,7 +88,7 @@ export class ControlController {
    * Returns controls with effectiveness scores
    */
   @Post('by-ids')
-  async findByIds(@Body() data: { ids: string[] }) {
+  async findByIds(@Body() data: FindControlsByIdsDto) {
     return this.service.findByIds(data.ids);
   }
 
@@ -104,7 +109,7 @@ export class ControlController {
   @Post(':id/disable')
   async disableControl(
     @Param('id') id: string,
-    @Body() data: { reason: string },
+    @Body() data: DisableControlDto,
     @Req() req: AuthenticatedRequest,
   ) {
     return this.service.disableControl(id, data.reason, req.user.id);

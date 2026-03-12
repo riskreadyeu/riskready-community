@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { Request, Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
+import { getSingleOrganisationId } from '../shared/utils/single-organisation.util';
 
 type LoginContext = {
   ip?: string;
@@ -11,10 +12,32 @@ type LoginContext = {
 };
 
 type AuthResult = {
-  user: { id: string; email: string; firstName?: string; lastName?: string; organisationId?: string };
+  user: {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    role: 'ADMIN' | 'USER';
+    organisationId?: string;
+  };
   accessToken: string;
   refreshSessionId: string;
 };
+
+function resolveUserRole(email: string): 'ADMIN' | 'USER' {
+  const configuredAdmins = (process.env['ADMIN_EMAILS'] ?? '')
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+  const adminEmails = new Set([
+    'admin@riskready.com',
+    'admin@local.test',
+    process.env['ADMIN_EMAIL']?.trim().toLowerCase(),
+    ...configuredAdmins,
+  ].filter((value): value is string => Boolean(value)));
+
+  return adminEmails.has(email.trim().toLowerCase()) ? 'ADMIN' : 'USER';
+}
 
 @Injectable()
 export class AuthService {
@@ -68,22 +91,14 @@ export class AuthService {
         },
       });
 
-      const accessToken = await this.jwtService.signAsync({ sub: user.id, email: user.email });
-
-      // Look up the user's organisation (first org they created, or first available)
-      let organisationId: string | undefined;
-      try {
-        const org = await this.prisma.organisationProfile.findFirst({
-          where: { createdById: user.id },
-          select: { id: true },
-        }) ?? await this.prisma.organisationProfile.findFirst({
-          select: { id: true },
-          orderBy: { createdAt: 'desc' },
-        });
-        organisationId = org?.id;
-      } catch {
-        // Non-critical - continue without org ID
-      }
+      const organisationId = await getSingleOrganisationId(this.prisma, { allowMissing: true });
+      const role = resolveUserRole(user.email);
+      const accessToken = await this.jwtService.signAsync({
+        sub: user.id,
+        email: user.email,
+        role,
+        organisationId,
+      });
 
       // Create audit event (non-blocking)
       try {
@@ -102,7 +117,14 @@ export class AuthService {
       }
 
       return {
-        user: { id: user.id, email: user.email, firstName: user.firstName ?? undefined, lastName: user.lastName ?? undefined, organisationId },
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName ?? undefined,
+          lastName: user.lastName ?? undefined,
+          role,
+          organisationId,
+        },
         accessToken,
         refreshSessionId,
       };
@@ -143,25 +165,24 @@ export class AuthService {
       },
     });
 
-    const accessToken = await this.jwtService.signAsync({ sub: user.id, email: user.email });
-
-    // Look up the user's organisation
-    let organisationId: string | undefined;
-    try {
-      const org = await this.prisma.organisationProfile.findFirst({
-        where: { createdById: user.id },
-        select: { id: true },
-      }) ?? await this.prisma.organisationProfile.findFirst({
-        select: { id: true },
-        orderBy: { createdAt: 'desc' },
-      });
-      organisationId = org?.id;
-    } catch {
-      // Non-critical
-    }
+    const organisationId = await getSingleOrganisationId(this.prisma, { allowMissing: true });
+    const role = resolveUserRole(user.email);
+    const accessToken = await this.jwtService.signAsync({
+      sub: user.id,
+      email: user.email,
+      role,
+      organisationId,
+    });
 
     return {
-      user: { id: user.id, email: user.email, firstName: user.firstName ?? undefined, lastName: user.lastName ?? undefined, organisationId },
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName ?? undefined,
+        lastName: user.lastName ?? undefined,
+          role,
+          organisationId,
+        },
       accessToken,
       refreshSessionId: newRefreshSessionId,
     };
@@ -229,9 +250,6 @@ export class AuthService {
 
       const existing = await this.prisma.user.findUnique({ where: { email } });
       if (existing) return;
-
-      const count = await this.prisma.user.count();
-      if (count > 0) return;
 
       const passwordHash = await bcrypt.hash(password, 12);
 

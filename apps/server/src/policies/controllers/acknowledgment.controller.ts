@@ -1,6 +1,10 @@
 import { Controller, Get, Post, Param, Query, Body } from '@nestjs/common';
 import { AcknowledgmentService } from '../services/acknowledgment.service';
-import { AcknowledgmentMethod } from '@prisma/client';
+import {
+  CreateAcknowledgmentRequestDto,
+  RecordAcknowledgmentDto,
+  BulkSendAcknowledgmentRemindersDto,
+} from '../dto/acknowledgment.dto';
 
 @Controller('acknowledgments')
 export class AcknowledgmentController {
@@ -49,11 +53,7 @@ export class AcknowledgmentController {
   }
 
   @Post('request')
-  async createAcknowledgmentRequest(@Body() data: {
-    documentId: string;
-    userIds: string[];
-    dueDate?: string;
-  }) {
+  async createAcknowledgmentRequest(@Body() data: CreateAcknowledgmentRequestDto) {
     return this.service.createAcknowledgmentRequest({
       documentId: data.documentId,
       userIds: data.userIds,
@@ -64,11 +64,7 @@ export class AcknowledgmentController {
   @Post(':id/acknowledge')
   async acknowledge(
     @Param('id') id: string,
-    @Body() data: {
-      method: AcknowledgmentMethod;
-      ipAddress?: string;
-      userAgent?: string;
-    },
+    @Body() data: RecordAcknowledgmentDto,
   ) {
     return this.service.acknowledge(id, data);
   }
@@ -79,10 +75,7 @@ export class AcknowledgmentController {
   }
 
   @Post('bulk-remind')
-  async bulkSendReminders(@Body() data: {
-    organisationId: string;
-    overdueOnly?: boolean;
-  }) {
+  async bulkSendReminders(@Body() data: BulkSendAcknowledgmentRemindersDto) {
     return this.service.bulkSendReminders(data.organisationId, data.overdueOnly);
   }
 }

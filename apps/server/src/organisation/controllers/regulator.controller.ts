@@ -1,6 +1,10 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { RegulatorService } from '../services/regulator.service';
+import {
+  CreateRegulatorDto,
+  UpdateRegulatorDto,
+} from '../dto/organisation-crud.dto';
 
 @Controller('organisation/regulators')
 export class RegulatorController {
@@ -35,12 +39,12 @@ export class RegulatorController {
   }
 
   @Post()
-  async create(@Body() data: Prisma.RegulatorCreateInput) {
+  async create(@Body() data: CreateRegulatorDto) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: Prisma.RegulatorUpdateInput) {
+  async update(@Param('id') id: string, @Body() data: UpdateRegulatorDto) {
     return this.service.update(id, data);
   }
 

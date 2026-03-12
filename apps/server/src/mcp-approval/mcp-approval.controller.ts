@@ -7,6 +7,7 @@ import {
   Query,
   Request,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
 import { McpActionStatus, McpActionType } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -14,8 +15,11 @@ import { McpApprovalService } from './mcp-approval.service';
 import { McpApprovalExecutorService } from './mcp-approval-executor.service';
 import { ApproveActionDto, RejectActionDto } from './dto/review-action.dto';
 import { AuthenticatedRequest } from '../shared/types';
+import { AdminOnly, AdminOnlyGuard } from '../shared/guards/admin-only.guard';
 
 @Controller('mcp-approvals')
+@UseGuards(AdminOnlyGuard)
+@AdminOnly()
 export class McpApprovalController {
   private readonly logger = new Logger(McpApprovalController.name);
 

@@ -18,10 +18,6 @@ import { AttachmentType } from '@prisma/client';
 export class CreateAttachmentDto {
   @IsString()
   @IsNotEmpty()
-  documentId!: string;
-
-  @IsString()
-  @IsNotEmpty()
   @MinLength(1)
   @MaxLength(255)
   filename!: string;
@@ -64,10 +60,6 @@ export class CreateAttachmentDto {
   @IsBoolean()
   @IsOptional()
   isEncrypted?: boolean;
-
-  @IsString()
-  @IsOptional()
-  uploadedById?: string;
 }
 
 export class UpdateAttachmentDto {
@@ -85,4 +77,21 @@ export class UpdateAttachmentDto {
   @IsOptional()
   @MaxLength(500)
   description?: string;
+}
+
+export class UploadAttachmentBodyDto {
+  @IsEnum(AttachmentType)
+  @IsNotEmpty()
+  attachmentType!: AttachmentType;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  description?: string;
+}
+
+export class CheckDuplicateAttachmentDto {
+  @IsString()
+  @IsNotEmpty()
+  checksum!: string;
 }

@@ -1,6 +1,14 @@
-import { Controller, Get, Post, Put, Param, Query, Body } from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Query, Body, Request } from '@nestjs/common';
 import { ChangeRequestService } from '../services/change-request.service';
-import { ChangeRequestStatus, ChangePriority, ChangeType, Prisma } from '@prisma/client';
+import { ChangeRequestStatus } from '@prisma/client';
+import {
+  CreateChangeRequestDto,
+  UpdateChangeRequestDto,
+  ApproveChangeRequestDto,
+  RejectChangeRequestDto,
+  ImplementChangeRequestDto,
+} from '../dto/change-request.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('change-requests')
 export class ChangeRequestController {
@@ -34,69 +42,61 @@ export class ChangeRequestController {
   }
 
   @Post()
-  async create(@Body() data: {
-    documentId: string;
-    organisationId: string;
-    title: string;
-    description: string;
-    justification: string;
-    changeType: ChangeType;
-    priority: ChangePriority;
-    impactAssessment?: string;
-    affectedDocuments?: string[];
-    affectedProcesses?: string[];
-    affectedSystems?: string[];
-    targetDate?: string;
-    requestedById: string;
-  }) {
+  async create(@Request() req: AuthenticatedRequest, @Body() data: CreateChangeRequestDto) {
     return this.service.create({
+      ...data,
+      targetDate: data.targetDate ? new Date(data.targetDate) : undefined,
+      requestedById: req.user.id,
+    });
+  }
+
+  @Put(':id')
+  async update(@Param('id') id: string, @Body() data: UpdateChangeRequestDto) {
+    return this.service.update(id, {
       ...data,
       targetDate: data.targetDate ? new Date(data.targetDate) : undefined,
     });
   }
 
-  @Put(':id')
-  async update(@Param('id') id: string, @Body() data: Prisma.DocumentChangeRequestUpdateInput) {
-    return this.service.update(id, data);
-  }
-
   @Post(':id/approve')
   async approve(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { approvedById: string; approvalComments?: string },
+    @Body() data: ApproveChangeRequestDto,
   ) {
-    return this.service.approve(id, data);
+    return this.service.approve(id, { approvedById: req.user.id, approvalComments: data.approvalComments });
   }
 
   @Post(':id/reject')
   async reject(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { approvedById: string; approvalComments: string },
+    @Body() data: RejectChangeRequestDto,
   ) {
-    return this.service.reject(id, data);
+    return this.service.reject(id, { approvedById: req.user.id, approvalComments: data.approvalComments });
   }
 
   @Post(':id/start-implementation')
   async startImplementation(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { implementedById: string },
   ) {
-    return this.service.startImplementation(id, data.implementedById);
+    return this.service.startImplementation(id, req.user.id);
   }
 
   @Post(':id/complete')
   async completeImplementation(
     @Param('id') id: string,
-    @Body() data: { newVersionId?: string },
+    @Body() data: ImplementChangeRequestDto,
   ) {
     return this.service.completeImplementation(id, data);
   }
 
   @Post(':id/verify')
   async verify(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: { userId: string },
   ) {
-    return this.service.verify(id, data.userId);
+    return this.service.verify(id, req.user.id);
   }
 }

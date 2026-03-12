@@ -15,8 +15,9 @@ import { RiskAuditService } from '../services/risk-audit.service';
 import { RiskExportService } from '../services/risk-export.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RiskStatus, RiskTier, ControlFramework, LikelihoodLevel, ImpactLevel, Prisma } from '@prisma/client';
-import { CreateRiskDto, UpdateRiskDto } from '../dto/risk.dto';
+import { CreateRiskDto, UpdateRiskDto, DisableRiskDto } from '../dto/risk.dto';
 import { AuthenticatedRequest } from '../../shared/types';
+import { resolveSingleOrganisationId } from '../../shared/utils/single-organisation.util';
 
 @Controller('risks')
 export class RiskController {
@@ -68,21 +69,16 @@ export class RiskController {
     @Request() req: AuthenticatedRequest,
     @Body() data: CreateRiskDto,
   ) {
-    // Get organisation ID from request, user, or fallback to first org
-    let organisationId = data.organisationId || req.user?.organisationId;
-    if (!organisationId) {
-      const org = await this.prisma.organisationProfile.findFirst();
-      if (!org) {
-        throw new BadRequestException('No organisation found. Please create an organisation first.');
-      }
-      organisationId = org.id;
-    }
+    const organisationId = await resolveSingleOrganisationId(
+      this.prisma,
+      data.organisationId || req.user?.organisationId,
+    );
 
     return this.service.create({
       ...data,
       likelihood: data.likelihood as LikelihoodLevel | undefined,
       impact: data.impact as ImpactLevel | undefined,
-      organisationId,
+      organisationId: organisationId!,
       createdById: req.user.id,
     });
   }
@@ -114,7 +110,7 @@ export class RiskController {
   @Post(':id/disable')
   async disableRisk(
     @Param('id') id: string,
-    @Body() data: { reason: string },
+    @Body() data: DisableRiskDto,
     @Request() req: AuthenticatedRequest,
   ) {
     return this.service.disableRisk(id, data.reason, req.user.id);
@@ -196,4 +192,3 @@ export class RiskController {
     return this.exportService.exportKRIDashboard(organisationId);
   }
 }
-

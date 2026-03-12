@@ -267,4 +267,3 @@ model ScenarioStateHistory {
   @@index([toStatus])
   @@index([createdAt])
 }
-

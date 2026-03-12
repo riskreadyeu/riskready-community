@@ -6,9 +6,11 @@ import {
     IsInt,
     IsDateString,
     IsArray,
+    ValidateNested,
     MinLength,
     MaxLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import {
     ITSMChangeType,
     ChangeCategory,
@@ -298,4 +300,23 @@ export class UpdateChangeDto {
     @IsOptional()
     @IsArray()
     attachments?: Record<string, unknown>[];
+}
+
+export class ChangeAssetLinkDto {
+    @IsString()
+    assetId!: string;
+
+    @IsString()
+    impactType!: string;
+
+    @IsOptional()
+    @IsString()
+    notes?: string;
+}
+
+export class LinkChangeAssetsDto {
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => ChangeAssetLinkDto)
+    assets!: ChangeAssetLinkDto[];
 }

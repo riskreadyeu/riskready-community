@@ -1,6 +1,10 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { KeyPersonnelService } from '../services/key-personnel.service';
+import {
+  CreateKeyPersonnelDto,
+  UpdateKeyPersonnelDto,
+} from '../dto/organisation-crud.dto';
 
 @Controller('organisation/key-personnel')
 export class KeyPersonnelController {
@@ -40,12 +44,12 @@ export class KeyPersonnelController {
   }
 
   @Post()
-  async create(@Body() data: Prisma.KeyPersonnelCreateInput) {
+  async create(@Body() data: CreateKeyPersonnelDto) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: Prisma.KeyPersonnelUpdateInput) {
+  async update(@Param('id') id: string, @Body() data: UpdateKeyPersonnelDto) {
     return this.service.update(id, data);
   }
 

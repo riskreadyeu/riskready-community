@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma, ChangeCategory } from '@prisma/client';
+import { CreateChangeTemplateDto, UpdateChangeTemplateDto } from '../dto/change-template.dto';
+
+type CreateChangeTemplateInput = CreateChangeTemplateDto & { templateCode: string };
 
 @Injectable()
 export class ChangeTemplateService {
@@ -73,7 +76,7 @@ export class ChangeTemplateService {
     return template;
   }
 
-  async create(data: Prisma.ChangeTemplateCreateInput, userId?: string) {
+  async create(data: CreateChangeTemplateInput, userId?: string) {
     return this.prisma.changeTemplate.create({
       data: {
         ...data,
@@ -85,10 +88,10 @@ export class ChangeTemplateService {
     });
   }
 
-  async update(id: string, data: Prisma.ChangeTemplateUpdateInput) {
+  async update(id: string, data: UpdateChangeTemplateDto) {
     return this.prisma.changeTemplate.update({
       where: { id },
-      data,
+      data: data as Prisma.ChangeTemplateUncheckedUpdateInput,
       include: {
         createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
       },

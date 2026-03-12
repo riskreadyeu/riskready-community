@@ -79,8 +79,9 @@ export class SubmitSOAForReviewDto {
 }
 
 export class ApproveSOADto {
+  @IsOptional()
   @IsString()
-  approvedById!: string;
+  approvedById?: string;
 }
 
 export class UpdateSOAEntryDto {
@@ -140,4 +141,3 @@ export class BulkUpdateSOAEntriesDto {
     implementationDesc?: string;
   }>;
 }
-

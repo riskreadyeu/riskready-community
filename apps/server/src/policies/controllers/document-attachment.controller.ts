@@ -10,18 +10,21 @@ import {
   UploadedFile,
   Res,
   StreamableFile,
-  BadRequestException,
+  Request,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { DocumentAttachmentService } from '../services/document-attachment.service';
 import {
-  DocumentAttachmentService,
   CreateAttachmentDto,
   UpdateAttachmentDto,
-} from '../services/document-attachment.service';
+  UploadAttachmentBodyDto,
+  CheckDuplicateAttachmentDto,
+} from '../dto/attachment.dto';
 import { AttachmentType } from '@prisma/client';
 import { Response } from 'express';
 import * as fs from 'fs/promises';
 import { createReadStream } from 'fs';
+import { AuthenticatedRequest } from '../../shared/types';
 
 // Multer file interface
 interface MulterFile {
@@ -62,14 +65,10 @@ export class DocumentAttachmentController {
   @Post(':documentId/attachments')
   @UseInterceptors(FileInterceptor('file'))
   async uploadAttachment(
+    @Request() req: AuthenticatedRequest,
     @Param('documentId') documentId: string,
     @UploadedFile() file: MulterFile,
-    @Body()
-    body: {
-      attachmentType: AttachmentType;
-      description?: string;
-      uploadedById?: string;
-    },
+    @Body() body: UploadAttachmentBodyDto,
   ) {
     // Ensure storage directory exists
     await this.service.ensureStorageDirectory(documentId);
@@ -88,7 +87,7 @@ export class DocumentAttachmentController {
     await fs.writeFile(fullPath, file.buffer);
 
     // Create attachment record
-    const attachmentData: CreateAttachmentDto = {
+    const attachmentData = {
       documentId,
       filename: file.originalname,
       originalFilename: file.originalname,
@@ -98,7 +97,7 @@ export class DocumentAttachmentController {
       description: body.description,
       storagePath,
       checksum: validation.checksum,
-      uploadedById: body.uploadedById,
+      uploadedById: req.user.id,
     };
 
     return this.service.createAttachment(attachmentData);
@@ -106,10 +105,11 @@ export class DocumentAttachmentController {
 
   @Post(':documentId/attachments/metadata')
   async createAttachmentMetadata(
+    @Request() req: AuthenticatedRequest,
     @Param('documentId') documentId: string,
-    @Body() data: Omit<CreateAttachmentDto, 'documentId'>,
+    @Body() data: CreateAttachmentDto,
   ) {
-    return this.service.createAttachment({ documentId, ...data });
+    return this.service.createAttachment({ documentId, ...data, uploadedById: req.user.id });
   }
 
   @Put('attachments/:id')
@@ -204,7 +204,7 @@ export class DocumentAttachmentController {
   @Post(':documentId/attachments/check-duplicate')
   async checkDuplicate(
     @Param('documentId') documentId: string,
-    @Body() data: { checksum: string },
+    @Body() data: CheckDuplicateAttachmentDto,
   ) {
     const existing = await this.service.findByChecksum(documentId, data.checksum);
     return {

@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import {
+  CreateProductServiceDto,
+  UpdateProductServiceDto,
+} from '../dto/organisation-crud.dto';
 
 @Injectable()
 export class ProductServiceService {
@@ -31,14 +35,16 @@ export class ProductServiceService {
     });
   }
 
-  async create(data: Prisma.ProductServiceCreateInput) {
-    return this.prisma.productService.create({ data });
+  async create(data: CreateProductServiceDto) {
+    return this.prisma.productService.create({
+      data: data as Prisma.ProductServiceUncheckedCreateInput,
+    });
   }
 
-  async update(id: string, data: Prisma.ProductServiceUpdateInput) {
+  async update(id: string, data: UpdateProductServiceDto) {
     return this.prisma.productService.update({
       where: { id },
-      data,
+      data: data as Prisma.ProductServiceUncheckedUpdateInput,
     });
   }
 

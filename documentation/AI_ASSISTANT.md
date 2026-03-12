@@ -51,7 +51,7 @@ claude mcp add riskready-incidents npx tsx apps/mcp-server-incidents/src/index.t
 claude mcp add riskready-agent-ops npx tsx apps/mcp-server-agent-ops/src/index.ts
 ```
 
-Set the `DATABASE_URL` environment variable to point to your running PostgreSQL instance (default: `postgresql://riskready:change-me@localhost:5433/riskready`).
+Set the `DATABASE_URL` environment variable to point to your running PostgreSQL instance (default: `postgresql://riskready:change-me@localhost:5434/riskready`).
 
 ### Claude Desktop
 
@@ -64,7 +64,7 @@ Add the servers to your `claude_desktop_config.json`:
       "command": "npx",
       "args": ["tsx", "apps/mcp-server-controls/src/index.ts"],
       "env": {
-        "DATABASE_URL": "postgresql://riskready:change-me@localhost:5433/riskready"
+        "DATABASE_URL": "postgresql://riskready:change-me@localhost:5434/riskready"
       }
     }
   }

@@ -41,7 +41,7 @@ export interface AgentRunnerDeps {
   memoryService?: MemoryService;
   searchService?: SearchService;
   distiller?: MemoryDistiller;
-  getDbConfig?: () => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>;
+  getDbConfig?: (organisationId: string) => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>;
 }
 
 export interface CouncilHook {
@@ -49,10 +49,11 @@ export interface CouncilHook {
   deliberate(
     question: string,
     organisationId: string,
+    conversationId: string,
     signal: AbortSignal,
     emit: (event: ChatEvent) => void,
     mcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>,
-    getDbConfig?: () => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
+    getDbConfig?: (organisationId: string) => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
   ): Promise<{ text: string; sessionId: string }>;
 }
 
@@ -76,6 +77,30 @@ export class AgentRunner {
     return this.queryFn;
   }
 
+  private async ensureConversation(
+    conversationId: string,
+    msg: UnifiedMessage,
+  ) {
+    const existing = await prisma.chatConversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (existing) {
+      if (existing.userId !== msg.userId || existing.organisationId !== msg.organisationId) {
+        throw new Error('Conversation does not belong to the supplied user and organisation.');
+      }
+      return existing;
+    }
+
+    return prisma.chatConversation.create({
+      data: {
+        id: conversationId,
+        userId: msg.userId,
+        organisationId: msg.organisationId,
+      },
+    });
+  }
+
   async execute(
     msg: UnifiedMessage,
     signal: AbortSignal,
@@ -97,6 +122,8 @@ export class AgentRunner {
       }
     }
 
+    const conversation = await this.ensureConversation(conversationId, msg);
+
     // Save user message
     const userMessage = await prisma.chatMessage.create({
       data: {
@@ -108,9 +135,6 @@ export class AgentRunner {
     });
 
     // Auto-title conversation from first user message
-    const conversation = await prisma.chatConversation.findUnique({
-      where: { id: conversationId },
-    });
     if (conversation && !conversation.title) {
       const title = msg.text.length > 80 ? msg.text.slice(0, 77) + '...' : msg.text;
       await prisma.chatConversation.update({
@@ -231,7 +255,7 @@ User: ${msg.text}`;
       let model = process.env.AGENT_MODEL || 'claude-haiku-4-5-20251001';
       let maxTurns = 25;
       if (this.deps.getDbConfig) {
-        const dbConfig = await this.deps.getDbConfig();
+        const dbConfig = await this.deps.getDbConfig(msg.organisationId);
         if (dbConfig) {
           model = dbConfig.agentModel || model;
           maxTurns = dbConfig.maxAgentTurns || maxTurns;
@@ -251,6 +275,7 @@ User: ${msg.text}`;
           const result = await this.councilHook.deliberate(
             msg.text,
             msg.organisationId,
+            conversationId,
             signal,
             emit,
             mcpServers,
@@ -279,8 +304,7 @@ User: ${msg.text}`;
             model,
             mcpServers,
             allowedTools: ['mcp__*'],
-            permissionMode: 'bypassPermissions',
-            allowDangerouslySkipPermissions: true,
+            permissionMode: 'dontAsk',
             maxTurns,
             includePartialMessages: true,
             tools: [],

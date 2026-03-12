@@ -1,6 +1,10 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ExecutivePositionService } from '../services/executive-position.service';
+import {
+  CreateExecutivePositionDto,
+  UpdateExecutivePositionDto,
+} from '../dto/organisation-crud.dto';
 
 @Controller('organisation/executive-positions')
 export class ExecutivePositionController {
@@ -33,12 +37,12 @@ export class ExecutivePositionController {
   }
 
   @Post()
-  async create(@Body() data: Prisma.ExecutivePositionCreateInput) {
+  async create(@Body() data: CreateExecutivePositionDto) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: Prisma.ExecutivePositionUpdateInput) {
+  async update(@Param('id') id: string, @Body() data: UpdateExecutivePositionDto) {
     return this.service.update(id, data);
   }
 

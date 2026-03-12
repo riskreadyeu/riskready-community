@@ -12,6 +12,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LessonsLearnedCategory, LessonsLearnedStatus, Prisma } from '@prisma/client';
+import {
+  CreateIncidentLessonDto,
+  UpdateIncidentLessonDto,
+  LinkLessonNonconformityDto,
+} from '../dto/incident.dto';
 import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('incidents/:incidentId/lessons-learned')
@@ -68,15 +73,7 @@ export class IncidentLessonsLearnedController {
   async create(
     @Param('incidentId') incidentId: string,
     @Request() req: AuthenticatedRequest,
-    @Body()
-    data: {
-      category: LessonsLearnedCategory;
-      observation: string;
-      recommendation: string;
-      priority?: number;
-      targetDate?: string;
-      assignedToId?: string;
-    },
+    @Body() data: CreateIncidentLessonDto,
   ) {
     // Verify incident exists
     const incident = await this.prisma.incident.findUnique({
@@ -127,18 +124,7 @@ export class IncidentLessonsLearnedController {
     @Param('incidentId') incidentId: string,
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body()
-    data: {
-      category?: LessonsLearnedCategory;
-      observation?: string;
-      recommendation?: string;
-      status?: LessonsLearnedStatus;
-      priority?: number;
-      targetDate?: string;
-      completedDate?: string;
-      assignedToId?: string;
-      correctiveActionId?: string;
-    },
+    @Body() data: UpdateIncidentLessonDto,
   ) {
     const lesson = await this.prisma.incidentLessonsLearned.findFirst({
       where: { id, incidentId },
@@ -220,7 +206,7 @@ export class IncidentLessonsLearnedController {
     @Param('incidentId') incidentId: string,
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body() data: { nonconformityId: string },
+    @Body() data: LinkLessonNonconformityDto,
   ) {
     const lesson = await this.prisma.incidentLessonsLearned.findFirst({
       where: { id, incidentId },
@@ -253,4 +239,3 @@ export class IncidentLessonsLearnedController {
     });
   }
 }
-

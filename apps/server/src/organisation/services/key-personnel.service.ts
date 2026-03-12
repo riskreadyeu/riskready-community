@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import {
+  CreateKeyPersonnelDto,
+  UpdateKeyPersonnelDto,
+} from '../dto/organisation-crud.dto';
 
 @Injectable()
 export class KeyPersonnelService {
@@ -44,9 +48,9 @@ export class KeyPersonnelService {
     });
   }
 
-  async create(data: Prisma.KeyPersonnelCreateInput) {
+  async create(data: CreateKeyPersonnelDto) {
     return this.prisma.keyPersonnel.create({
-      data,
+      data: data as Prisma.KeyPersonnelUncheckedCreateInput,
       include: {
         user: { select: { id: true, email: true, firstName: true, lastName: true } },
         backupPerson: { select: { id: true, personCode: true, name: true, jobTitle: true } },
@@ -54,10 +58,10 @@ export class KeyPersonnelService {
     });
   }
 
-  async update(id: string, data: Prisma.KeyPersonnelUpdateInput) {
+  async update(id: string, data: UpdateKeyPersonnelDto) {
     return this.prisma.keyPersonnel.update({
       where: { id },
-      data,
+      data: data as Prisma.KeyPersonnelUncheckedUpdateInput,
       include: {
         user: { select: { id: true, email: true, firstName: true, lastName: true } },
         backupPerson: { select: { id: true, personCode: true, name: true, jobTitle: true } },

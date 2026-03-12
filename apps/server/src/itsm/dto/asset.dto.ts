@@ -3,6 +3,7 @@ import {
     IsEnum,
     IsOptional,
     IsBoolean,
+    IsInt,
     IsNumber,
     IsDateString,
     IsArray,
@@ -228,9 +229,9 @@ export class CreateAssetDto {
     rack?: string;
 
     @IsOptional()
-    @IsString()
-    @MaxLength(50)
-    rackPosition?: string;
+    @IsInt()
+    @Min(0)
+    rackPosition?: number;
 
     // Financial
     @IsOptional()
@@ -538,9 +539,9 @@ export class UpdateAssetDto {
     rack?: string;
 
     @IsOptional()
-    @IsString()
-    @MaxLength(50)
-    rackPosition?: string;
+    @IsInt()
+    @Min(0)
+    rackPosition?: number;
 
     // Financial
     @IsOptional()

@@ -1,6 +1,10 @@
-import { Controller, Get, Post, Param, Query, Body } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Body, Request } from '@nestjs/common';
 import { DocumentVersionService } from '../services/document-version.service';
-import { ChangeType } from '@prisma/client';
+import {
+  CreateDocumentVersionRequestDto,
+  RollbackDocumentVersionDto,
+} from '../dto/workflow.dto';
+import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('policies/:documentId/versions')
 export class DocumentVersionController {
@@ -42,26 +46,23 @@ export class DocumentVersionController {
 
   @Post()
   async createVersion(
+    @Request() req: AuthenticatedRequest,
     @Param('documentId') documentId: string,
-    @Body() data: {
-      changeDescription: string;
-      changeSummary?: string;
-      changeType: ChangeType;
-      isMajor?: boolean;
-      userId?: string;
-    },
+    @Body() data: CreateDocumentVersionRequestDto,
   ) {
     return this.service.createVersion({
       documentId,
       ...data,
+      userId: req.user.id,
     });
   }
 
   @Post('rollback')
   async rollback(
+    @Request() req: AuthenticatedRequest,
     @Param('documentId') documentId: string,
-    @Body() data: { targetVersion: string; userId?: string },
+    @Body() data: RollbackDocumentVersionDto,
   ) {
-    return this.service.rollback(documentId, data.targetVersion, data.userId);
+    return this.service.rollback(documentId, data.targetVersion, req.user.id);
   }
 }

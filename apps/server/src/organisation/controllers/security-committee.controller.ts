@@ -1,6 +1,10 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { SecurityCommitteeService } from '../services/security-committee.service';
+import {
+  CreateSecurityCommitteeDto,
+  UpdateSecurityCommitteeDto,
+} from '../dto/organisation-crud.dto';
 
 @Controller('organisation/security-committees')
 export class SecurityCommitteeController {
@@ -30,12 +34,12 @@ export class SecurityCommitteeController {
   }
 
   @Post()
-  async create(@Body() data: Prisma.SecurityCommitteeCreateInput) {
+  async create(@Body() data: CreateSecurityCommitteeDto) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: Prisma.SecurityCommitteeUpdateInput) {
+  async update(@Param('id') id: string, @Body() data: UpdateSecurityCommitteeDto) {
     return this.service.update(id, data);
   }
 

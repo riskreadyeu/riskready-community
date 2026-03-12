@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsOptional, IsBoolean, IsNotEmpty, Matches } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsBoolean, IsNotEmpty, Matches, IsArray, ArrayNotEmpty, MinLength, MaxLength } from 'class-validator';
 import { ControlTheme, ControlFramework, ImplementationStatus } from '@prisma/client';
 
 export class CreateControlDto {
@@ -106,8 +106,18 @@ export class UpdateControlDto {
   @IsString()
   implementationDesc?: string;
 
-  @IsOptional()
-  @IsString()
-  updatedById?: string;
 }
 
+export class FindControlsByIdsDto {
+  @IsArray()
+  @ArrayNotEmpty()
+  ids!: string[];
+}
+
+export class DisableControlDto {
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(5)
+  @MaxLength(1000)
+  reason!: string;
+}

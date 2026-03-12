@@ -113,14 +113,12 @@ export class AssetController {
 
   @Post()
   async create(@Body() data: CreateAssetDto) {
-    // DTO validation ensures data integrity, cast to service input type
-    return this.service.create(data as unknown as Prisma.AssetCreateInput);
+    return this.service.create(data);
   }
 
   @Put(':id')
   async update(@Param('id') id: string, @Body() data: UpdateAssetDto) {
-    // DTO validation ensures data integrity, cast to service input type
-    return this.service.update(id, data as unknown as Prisma.AssetUpdateInput);
+    return this.service.update(id, data);
   }
 
   @Delete(':id')
@@ -140,4 +138,3 @@ export class AssetController {
     return this.service.calculateAllRiskScores();
   }
 }
-

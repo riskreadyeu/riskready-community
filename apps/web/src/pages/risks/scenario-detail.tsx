@@ -6,7 +6,6 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import {
   Activity,
   AlertTriangle,
@@ -128,7 +127,6 @@ const impactLabels: Record<ImpactLevel, string> = {
 export function RiskScenarioDetailV2Page() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { organisationId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [scenario, setScenario] = useState<RiskScenario | null>(null);
   const [controls, setControls] = useState<ScenarioControlLink[]>([]);

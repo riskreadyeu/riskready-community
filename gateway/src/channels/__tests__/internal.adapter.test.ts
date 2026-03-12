@@ -108,8 +108,13 @@ describe('InternalAdapter with secret', () => {
   it('allows /dispatch with correct secret', async () => {
     const res = await fetch(`http://127.0.0.1:${PORT}/dispatch`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Gateway-Secret': SECRET },
-      body: JSON.stringify({ userId: 'u1', organisationId: 'o1', text: 'hi' }),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Gateway-Secret': SECRET,
+        'X-User-Id': 'u1',
+        'X-Organisation-Id': 'o1',
+      },
+      body: JSON.stringify({ text: 'hi' }),
     });
     expect(res.status).toBe(202);
   });

@@ -11,7 +11,12 @@ import {
   HttpCode,
 } from '@nestjs/common';
 import { ChangeTemplateService } from '../services/change-template.service';
-import { CreateChangeTemplateDto, UpdateChangeTemplateDto } from '../dto/change-template.dto';
+import {
+  CreateChangeFromTemplateDto,
+  CreateChangeTemplateDto,
+  ToggleChangeTemplateDto,
+  UpdateChangeTemplateDto,
+} from '../dto/change-template.dto';
 import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('itsm/change-templates')
@@ -60,12 +65,7 @@ export class ChangeTemplateController {
   @Post(':id/create-change')
   async createChangeFromTemplate(
     @Param('id') id: string,
-    @Body() data: {
-      title?: string;
-      description?: string;
-      plannedStart?: string;
-      plannedEnd?: string;
-    },
+    @Body() data: CreateChangeFromTemplateDto,
     @Req() req: AuthenticatedRequest,
   ) {
     return this.service.createChangeFromTemplate(id, {
@@ -82,7 +82,7 @@ export class ChangeTemplateController {
   }
 
   @Put(':id/toggle-active')
-  async toggleActive(@Param('id') id: string, @Body() data: { isActive: boolean }) {
+  async toggleActive(@Param('id') id: string, @Body() data: ToggleChangeTemplateDto) {
     return this.service.toggleActive(id, data.isActive);
   }
 

@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import {
+  CreateExecutivePositionDto,
+  UpdateExecutivePositionDto,
+} from '../dto/organisation-crud.dto';
 
 @Injectable()
 export class ExecutivePositionService {
@@ -42,12 +46,17 @@ export class ExecutivePositionService {
     });
   }
 
-  async create(data: Prisma.ExecutivePositionCreateInput) {
-    return this.prisma.executivePosition.create({ data });
+  async create(data: CreateExecutivePositionDto) {
+    return this.prisma.executivePosition.create({
+      data: data as Prisma.ExecutivePositionUncheckedCreateInput,
+    });
   }
 
-  async update(id: string, data: Prisma.ExecutivePositionUpdateInput) {
-    return this.prisma.executivePosition.update({ where: { id }, data });
+  async update(id: string, data: UpdateExecutivePositionDto) {
+    return this.prisma.executivePosition.update({
+      where: { id },
+      data: data as Prisma.ExecutivePositionUncheckedUpdateInput,
+    });
   }
 
   async delete(id: string) {

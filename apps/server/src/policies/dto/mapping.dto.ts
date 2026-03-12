@@ -20,10 +20,6 @@ import {
 export class AddControlMappingDto {
   @IsString()
   @IsNotEmpty()
-  documentId!: string;
-
-  @IsString()
-  @IsNotEmpty()
   controlId!: string;
 
   @IsEnum(ControlMappingType)
@@ -47,10 +43,6 @@ export class AddControlMappingDto {
   @IsOptional()
   @MaxLength(500)
   evidenceDescription?: string;
-
-  @IsString()
-  @IsOptional()
-  createdById?: string;
 }
 
 export class UpdateControlMappingDto {
@@ -80,10 +72,6 @@ export class UpdateControlMappingDto {
 export class AddRiskMappingDto {
   @IsString()
   @IsNotEmpty()
-  documentId!: string;
-
-  @IsString()
-  @IsNotEmpty()
   riskId!: string;
 
   @IsEnum(RiskRelationshipType)
@@ -94,10 +82,6 @@ export class AddRiskMappingDto {
   @IsOptional()
   @MaxLength(2000)
   notes?: string;
-
-  @IsString()
-  @IsOptional()
-  createdById?: string;
 }
 
 export class UpdateRiskMappingDto {
@@ -114,10 +98,6 @@ export class UpdateRiskMappingDto {
 export class AddDocumentRelationDto {
   @IsString()
   @IsNotEmpty()
-  sourceDocumentId!: string;
-
-  @IsString()
-  @IsNotEmpty()
   targetDocumentId!: string;
 
   @IsEnum(DocumentRelationType)
@@ -128,8 +108,4 @@ export class AddDocumentRelationDto {
   @IsOptional()
   @MaxLength(500)
   description?: string;
-
-  @IsString()
-  @IsOptional()
-  createdById?: string;
 }

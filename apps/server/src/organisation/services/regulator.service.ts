@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import {
+  CreateRegulatorDto,
+  UpdateRegulatorDto,
+} from '../dto/organisation-crud.dto';
 
 @Injectable()
 export class RegulatorService {
@@ -35,12 +39,17 @@ export class RegulatorService {
     });
   }
 
-  async create(data: Prisma.RegulatorCreateInput) {
-    return this.prisma.regulator.create({ data });
+  async create(data: CreateRegulatorDto) {
+    return this.prisma.regulator.create({
+      data: data as Prisma.RegulatorUncheckedCreateInput,
+    });
   }
 
-  async update(id: string, data: Prisma.RegulatorUpdateInput) {
-    return this.prisma.regulator.update({ where: { id }, data });
+  async update(id: string, data: UpdateRegulatorDto) {
+    return this.prisma.regulator.update({
+      where: { id },
+      data: data as Prisma.RegulatorUncheckedUpdateInput,
+    });
   }
 
   async delete(id: string) {

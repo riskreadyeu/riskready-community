@@ -8,11 +8,16 @@ import {
   Query,
   Body,
   Request,
+  UseGuards,
 } from '@nestjs/common';
 import { AgentScheduleService } from './agent-schedule.service';
+import { CreateAgentScheduleDto, UpdateAgentScheduleDto } from './agent-schedule.dto';
 import { AuthenticatedRequest } from '../shared/types';
+import { AdminOnly, AdminOnlyGuard } from '../shared/guards/admin-only.guard';
 
 @Controller('agent-schedules')
+@UseGuards(AdminOnlyGuard)
+@AdminOnly()
 export class AgentScheduleController {
   constructor(private readonly service: AgentScheduleService) {}
 
@@ -39,15 +44,7 @@ export class AgentScheduleController {
   @Post()
   create(
     @Request() req: AuthenticatedRequest,
-    @Body() data: {
-      organisationId: string;
-      name: string;
-      description?: string;
-      cronExpression: string;
-      instruction: string;
-      targetServers?: string[];
-      enabled?: boolean;
-    },
+    @Body() data: CreateAgentScheduleDto,
   ) {
     return this.service.create({
       ...data,
@@ -58,14 +55,7 @@ export class AgentScheduleController {
   @Put(':id')
   update(
     @Param('id') id: string,
-    @Body() data: {
-      name?: string;
-      description?: string;
-      cronExpression?: string;
-      instruction?: string;
-      targetServers?: string[];
-      enabled?: boolean;
-    },
+    @Body() data: UpdateAgentScheduleDto,
   ) {
     return this.service.update(id, data);
   }

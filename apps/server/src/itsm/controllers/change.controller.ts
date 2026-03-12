@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ChangeService } from '../services/change.service';
-import { CreateChangeDto, UpdateChangeDto } from '../dto/change.dto';
+import { CreateChangeDto, LinkChangeAssetsDto, UpdateChangeDto } from '../dto/change.dto';
 import { AuthenticatedRequest } from '../../shared/types';
 
 @Controller('itsm/changes')
@@ -106,7 +106,7 @@ export class ChangeController {
   @Post(':id/assets')
   async linkAssets(
     @Param('id') id: string,
-    @Body() data: { assets: Array<{ assetId: string; impactType: string; notes?: string }> },
+    @Body() data: LinkChangeAssetsDto,
   ) {
     return this.service.linkAssets(id, data.assets);
   }

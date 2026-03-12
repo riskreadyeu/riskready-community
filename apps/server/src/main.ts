@@ -60,7 +60,8 @@ async function bootstrap() {
           if (!origin) return callback(null, true);
           // Check against allowed list
           if (allowedOrigins.includes(origin)) return callback(null, true);
-          return callback(new Error('Not allowed by CORS'), false);
+          // Reject disallowed origins without throwing (avoids 500 errors)
+          return callback(null, false);
         },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

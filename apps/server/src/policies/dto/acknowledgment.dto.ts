@@ -2,6 +2,7 @@ import {
   IsString,
   IsEnum,
   IsOptional,
+  IsBoolean,
   IsArray,
   IsDateString,
   IsNotEmpty,
@@ -12,6 +13,20 @@ import { AcknowledgmentMethod } from '@prisma/client';
 // =============================================
 // ACKNOWLEDGMENT DTOs
 // =============================================
+
+export class CreateAcknowledgmentRequestDto {
+  @IsString()
+  @IsNotEmpty()
+  documentId!: string;
+
+  @IsArray()
+  @ArrayNotEmpty()
+  userIds!: string[];
+
+  @IsDateString()
+  @IsOptional()
+  dueDate?: string;
+}
 
 export class CreateAcknowledgmentDto {
   @IsString()
@@ -61,4 +76,14 @@ export class BulkCreateAcknowledgmentsDto {
   @IsDateString()
   @IsOptional()
   dueDate?: string;
+}
+
+export class BulkSendAcknowledgmentRemindersDto {
+  @IsString()
+  @IsNotEmpty()
+  organisationId!: string;
+
+  @IsBoolean()
+  @IsOptional()
+  overdueOnly?: boolean;
 }

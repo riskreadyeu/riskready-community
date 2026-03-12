@@ -1,7 +1,7 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 
-const MAX_TAKE = 500;
+const MAX_TAKE = 100;
 const MAX_SKIP = 1_000_000;
 
 /**

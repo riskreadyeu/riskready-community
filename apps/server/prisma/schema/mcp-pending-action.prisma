@@ -136,9 +136,9 @@ model McpPendingAction {
   status     McpActionStatus @default(PENDING)
 
   // What and why
-  summary    String          @db.Text
-  reason     String?         @db.Text
-  payload    Json
+  summary String  @db.Text
+  reason  String? @db.Text
+  payload Json
 
   // MCP session tracking
   mcpSessionId String?

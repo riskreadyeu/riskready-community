@@ -3,6 +3,7 @@ import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
 import { createPendingAction, withErrorHandling } from '#mcp-shared';
+import { getSingleOrganisation } from './single-org.js';
 
 // ---------------------------------------------------------------------------
 // Profile mutations
@@ -64,7 +65,7 @@ function registerProfileMutations(server: McpServer) {
     withErrorHandling('propose_update_org_profile', async (params) => {
       const org = params.organisationId
         ? await prisma.organisationProfile.findUnique({ where: { id: params.organisationId }, select: { id: true, name: true } })
-        : await prisma.organisationProfile.findFirst({ select: { id: true, name: true } });
+        : await getSingleOrganisation({ id: true, name: true });
 
       if (!org) {
         return { content: [{ type: 'text' as const, text: 'Organisation not found' }], isError: true };

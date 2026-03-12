@@ -115,9 +115,9 @@ enum AssessmentTestStatus {
 
 // How a test is executed
 enum TestMethod {
-  MANUAL          // Tester manually performs the test
+  MANUAL // Tester manually performs the test
   SELF_ASSESSMENT // Control owner self-assesses
-  AUTOMATED       // Automated/tooling-based execution
+  AUTOMATED // Automated/tooling-based execution
 }
 
 enum AutomationStatus {
@@ -132,22 +132,22 @@ enum AutomationStatus {
 // ============================================
 
 enum ScopeType {
-  APPLICATION       // IT systems, SaaS apps, databases
-  ASSET_CLASS       // Servers, endpoints, network, cloud infra
-  LOCATION          // Offices, data centers, branches
-  PERSONNEL_TYPE    // Permanent, contractor, executive, third-party
-  BUSINESS_UNIT     // Departments, divisions
-  PLATFORM          // Windows, macOS, Linux, iOS, Android
-  PROVIDER          // Cloud providers, SaaS vendors, MSPs
-  NETWORK_ZONE      // DMZ, internal, guest, OT
-  PROCESS           // Business processes
+  APPLICATION // IT systems, SaaS apps, databases
+  ASSET_CLASS // Servers, endpoints, network, cloud infra
+  LOCATION // Offices, data centers, branches
+  PERSONNEL_TYPE // Permanent, contractor, executive, third-party
+  BUSINESS_UNIT // Departments, divisions
+  PLATFORM // Windows, macOS, Linux, iOS, Android
+  PROVIDER // Cloud providers, SaaS vendors, MSPs
+  NETWORK_ZONE // DMZ, internal, guest, OT
+  PROCESS // Business processes
 }
 
 enum ScopeCriticality {
-  CRITICAL    // Weight 4
-  HIGH        // Weight 3
-  MEDIUM      // Weight 2
-  LOW         // Weight 1
+  CRITICAL // Weight 4
+  HIGH // Weight 3
+  MEDIUM // Weight 2
+  LOW // Weight 1
 }
 
 model ScopeItem {
@@ -158,9 +158,9 @@ model ScopeItem {
   scopeType   ScopeType
   code        String
   name        String
-  description String?            @db.Text
-  criticality ScopeCriticality   @default(MEDIUM)
-  isActive    Boolean            @default(true)
+  description String?          @db.Text
+  criticality ScopeCriticality @default(MEDIUM)
+  isActive    Boolean          @default(true)
 
   // Assessment relations
   assessmentScopes AssessmentScope[]
@@ -321,9 +321,7 @@ model Control {
   // Risk Scenario Links (for F2 calculation)
   scenarioLinks RiskScenarioControl[]
 
-
   // Automated Control Evidence (from Wazuh/other sources)
-
 
   // Assessment Relations
   assessmentControls AssessmentControl[]
@@ -353,20 +351,20 @@ model Control {
 // ============================================
 
 model Assessment {
-  id               String              @id @default(cuid())
-  organisationId   String
-  organisation     OrganisationProfile @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  id             String              @id @default(cuid())
+  organisationId String
+  organisation   OrganisationProfile @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
-  assessmentRef    String              // "ASM-2026-001"
-  title            String
-  description      String?             @db.Text
-  status           ControlAssessmentStatus    @default(DRAFT)
+  assessmentRef String // "ASM-2026-001"
+  title         String
+  description   String?                 @db.Text
+  status        ControlAssessmentStatus @default(DRAFT)
 
   // Team
-  leadTesterId     String?
-  leadTester       User?               @relation("AssessmentLead", fields: [leadTesterId], references: [id], onDelete: SetNull)
-  reviewerId       String?
-  reviewer         User?               @relation("AssessmentReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  leadTesterId String?
+  leadTester   User?   @relation("AssessmentLead", fields: [leadTesterId], references: [id], onDelete: SetNull)
+  reviewerId   String?
+  reviewer     User?   @relation("AssessmentReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
 
   // Dates
   plannedStartDate DateTime?
@@ -374,28 +372,28 @@ model Assessment {
   actualStartDate  DateTime?
   actualEndDate    DateTime?
   dueDate          DateTime?
-  periodStart      DateTime?           // period under test
+  periodStart      DateTime? // period under test
   periodEnd        DateTime?
 
   // Scope
-  controls         AssessmentControl[]
-  scopeItems       AssessmentScope[]
-  tests            AssessmentTest[]
+  controls   AssessmentControl[]
+  scopeItems AssessmentScope[]
+  tests      AssessmentTest[]
 
   // Review
-  reviewNotes      String?             @db.Text
-  reviewedAt       DateTime?
+  reviewNotes String?   @db.Text
+  reviewedAt  DateTime?
 
   // Cached stats
-  totalTests       Int                 @default(0)
-  completedTests   Int                 @default(0)
-  passedTests      Int                 @default(0)
-  failedTests      Int                 @default(0)
+  totalTests     Int @default(0)
+  completedTests Int @default(0)
+  passedTests    Int @default(0)
+  failedTests    Int @default(0)
 
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-  createdById      String?
-  createdBy        User?               @relation("AssessmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("AssessmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@unique([assessmentRef, organisationId])
   @@index([organisationId, status])
@@ -443,41 +441,41 @@ model AssessmentScope {
 // ============================================
 
 model AssessmentTest {
-  id               String               @id @default(cuid())
-  assessmentId     String
-  assessment       Assessment           @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  testCode         String               // "GOV-01", "PLAT-02", etc.
-  testName         String               // Human-readable test name
-  scopeItemId      String?
-  scopeItem        ScopeItem?           @relation(fields: [scopeItemId], references: [id], onDelete: SetNull)
+  id           String     @id @default(cuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  testCode     String // "GOV-01", "PLAT-02", etc.
+  testName     String // Human-readable test name
+  scopeItemId  String?
+  scopeItem    ScopeItem? @relation(fields: [scopeItemId], references: [id], onDelete: SetNull)
 
-  status           AssessmentTestStatus @default(PENDING)
-  result           TestResult?
+  status AssessmentTestStatus @default(PENDING)
+  result TestResult?
 
   assignedTesterId String?
-  assignedTester   User?               @relation("AssessmentTestAssignee", fields: [assignedTesterId], references: [id], onDelete: SetNull)
+  assignedTester   User?   @relation("AssessmentTestAssignee", fields: [assignedTesterId], references: [id], onDelete: SetNull)
 
-  testMethod       TestMethod?
+  testMethod TestMethod?
 
-  ownerId          String?
-  owner            User?               @relation("AssessmentTestOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  ownerId String?
+  owner   User?   @relation("AssessmentTestOwner", fields: [ownerId], references: [id], onDelete: SetNull)
 
-  assessorId       String?
-  assessor         User?               @relation("AssessmentTestAssessor", fields: [assessorId], references: [id], onDelete: SetNull)
+  assessorId String?
+  assessor   User?   @relation("AssessmentTestAssessor", fields: [assessorId], references: [id], onDelete: SetNull)
 
-  findings         String?             @db.Text
-  recommendations  String?             @db.Text
-  rootCause        RootCauseCategory?
-  rootCauseNotes   String?             @db.Text
+  findings          String?            @db.Text
+  recommendations   String?            @db.Text
+  rootCause         RootCauseCategory?
+  rootCauseNotes    String?            @db.Text
   remediationEffort RemediationEffort?
-  estimatedHours   Int?
-  estimatedCost    Decimal?            @db.Decimal(10, 2)
+  estimatedHours    Int?
+  estimatedCost     Decimal?           @db.Decimal(10, 2)
   skipJustification String?            @db.Text
 
-  executions       AssessmentExecution[]
+  executions AssessmentExecution[]
 
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([assessmentId, testCode, scopeItemId])
   @@index([assessmentId])
@@ -498,23 +496,23 @@ model AssessmentExecution {
   assessmentTestId String
   assessmentTest   AssessmentTest @relation(fields: [assessmentTestId], references: [id], onDelete: Cascade)
 
-  executionDate    DateTime
-  testerId         String
-  tester           User           @relation("AssessmentExecutor", fields: [testerId], references: [id])
-  result           TestResult
-  findings         String?        @db.Text
-  recommendations  String?        @db.Text
+  executionDate   DateTime
+  testerId        String
+  tester          User       @relation("AssessmentExecutor", fields: [testerId], references: [id])
+  result          TestResult
+  findings        String?    @db.Text
+  recommendations String?    @db.Text
 
   evidenceLocation String?
-  evidenceNotes    String?        @db.Text
+  evidenceNotes    String?  @db.Text
   evidenceFileIds  String[]
 
-  durationMinutes  Int?
-  samplesReviewed  Int?
-  periodStart      DateTime?
-  periodEnd        DateTime?
+  durationMinutes Int?
+  samplesReviewed Int?
+  periodStart     DateTime?
+  periodEnd       DateTime?
 
-  createdAt        DateTime       @default(now())
+  createdAt DateTime @default(now())
 
   @@index([assessmentTestId])
   @@index([testerId])
@@ -775,15 +773,15 @@ model RiskScenario {
   // @deprecated Use controlLinks relation instead. This field is for backwards compatibility only.
   controlIds String? // Comma-separated control IDs - DEPRECATED
 
-  targetResidualScore  Int? // Post-treatment target
+  targetResidualScore Int? // Post-treatment target
 
   // ============================================
   // RELATIONSHIPS
   // ============================================
 
   riskId              String
-  risk                Risk                       @relation(fields: [riskId], references: [id], onDelete: Cascade)
-  toleranceStatements RiskToleranceStatement[]   @relation("RTSScenarios")
+  risk                Risk                     @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  toleranceStatements RiskToleranceStatement[] @relation("RTSScenarios")
 
   // Control links for residual calculation
   assetLinks         RiskScenarioAsset[]
@@ -795,12 +793,12 @@ model RiskScenario {
   treatmentPlans TreatmentPlan[]        @relation("ScenarioTreatmentPlans")
 
   // Audit fields
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
   createdById      String?
-  createdBy        User?                @relation("ScenarioCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        User?              @relation("ScenarioCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedById      String?
-  updatedBy        User?                @relation("ScenarioUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedBy        User?              @relation("ScenarioUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   IncidentScenario IncidentScenario[]
 
   @@unique([scenarioId, riskId])
@@ -850,12 +848,12 @@ model KeyRiskIndicator {
   toleranceStatements RiskToleranceStatement[] @relation("RTSKRIs")
 
   // Audit fields
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  createdById     String?
-  createdBy       User?             @relation("KRICreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedById     String?
-  updatedBy       User?             @relation("KRIUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("KRICreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String?
+  updatedBy   User?    @relation("KRIUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@unique([kriId, riskId])
   @@index([riskId])
@@ -954,8 +952,6 @@ model RiskToleranceStatement {
   scenarios RiskScenario[]     @relation("RTSScenarios")
   kris      KeyRiskIndicator[] @relation("RTSKRIs")
 
-
-
   // Tolerance evaluations using this RTS
   toleranceEvaluations ToleranceEvaluation[]
 
@@ -975,7 +971,6 @@ model RiskToleranceStatement {
   @@index([appetiteLevel])
   @@index([category])
 }
-
 
 // ============================================
 // TREATMENT PLAN MODEL
@@ -1298,4 +1293,3 @@ model TreatmentPlanHistory {
   @@index([userId])
   @@index([createdAt])
 }
-

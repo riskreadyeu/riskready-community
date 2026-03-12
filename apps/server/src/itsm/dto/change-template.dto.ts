@@ -117,3 +117,26 @@ export class UpdateChangeTemplateDto {
     @IsBoolean()
     isActive?: boolean;
 }
+
+export class CreateChangeFromTemplateDto {
+    @IsOptional()
+    @IsString()
+    title?: string;
+
+    @IsOptional()
+    @IsString()
+    description?: string;
+
+    @IsOptional()
+    @IsString()
+    plannedStart?: string;
+
+    @IsOptional()
+    @IsString()
+    plannedEnd?: string;
+}
+
+export class ToggleChangeTemplateDto {
+    @IsBoolean()
+    isActive!: boolean;
+}

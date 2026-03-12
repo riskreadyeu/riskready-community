@@ -6,15 +6,21 @@ import {
   Query,
   Body,
   Request,
+  UseGuards,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TriggerAgentWorkflowDto } from './agent-workflow.dto';
 import { AuthenticatedRequest } from '../shared/types';
+import { AdminOnly, AdminOnlyGuard } from '../shared/guards/admin-only.guard';
+import { resolveSingleOrganisationId } from '../shared/utils/single-organisation.util';
 
 /**
  * REST API for managing agent workflows and viewing execution status.
  * Workflows are executed by the gateway's WorkflowExecutor via AgentSchedule entries.
  */
 @Controller('agent-workflows')
+@UseGuards(AdminOnlyGuard)
+@AdminOnly()
 export class AgentWorkflowController {
   constructor(private prisma: PrismaService) {}
 
@@ -93,15 +99,12 @@ export class AgentWorkflowController {
   @Post('trigger')
   async triggerWorkflow(
     @Request() req: AuthenticatedRequest,
-    @Body() data: {
-      workflowId: string;
-      organisationId: string;
-      instruction?: string;
-    },
+    @Body() data: TriggerAgentWorkflowDto,
   ) {
+    const organisationId = await resolveSingleOrganisationId(this.prisma, data.organisationId);
     const task = await this.prisma.agentTask.create({
       data: {
-        organisationId: data.organisationId,
+        organisationId: organisationId!,
         title: `Workflow: ${data.workflowId}`,
         instruction: data.instruction || `Execute workflow ${data.workflowId}`,
         workflowId: data.workflowId,

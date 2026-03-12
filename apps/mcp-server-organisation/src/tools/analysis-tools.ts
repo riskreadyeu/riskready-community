@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { prisma } from '#src/prisma.js';
 import { withErrorHandling } from '#mcp-shared';
+import { getSingleOrganisation } from './single-org.js';
 
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
@@ -32,14 +33,12 @@ export function registerAnalysisTools(server: McpServer) {
         prisma.interestedParty.count({ where: { isActive: true } }),
       ]);
 
-      const org = await prisma.organisationProfile.findFirst({
-        select: {
-          name: true,
-          employeeCount: true,
-          isoCertificationStatus: true,
-          isDoraApplicable: true,
-          isNis2Applicable: true,
-        },
+      const org = await getSingleOrganisation({
+        name: true,
+        employeeCount: true,
+        isoCertificationStatus: true,
+        isDoraApplicable: true,
+        isNis2Applicable: true,
       });
 
       return {

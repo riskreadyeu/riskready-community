@@ -121,7 +121,18 @@ export class ChangeRequestService {
     return changeRequest;
   }
 
-  async update(id: string, data: Prisma.DocumentChangeRequestUpdateInput) {
+  async update(id: string, data: {
+    title?: string;
+    description?: string;
+    justification?: string;
+    changeType?: ChangeType;
+    priority?: ChangePriority;
+    impactAssessment?: string;
+    affectedDocuments?: string[];
+    affectedProcesses?: string[];
+    affectedSystems?: string[];
+    targetDate?: Date;
+  }) {
     return this.prisma.documentChangeRequest.update({
       where: { id },
       data,

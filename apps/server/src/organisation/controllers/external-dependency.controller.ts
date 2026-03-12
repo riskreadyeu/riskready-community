@@ -1,6 +1,10 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ExternalDependencyService } from '../services/external-dependency.service';
+import {
+  CreateExternalDependencyDto,
+  UpdateExternalDependencyDto,
+} from '../dto/organisation-crud.dto';
 
 @Controller('organisation/dependencies')
 export class ExternalDependencyController {
@@ -35,12 +39,12 @@ export class ExternalDependencyController {
   }
 
   @Post()
-  async create(@Body() data: Prisma.ExternalDependencyCreateInput) {
+  async create(@Body() data: CreateExternalDependencyDto) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: Prisma.ExternalDependencyUpdateInput) {
+  async update(@Param('id') id: string, @Body() data: UpdateExternalDependencyDto) {
     return this.service.update(id, data);
   }
 
