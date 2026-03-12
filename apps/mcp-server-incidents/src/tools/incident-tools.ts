@@ -41,8 +41,8 @@ export function registerIncidentTools(server: McpServer) {
             confidentialityBreach: true,
             integrityBreach: true,
             availabilityBreach: true,
-            handler: { select: { id: true, name: true } },
-            incidentManager: { select: { id: true, name: true } },
+            handler: { select: { id: true, firstName: true, lastName: true } },
+            incidentManager: { select: { id: true, firstName: true, lastName: true } },
             organisationId: true,
           },
         }),
@@ -68,9 +68,9 @@ export function registerIncidentTools(server: McpServer) {
       const incident = await prisma.incident.findUnique({
         where: { id },
         include: {
-          handler: { select: { id: true, name: true, email: true } },
-          incidentManager: { select: { id: true, name: true, email: true } },
-          reporter: { select: { id: true, name: true, email: true } },
+          handler: { select: { id: true, firstName: true, lastName: true, email: true } },
+          incidentManager: { select: { id: true, firstName: true, lastName: true, email: true } },
+          reporter: { select: { id: true, firstName: true, lastName: true, email: true } },
           incidentType: { select: { id: true, name: true, category: true } },
           attackVector: { select: { id: true, name: true, mitreAttackId: true } },
           _count: {

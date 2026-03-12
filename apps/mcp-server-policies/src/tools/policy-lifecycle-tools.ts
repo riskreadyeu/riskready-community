@@ -34,7 +34,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
           approvedBy: true,
           approvalDate: true,
           createdAt: true,
-          createdBy: { select: { id: true, name: true } },
+          createdBy: { select: { id: true, firstName: true, lastName: true } },
         },
       });
 
@@ -75,7 +75,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
           recommendations: true,
           changesRequired: true,
           nextReviewDate: true,
-          reviewedBy: { select: { id: true, name: true } },
+          reviewedBy: { select: { id: true, firstName: true, lastName: true } },
         },
       });
 
@@ -120,8 +120,8 @@ export function registerPolicyLifecycleTools(server: McpServer) {
           startDate: true,
           expiryDate: true,
           residualRisk: true,
-          requestedBy: { select: { id: true, name: true } },
-          approvedBy: { select: { id: true, name: true } },
+          requestedBy: { select: { id: true, firstName: true, lastName: true } },
+          approvedBy: { select: { id: true, firstName: true, lastName: true } },
         },
       });
 
@@ -159,7 +159,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
           method: true,
           dueDate: true,
           isOverdue: true,
-          user: { select: { id: true, name: true, email: true } },
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
         },
       });
 

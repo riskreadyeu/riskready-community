@@ -34,8 +34,8 @@ export function registerEvidenceRequestTools(server: McpServer) {
             evidenceType: true,
             contextType: true,
             contextRef: true,
-            requestedBy: { select: { id: true, name: true } },
-            assignedTo: { select: { id: true, name: true } },
+            requestedBy: { select: { id: true, firstName: true, lastName: true } },
+            assignedTo: { select: { id: true, firstName: true, lastName: true } },
             assignedDepartment: { select: { id: true, name: true } },
             _count: { select: { fulfillments: true } },
           },
@@ -62,15 +62,15 @@ export function registerEvidenceRequestTools(server: McpServer) {
       const request = await prisma.evidenceRequest.findUnique({
         where: { id },
         include: {
-          requestedBy: { select: { id: true, name: true, email: true } },
-          assignedTo: { select: { id: true, name: true, email: true } },
+          requestedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+          assignedTo: { select: { id: true, firstName: true, lastName: true, email: true } },
           assignedDepartment: { select: { id: true, name: true } },
           fulfillments: {
             include: {
               evidence: {
                 select: { id: true, evidenceRef: true, title: true, status: true },
               },
-              submittedBy: { select: { id: true, name: true } },
+              submittedBy: { select: { id: true, firstName: true, lastName: true } },
             },
           },
         },

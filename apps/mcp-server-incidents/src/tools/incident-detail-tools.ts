@@ -36,7 +36,7 @@ export function registerIncidentDetailTools(server: McpServer) {
             visibility: true,
             isAutomated: true,
             sourceSystem: true,
-            createdBy: { select: { id: true, name: true } },
+            createdBy: { select: { id: true, firstName: true, lastName: true } },
           },
         }),
         prisma.incidentTimelineEntry.count({ where: { incidentId: params.incidentId } }),
@@ -79,8 +79,8 @@ export function registerIncidentDetailTools(server: McpServer) {
           priority: true,
           targetDate: true,
           completedDate: true,
-          assignedTo: { select: { id: true, name: true } },
-          createdBy: { select: { id: true, name: true } },
+          assignedTo: { select: { id: true, firstName: true, lastName: true } },
+          createdBy: { select: { id: true, firstName: true, lastName: true } },
         },
       });
 

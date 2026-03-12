@@ -25,9 +25,10 @@ export function registerCapacityTools(server: McpServer) {
 
       const where: Record<string, unknown> = { assetId };
       if (fromDate || toDate) {
-        where.recordedAt = {};
-        if (fromDate) where.recordedAt.gte = new Date(fromDate);
-        if (toDate) where.recordedAt.lte = new Date(toDate);
+        const dateFilter: Record<string, Date> = {};
+        if (fromDate) dateFilter.gte = new Date(fromDate);
+        if (toDate) dateFilter.lte = new Date(toDate);
+        where.recordedAt = dateFilter;
       }
 
       const [results, count] = await Promise.all([

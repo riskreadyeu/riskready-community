@@ -40,7 +40,7 @@ export function registerPolicyTools(server: McpServer) {
             reviewFrequency: true,
             approvalLevel: true,
             documentOwner: true,
-            owner: { select: { id: true, name: true } },
+            owner: { select: { id: true, firstName: true, lastName: true } },
             organisationId: true,
             _count: {
               select: {
@@ -74,9 +74,9 @@ export function registerPolicyTools(server: McpServer) {
       const doc = await prisma.policyDocument.findUnique({
         where: { id },
         include: {
-          owner: { select: { id: true, name: true, email: true } },
-          authorUser: { select: { id: true, name: true } },
-          approver: { select: { id: true, name: true } },
+          owner: { select: { id: true, firstName: true, lastName: true, email: true } },
+          authorUser: { select: { id: true, firstName: true, lastName: true } },
+          approver: { select: { id: true, firstName: true, lastName: true } },
           parentDocument: { select: { id: true, documentId: true, title: true } },
           _count: {
             select: {

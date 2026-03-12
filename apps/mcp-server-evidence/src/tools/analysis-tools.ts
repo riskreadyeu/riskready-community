@@ -30,7 +30,7 @@ export function registerAnalysisTools(server: McpServer) {
           status: true,
           validUntil: true,
           renewalRequired: true,
-          collectedBy: { select: { id: true, name: true } },
+          collectedBy: { select: { id: true, firstName: true, lastName: true } },
           _count: { select: { controlLinks: true } },
         },
       });
@@ -132,7 +132,7 @@ export function registerAnalysisTools(server: McpServer) {
           status: true,
           priority: true,
           dueDate: true,
-          assignedTo: { select: { id: true, name: true } },
+          assignedTo: { select: { id: true, firstName: true, lastName: true } },
           contextType: true,
           contextRef: true,
         },

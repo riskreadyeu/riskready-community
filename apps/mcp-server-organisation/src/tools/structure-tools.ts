@@ -32,7 +32,7 @@ export function registerStructureTools(server: McpServer) {
             headcount: true,
             isActive: true,
             parentId: true,
-            departmentHead: { select: { id: true, name: true } },
+            departmentHead: { select: { id: true, firstName: true, lastName: true } },
           },
         }),
         prisma.department.count({ where }),
@@ -57,8 +57,8 @@ export function registerStructureTools(server: McpServer) {
       const dept = await prisma.department.findUnique({
         where: { id },
         include: {
-          departmentHead: { select: { id: true, name: true, email: true } },
-          deputyHead: { select: { id: true, name: true, email: true } },
+          departmentHead: { select: { id: true, firstName: true, lastName: true, email: true } },
+          deputyHead: { select: { id: true, firstName: true, lastName: true, email: true } },
           parent: { select: { id: true, name: true, departmentCode: true } },
           children: { select: { id: true, name: true, departmentCode: true } },
           _count: {
@@ -184,7 +184,7 @@ export function registerStructureTools(server: McpServer) {
           trainingCompleted: true,
           lastTrainingDate: true,
           isActive: true,
-          user: { select: { id: true, name: true } },
+          user: { select: { id: true, firstName: true, lastName: true } },
           backupPerson: { select: { id: true, personCode: true, name: true } },
         },
       });

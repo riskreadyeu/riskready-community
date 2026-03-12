@@ -28,7 +28,7 @@ export function registerGovernanceTools(server: McpServer) {
           nextMeetingDate: true,
           isActive: true,
           establishedDate: true,
-          chair: { select: { id: true, name: true } },
+          chair: { select: { id: true, firstName: true, lastName: true } },
           _count: { select: { memberships: true, meetings: true } },
         },
       });
@@ -52,14 +52,14 @@ export function registerGovernanceTools(server: McpServer) {
       const committee = await prisma.securityCommittee.findUnique({
         where: { id },
         include: {
-          chair: { select: { id: true, name: true, email: true } },
+          chair: { select: { id: true, firstName: true, lastName: true, email: true } },
           memberships: {
             where: { isActive: true },
             select: {
               id: true,
               role: true,
               votingRights: true,
-              user: { select: { id: true, name: true, email: true } },
+              user: { select: { id: true, firstName: true, lastName: true, email: true } },
             },
           },
           _count: { select: { meetings: true } },
@@ -110,7 +110,7 @@ export function registerGovernanceTools(server: McpServer) {
             status: true,
             quorumAchieved: true,
             actualAttendeesCount: true,
-            chair: { select: { id: true, name: true } },
+            chair: { select: { id: true, firstName: true, lastName: true } },
             _count: { select: { decisions: true, actionItems: true } },
           },
         }),
@@ -137,12 +137,12 @@ export function registerGovernanceTools(server: McpServer) {
         where: { id },
         include: {
           committee: { select: { id: true, name: true } },
-          chair: { select: { id: true, name: true } },
-          secretary: { select: { id: true, name: true } },
+          chair: { select: { id: true, firstName: true, lastName: true } },
+          secretary: { select: { id: true, firstName: true, lastName: true } },
           attendances: {
             select: {
               attendanceStatus: true,
-              member: { select: { id: true, name: true } },
+              member: { select: { id: true, firstName: true, lastName: true } },
             },
           },
           decisions: {
@@ -164,7 +164,7 @@ export function registerGovernanceTools(server: McpServer) {
               priority: true,
               status: true,
               dueDate: true,
-              assignedTo: { select: { id: true, name: true } },
+              assignedTo: { select: { id: true, firstName: true, lastName: true } },
             },
             orderBy: { dueDate: 'asc' },
           },
@@ -212,7 +212,7 @@ export function registerGovernanceTools(server: McpServer) {
             status: true,
             dueDate: true,
             progressPercentage: true,
-            assignedTo: { select: { id: true, name: true } },
+            assignedTo: { select: { id: true, firstName: true, lastName: true } },
             meeting: {
               select: {
                 id: true,

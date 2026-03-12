@@ -40,7 +40,7 @@ export function registerProcessTools(server: McpServer) {
             isActive: true,
             recoveryTimeObjectiveMinutes: true,
             recoveryPointObjectiveMinutes: true,
-            processOwner: { select: { id: true, name: true } },
+            processOwner: { select: { id: true, firstName: true, lastName: true } },
             department: { select: { id: true, name: true } },
           },
         }),
@@ -66,10 +66,10 @@ export function registerProcessTools(server: McpServer) {
       const process = await prisma.businessProcess.findUnique({
         where: { id },
         include: {
-          processOwner: { select: { id: true, name: true, email: true } },
-          processManager: { select: { id: true, name: true } },
+          processOwner: { select: { id: true, firstName: true, lastName: true, email: true } },
+          processManager: { select: { id: true, firstName: true, lastName: true } },
           department: { select: { id: true, name: true, departmentCode: true } },
-          backupOwner: { select: { id: true, name: true } },
+          backupOwner: { select: { id: true, firstName: true, lastName: true } },
           parentProcess: { select: { id: true, name: true, processCode: true } },
           subProcesses: { select: { id: true, name: true, processCode: true, criticalityLevel: true } },
           _count: {

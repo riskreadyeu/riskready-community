@@ -95,7 +95,7 @@ export function registerAssetTools(server: McpServer) {
           custodian: { select: { id: true, email: true, firstName: true, lastName: true } },
           department: { select: { id: true, name: true } },
           location: { select: { id: true, name: true, city: true, country: true } },
-          vendor: { select: { id: true, name: true, vendorType: true } },
+          vendor: { select: { id: true, name: true, dependencyType: true } },
           controlLinks: {
             include: {
               control: { select: { id: true, controlId: true, name: true, implementationStatus: true } },
@@ -103,7 +103,7 @@ export function registerAssetTools(server: McpServer) {
           },
           riskLinks: {
             include: {
-              risk: { select: { id: true, riskId: true, title: true, riskLevel: true } },
+              risk: { select: { id: true, riskId: true, title: true, tier: true } },
             },
           },
           installedSoftware: {

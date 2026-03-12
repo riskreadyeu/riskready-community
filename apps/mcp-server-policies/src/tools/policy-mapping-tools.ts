@@ -78,7 +78,7 @@ export function registerPolicyMappingTools(server: McpServer) {
               id: true,
               riskId: true,
               title: true,
-              category: true,
+              tier: true,
               status: true,
             },
           },

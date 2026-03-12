@@ -97,7 +97,7 @@ export function registerAnalysisTools(server: McpServer) {
           recoveryTimeObjectiveMinutes: true,
           recoveryPointObjectiveMinutes: true,
           maximumTolerableDowntimeMinutes: true,
-          processOwner: { select: { id: true, name: true } },
+          processOwner: { select: { id: true, firstName: true, lastName: true } },
         },
         orderBy: { processCode: 'asc' },
       });

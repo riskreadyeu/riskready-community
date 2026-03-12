@@ -41,7 +41,7 @@ export function registerEvidenceTools(server: McpServer) {
             validUntil: true,
             collectedAt: true,
             version: true,
-            collectedBy: { select: { id: true, name: true } },
+            collectedBy: { select: { id: true, firstName: true, lastName: true } },
             _count: {
               select: {
                 controlLinks: true,
@@ -75,10 +75,10 @@ export function registerEvidenceTools(server: McpServer) {
       const evidence = await prisma.evidence.findUnique({
         where: { id },
         include: {
-          collectedBy: { select: { id: true, name: true, email: true } },
-          reviewedBy: { select: { id: true, name: true } },
-          approvedBy: { select: { id: true, name: true } },
-          rejectedBy: { select: { id: true, name: true } },
+          collectedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+          reviewedBy: { select: { id: true, firstName: true, lastName: true } },
+          approvedBy: { select: { id: true, firstName: true, lastName: true } },
+          rejectedBy: { select: { id: true, firstName: true, lastName: true } },
           _count: {
             select: {
               controlLinks: true,
