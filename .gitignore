@@ -50,3 +50,4 @@ apps/server/prisma/*.ts
 image.png
 *.png
 !screenshots/*.png
+packages/mcp-shared/tsconfig.tsbuildinfo
