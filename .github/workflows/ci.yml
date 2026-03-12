@@ -101,9 +101,14 @@ jobs:
         working-directory: apps/server
         run: npm ci
 
-      - name: Install shared package dependencies
+      - name: Install shared package dependencies and link Prisma
         working-directory: packages/mcp-shared
-        run: npm ci
+        run: |
+          npm ci
+          mkdir -p node_modules/.prisma node_modules/@prisma
+          rm -rf node_modules/.prisma/client node_modules/@prisma/client
+          ln -s ../../../apps/server/node_modules/.prisma/client node_modules/.prisma/client
+          ln -s ../../../apps/server/node_modules/@prisma/client node_modules/@prisma/client
 
       - name: Build shared package
         working-directory: packages/mcp-shared
