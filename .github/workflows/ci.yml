@@ -107,8 +107,8 @@ jobs:
           npm ci
           mkdir -p node_modules/.prisma node_modules/@prisma
           rm -rf node_modules/.prisma/client node_modules/@prisma/client
-          ln -s ../../../apps/server/node_modules/.prisma/client node_modules/.prisma/client
-          ln -s ../../../apps/server/node_modules/@prisma/client node_modules/@prisma/client
+          ln -s "$(cd ../../apps/server/node_modules/.prisma/client && pwd)" node_modules/.prisma/client
+          ln -s "$(cd ../../apps/server/node_modules/@prisma/client && pwd)" node_modules/@prisma/client
 
       - name: Build shared package
         working-directory: packages/mcp-shared
