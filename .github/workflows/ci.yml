@@ -101,6 +101,10 @@ jobs:
         working-directory: apps/server
         run: npm ci
 
+      - name: Generate Prisma client
+        working-directory: apps/server
+        run: npx prisma generate --schema=prisma/schema
+
       - name: Install shared package dependencies and link Prisma
         working-directory: packages/mcp-shared
         run: |
