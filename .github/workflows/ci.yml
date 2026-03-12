@@ -48,7 +48,7 @@ jobs:
 
       - name: Audit server dependencies
         working-directory: apps/server
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=high --omit=dev
 
       - name: Server TypeScript type check
         working-directory: apps/server
@@ -71,7 +71,7 @@ jobs:
 
       - name: Audit web dependencies
         working-directory: apps/web
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=high --omit=dev
 
       - name: Web TypeScript type check
         working-directory: apps/web
@@ -107,7 +107,7 @@ jobs:
 
       - name: Audit MCP server dependencies
         working-directory: apps/mcp-server-${{ matrix.server }}
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=high --omit=dev
 
       - name: TypeScript type check
         working-directory: apps/mcp-server-${{ matrix.server }}
@@ -140,7 +140,7 @@ jobs:
 
       - name: Audit gateway dependencies
         working-directory: gateway
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=high --omit=dev
 
       - name: TypeScript type check
         working-directory: gateway

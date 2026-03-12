@@ -14,7 +14,7 @@
     "#src/*": "./src/*"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.12.1",
+    "@modelcontextprotocol/sdk": "1.27.1",
     "@prisma/client": "5.19.1"
   },
   "devDependencies": {

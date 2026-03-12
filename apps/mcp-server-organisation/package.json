@@ -16,9 +16,9 @@
     "#mcp-shared": "./_mcp-shared/src/index.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.12.1",
+    "@modelcontextprotocol/sdk": "1.27.1",
     "@prisma/client": "5.22.0",
-    "zod": "3.24.4"
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/node": "25.3.0",
