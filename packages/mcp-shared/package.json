@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "postinstall": "node -e \"const fs=require('fs');const src='../../apps/server/node_modules/.prisma';const dst='node_modules/.prisma';if(fs.existsSync(src)&&!fs.existsSync(dst)){fs.mkdirSync('node_modules',{recursive:true});fs.symlinkSync(require('path').resolve(src),dst)}\""
+    "postinstall": "rm -rf node_modules/.prisma/client && mkdir -p node_modules/.prisma && test -d ../../apps/server/node_modules/.prisma/client && ln -sfn \"$(cd ../../apps/server/node_modules/.prisma/client && pwd)\" node_modules/.prisma/client || true"
   },
   "imports": {
     "#src/*": "./src/*"

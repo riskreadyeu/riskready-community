@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "postinstall": "test -d ../server/node_modules/.prisma && ln -sfn ../../server/node_modules/.prisma node_modules/.prisma || true",
+    "postinstall": "rm -rf node_modules/.prisma/client && mkdir -p node_modules/.prisma && test -d ../server/node_modules/.prisma/client && ln -sfn \"$(cd ../server/node_modules/.prisma/client && pwd)\" node_modules/.prisma/client || true",
     "test": "vitest run"
   },
   "imports": {
