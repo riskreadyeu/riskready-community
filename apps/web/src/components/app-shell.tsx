@@ -1,32 +1,19 @@
-import { useMemo, useState, useEffect, type ComponentType, type PropsWithChildren } from "react";
+import { useMemo, useState, useEffect, type PropsWithChildren } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
-  AlertTriangle,
-  AppWindow,
   Bell,
-  BookOpen,
   Bot,
-  Building2,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  ClipboardCheck,
-  Bug,
   Command,
-  Database,
-  FileCheck,
   HelpCircle,
-  LayoutDashboard,
   LogOut,
   Menu,
   Search,
   Settings,
-  Server,
   Shield,
-  Sliders,
   Sparkles,
-  Truck,
-  FileText,
 } from "lucide-react";
 import { CommandPalette, useCommandPalette } from "@/components/controls/command-palette";
 
@@ -42,53 +29,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { navGroups, resolveShellModule, shellMeta } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
-import { OrganisationSidebar } from "@/components/organisation/organisation-sidebar";
-import { ControlsSidebar } from "@/components/controls/controls-sidebar";
-import { RisksSidebar } from "@/components/risks/risks-sidebar";
-import { AuditsSidebar } from "@/components/audits/audits-sidebar";
-import { PoliciesSidebar } from "@/components/policies/policies-sidebar";
-import { ITSMSidebar } from "@/components/itsm/itsm-sidebar";
-import { IncidentsSidebar } from "@/components/incidents/incidents-sidebar";
-import { EvidenceSidebar } from "@/components/evidence/evidence-sidebar";
 
 type User = { id: string; email: string };
 
-type NavItem = {
-  title: string;
-  to: string;
-  icon: ComponentType<{ className?: string }>;
-};
+function formatUserName(email: string) {
+  const localPart = email.split("@")[0] ?? "";
+  const parts = localPart.split(/[._-]/g).filter(Boolean);
 
-const navGroups: Array<{ label: string; items: NavItem[] }> = [
-  {
-    label: "Overview",
-    items: [{ title: "Dashboard", to: "/dashboard", icon: LayoutDashboard }],
-  },
-  {
-    label: "Risk & Compliance",
-    items: [
-      { title: "Risk Management", to: "/risks", icon: Shield },
-      { title: "Control Management", to: "/controls", icon: Sliders },
-      { title: "Policies & Compliance", to: "/policies", icon: FileText },
-      { title: "Audit Management", to: "/audits", icon: ClipboardCheck },
-    ],
-  },
-  {
-    label: "Operations",
-    items: [
-      { title: "ITSM / CMDB", to: "/itsm", icon: Server },
-      { title: "Incidents", to: "/incidents", icon: AlertTriangle },
-    ],
-  },
-  {
-    label: "Governance",
-    items: [
-      { title: "Organisation", to: "/organisation", icon: Building2 },
-      { title: "Evidence Center", to: "/evidence", icon: FileCheck },
-    ],
-  },
-];
+  if (parts.length === 0) {
+    return email;
+  }
+
+  return parts
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 function SideNav(props: { className?: string; collapsed?: boolean; onToggle?: () => void }) {
   return (
@@ -101,8 +58,8 @@ function SideNav(props: { className?: string; collapsed?: boolean; onToggle?: ()
           </div>
           {!props.collapsed ? (
             <div className="flex flex-col">
-              <span className="text-base font-semibold tracking-tight text-sidebar-foreground">RiskReady</span>
-              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Community Edition</span>
+              <span className="text-base font-semibold tracking-tight text-sidebar-foreground">{shellMeta.appName}</span>
+              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{shellMeta.edition}</span>
             </div>
           ) : null}
         </Link>
@@ -176,10 +133,10 @@ function SideNav(props: { className?: string; collapsed?: boolean; onToggle?: ()
           <div className="rounded-lg border border-sidebar-primary/20 bg-gradient-to-br from-sidebar-primary/10 to-sidebar-primary/5 p-3">
             <div className="flex items-center gap-2 text-sidebar-primary">
               <Sparkles className="h-4 w-4" />
-              <span className="text-xs font-medium">AI Insights</span>
+              <span className="text-xs font-medium">Community Edition</span>
             </div>
             <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-              3 risks require attention based on recent activity patterns.
+              Approvals, notifications, and AI actions are shown here when the connected services are available.
             </p>
           </div>
         ) : null}
@@ -211,7 +168,7 @@ function SideNav(props: { className?: string; collapsed?: boolean; onToggle?: ()
           <Settings className="h-[18px] w-[18px] shrink-0" />
           {!props.collapsed ? <span>Settings</span> : null}
         </NavLink>
-        <div className="text-xs text-muted-foreground">v0.1</div>
+        <div className="text-xs text-muted-foreground">{shellMeta.version}</div>
       </div>
     </div>
   );
@@ -221,15 +178,9 @@ export default function AppShell(
   props: PropsWithChildren<{ user: User; onLogout: () => Promise<void> }>,
 ) {
   const location = useLocation();
-  const isOrganisationRoute = location.pathname.startsWith("/organisation");
-  const isControlsRoute = location.pathname.startsWith("/controls");
-  const isRisksRoute = location.pathname.startsWith("/risks");
-  const isAuditsRoute = location.pathname.startsWith("/audits");
-  const isPoliciesRoute = location.pathname.startsWith("/policies");
-  const isITSMRoute = location.pathname.startsWith("/itsm");
-  const isIncidentsRoute = location.pathname.startsWith("/incidents");
-  const isEvidenceRoute = location.pathname.startsWith("/evidence");
-  const hasSecondarySidebar = isOrganisationRoute || isControlsRoute || isRisksRoute || isAuditsRoute || isPoliciesRoute || isITSMRoute || isIncidentsRoute || isEvidenceRoute;
+  const activeModule = resolveShellModule(location.pathname);
+  const hasSecondarySidebar = activeModule !== null;
+  const SecondarySidebar = activeModule?.sidebar ?? null;
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [manuallyExpanded, setManuallyExpanded] = useState(false);
   const { open: commandOpen, setOpen: setCommandOpen } = useCommandPalette();
@@ -263,8 +214,8 @@ export default function AppShell(
       .slice(0, 2);
     return {
       email,
-      name: "John Doe",
-      role: "Security Lead",
+      name: formatUserName(email),
+      role: "Community user",
       initials: initials || "RR",
     };
   }, [props.user.email]);
@@ -327,46 +278,17 @@ export default function AppShell(
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <span className="text-sm font-semibold">Notifications</span>
                   <Badge variant="secondary" className="text-[10px]">
-                    3 new
+                    Preview
                   </Badge>
                 </div>
-                <div className="max-h-[320px] overflow-y-auto">
-                  <DropdownMenuItem className="flex cursor-pointer items-start gap-3 p-4 focus:bg-secondary/50">
-                    <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-destructive" />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Critical Risk Alert</span>
-                        <span className="text-[10px] text-muted-foreground">2m ago</span>
-                      </div>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        3 critical vulnerabilities detected in production systems
-                      </p>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex cursor-pointer items-start gap-3 p-4 focus:bg-secondary/50">
-                    <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-warning" />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Audit Due Soon</span>
-                        <span className="text-[10px] text-muted-foreground">1h ago</span>
-                      </div>
-                      <p className="mt-0.5 text-xs text-muted-foreground">SOC 2 Type II audit deadline in 5 days</p>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex cursor-pointer items-start gap-3 p-4 focus:bg-secondary/50">
-                    <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-sidebar-primary" />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Incident Resolved</span>
-                        <span className="text-[10px] text-muted-foreground">3h ago</span>
-                      </div>
-                      <p className="mt-0.5 text-xs text-muted-foreground">Phishing incident INC-0087 marked as resolved</p>
-                    </div>
-                  </DropdownMenuItem>
+                <div className="p-4">
+                  <p className="text-sm text-muted-foreground">
+                    Live notifications are not configured in the community shell yet.
+                  </p>
                 </div>
                 <div className="border-t border-border p-2">
                   <Button variant="ghost" className="h-8 w-full text-xs">
-                    View all notifications
+                    Notification center coming later
                   </Button>
                 </div>
               </DropdownMenuContent>
@@ -418,61 +340,11 @@ export default function AppShell(
         </header>
 
         <div className="flex flex-1 overflow-hidden">
-          {/* Secondary sidebar for Organisation module */}
-          {isOrganisationRoute && (
+          {SecondarySidebar ? (
             <aside className="hidden w-[260px] border-r border-sidebar-border lg:block">
-              <OrganisationSidebar className="h-full" />
+              <SecondarySidebar className="h-full" />
             </aside>
-          )}
-
-          {/* Secondary sidebar for Controls module */}
-          {isControlsRoute && (
-            <aside className="hidden w-[260px] border-r border-sidebar-border lg:block">
-              <ControlsSidebar className="h-full" />
-            </aside>
-          )}
-
-          {/* Secondary sidebar for Risks module */}
-          {isRisksRoute && (
-            <aside className="hidden w-[260px] border-r border-sidebar-border lg:block">
-              <RisksSidebar className="h-full" />
-            </aside>
-          )}
-
-          {/* Secondary sidebar for Audits module */}
-          {isAuditsRoute && (
-            <aside className="hidden w-[260px] border-r border-sidebar-border lg:block">
-              <AuditsSidebar className="h-full" />
-            </aside>
-          )}
-
-          {/* Secondary sidebar for Policies module */}
-          {isPoliciesRoute && (
-            <aside className="hidden w-[260px] border-r border-sidebar-border lg:block">
-              <PoliciesSidebar className="h-full" />
-            </aside>
-          )}
-
-          {/* Secondary sidebar for ITSM module */}
-          {isITSMRoute && (
-            <aside className="hidden w-[260px] border-r border-sidebar-border lg:block">
-              <ITSMSidebar className="h-full" />
-            </aside>
-          )}
-
-          {/* Secondary sidebar for Incidents module */}
-          {isIncidentsRoute && (
-            <aside className="hidden w-[260px] border-r border-sidebar-border lg:block">
-              <IncidentsSidebar className="h-full" />
-            </aside>
-          )}
-
-          {/* Secondary sidebar for Evidence module */}
-          {isEvidenceRoute && (
-            <aside className="hidden w-[260px] border-r border-sidebar-border lg:block">
-              <EvidenceSidebar className="h-full" />
-            </aside>
-          )}
+          ) : null}
 
           <main className="flex-1 overflow-y-auto p-4 lg:p-6">
             <div className="w-full">{props.children}</div>
