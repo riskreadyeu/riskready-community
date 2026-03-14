@@ -5,7 +5,7 @@ import {
   type Nonconformity,
   type UserBasic,
 } from "@/lib/audits-api";
-import { logAppError } from "@/lib/app-errors";
+import { notifyError } from "@/lib/app-errors";
 
 export function useNonconformityDetail(id: string | undefined, isNew: boolean) {
   const [loading, setLoading] = useState(!isNew);
@@ -29,7 +29,7 @@ export function useNonconformityDetail(id: string | undefined, isNew: boolean) {
       setNc(ncData);
       setUsers(usersData);
     } catch (error) {
-      logAppError("Error loading nonconformity:", error);
+      notifyError("Error loading nonconformity:", error, "Failed to load nonconformity");
     } finally {
       setLoading(false);
     }

@@ -8,7 +8,7 @@ import {
   type ControlTheme,
   type ImplementationStatus,
 } from "@/lib/controls-api";
-import { logAppError } from "@/lib/app-errors";
+import { notifyError } from "@/lib/app-errors";
 
 export function useControlsLibrary() {
   const [loading, setLoading] = useState(true);
@@ -45,7 +45,7 @@ export function useControlsLibrary() {
       setTotalCount(controlsData.count);
       setStats(statsData);
     } catch (error) {
-      logAppError("Error loading controls:", error);
+      notifyError("Error loading controls:", error, "Failed to load controls");
     } finally {
       setLoading(false);
     }

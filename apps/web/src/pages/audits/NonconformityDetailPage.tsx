@@ -22,7 +22,7 @@ import {
 } from "@/lib/audits-api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNonconformityDetail } from "@/hooks/audits/useNonconformityDetail";
-import { logAppError } from "@/lib/app-errors";
+import { notifyError } from "@/lib/app-errors";
 import {
   Edit,
   CheckCircle2,
@@ -95,7 +95,7 @@ export default function NonconformityDetailPage() {
       await closeNonconformity(id, currentUserId);
       await refresh();
     } catch (error) {
-      alert(logAppError("Failed to close nonconformity", error));
+      notifyError("Failed to close nonconformity", error);
     }
   };
 
@@ -114,7 +114,7 @@ export default function NonconformityDetailPage() {
       });
       await refresh();
     } catch (error) {
-      alert(logAppError("Failed to save CAP draft", error));
+      notifyError("Failed to save CAP draft", error);
     }
   };
 
@@ -125,7 +125,7 @@ export default function NonconformityDetailPage() {
       await refresh();
       setDefineCapOpen(false);
     } catch (error) {
-      alert(logAppError("Failed to submit CAP for approval", error));
+      notifyError("Failed to submit CAP for approval", error);
     }
   };
 
@@ -135,7 +135,7 @@ export default function NonconformityDetailPage() {
       await approveCap(id, currentUserId, comments);
       await refresh();
     } catch (error) {
-      alert(logAppError("Failed to approve CAP", error));
+      notifyError("Failed to approve CAP", error);
     }
   };
 
@@ -145,14 +145,14 @@ export default function NonconformityDetailPage() {
       await rejectCap(id, currentUserId, reason);
       await refresh();
     } catch (error) {
-      alert(logAppError("Failed to reject CAP", error));
+      notifyError("Failed to reject CAP", error);
     }
   };
 
   const handleSkipCap = async () => {
     if (!id || !nc) return;
     if (nc.severity !== "OBSERVATION") {
-      alert("Only Observations can skip CAP approval");
+      toast.error("Only Observations can skip CAP approval");
       return;
     }
     const confirmed = window.confirm(
@@ -164,7 +164,7 @@ export default function NonconformityDetailPage() {
       await markCapNotRequired(id, currentUserId);
       await refresh();
     } catch (error) {
-      alert(logAppError("Failed to skip CAP", error));
+      notifyError("Failed to skip CAP", error);
     }
   };
 
