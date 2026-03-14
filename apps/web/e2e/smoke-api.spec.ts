@@ -20,7 +20,7 @@ test.beforeAll(async () => {
   // Login and capture cookies
   const raw = await playwrightRequest.newContext({ baseURL: 'http://localhost:5174' });
   const loginRes = await raw.post('/api/auth/login', {
-    data: { email: 'admin@local.test', password: 'admin123456' },
+    data: { email: 'admin@local.test', password: 'password123' },
   });
   expect(loginRes.status()).toBe(201);
 
@@ -69,6 +69,39 @@ test.describe('Auth Endpoints', () => {
   test('GET /api/auth/users', async () => {
     const res = await api.get('/api/auth/users');
     expect(res.status()).toBe(200);
+  });
+
+  test('POST /api/auth/logout invalidates the session', async () => {
+    const raw = await playwrightRequest.newContext({ baseURL: 'http://localhost:5174' });
+    const loginRes = await raw.post('/api/auth/login', {
+      data: { email: 'admin@local.test', password: 'password123' },
+    });
+    expect(loginRes.status()).toBe(201);
+
+    const setCookies = loginRes.headersArray().filter(h => h.name.toLowerCase() === 'set-cookie');
+    const cookieString = setCookies.map(h => h.value.split(';')[0]).join('; ');
+
+    const authed = await playwrightRequest.newContext({
+      baseURL: 'http://localhost:5174',
+      extraHTTPHeaders: {
+        cookie: cookieString,
+      },
+    });
+
+    try {
+      const logoutRes = await authed.post('/api/auth/logout');
+      expect(logoutRes.status()).toBe(201);
+      const clearedCookies = logoutRes
+        .headersArray()
+        .filter(h => h.name.toLowerCase() === 'set-cookie')
+        .map(h => h.value);
+
+      expect(clearedCookies.some(value => value.startsWith('access_token=;'))).toBeTruthy();
+      expect(clearedCookies.some(value => value.startsWith('refresh_session=;'))).toBeTruthy();
+    } finally {
+      await authed.dispose();
+      await raw.dispose();
+    }
   });
 });
 

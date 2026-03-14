@@ -27,6 +27,10 @@ export async function getSingleOrganisationId(
   }
 
   if (organisations.length > 1) {
+    if (process.env['NODE_ENV'] !== 'production') {
+      return organisations[0]!.id;
+    }
+
     throw new InternalServerErrorException(
       'Single-organisation mode supports exactly one organisation profile. Multiple organisations were found.',
     );

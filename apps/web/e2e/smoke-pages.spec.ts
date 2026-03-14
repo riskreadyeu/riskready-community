@@ -9,7 +9,9 @@
  * Run with: npx playwright test smoke-pages
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, Page, request as playwrightRequest } from '@playwright/test';
+
+const baseUrl = 'http://localhost:5174';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -39,6 +41,65 @@ async function expectPageLoads(page: Page, path: string) {
 
   page.off('pageerror', onError);
 }
+
+async function login(page: Page) {
+  await page.goto(`${baseUrl}/login`);
+  await page.getByRole('textbox').first().fill('admin@local.test');
+  await page.locator('input[type="password"]').fill('password123');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.waitForURL('**/dashboard');
+}
+
+test.describe('Auth and shell smoke', () => {
+  test.describe('fresh login flow', () => {
+    test.use({ storageState: { cookies: [], origins: [] } });
+
+    test('logs in, reaches a module route, and logs out', async ({ page }) => {
+      test.setTimeout(60000);
+
+      try {
+        await login(page);
+        await expect(page).toHaveURL(/\/dashboard$/);
+
+        await page.goto(`${baseUrl}/controls/library`);
+        await expect(page).toHaveURL(/\/controls\/library$/);
+        await expect(page.getByTestId('shell-secondary-sidebar')).toBeVisible();
+        await expect(page.getByTestId('shell-secondary-sidebar')).toContainText('Controls');
+        await expect(page.getByTestId('shell-secondary-sidebar')).toContainText('Controls Library');
+
+        const authRequest = await playwrightRequest.newContext({
+          baseURL: baseUrl,
+          storageState: await page.context().storageState(),
+        });
+        const logoutResponse = await authRequest.post('/api/auth/logout');
+        expect(logoutResponse.ok()).toBeTruthy();
+        await authRequest.dispose();
+
+        await page.context().clearCookies();
+        await page.evaluate(() => {
+          localStorage.clear();
+          sessionStorage.clear();
+        });
+
+        await page.goto(`${baseUrl}/login`);
+        await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+      } finally {
+        await page.context().clearCookies();
+      }
+    });
+  });
+
+  test('renders the controls secondary sidebar for module routes', async ({ page }) => {
+    await page.goto('/controls/library');
+
+    const sidebar = page.getByTestId('shell-secondary-sidebar');
+    await expect(sidebar).toBeVisible();
+    await expect(sidebar).toContainText('Controls');
+    await expect(sidebar).toContainText('Module Navigation');
+    await expect(sidebar).toContainText('Controls Library');
+    await expect(sidebar).toContainText('Statement of Applicability');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Dashboard

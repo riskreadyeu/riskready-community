@@ -298,7 +298,11 @@ export default function AppShell(
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2 rounded-xl px-2 hover:bg-secondary/50">
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2 rounded-xl px-2 hover:bg-secondary/50"
+                  data-testid="user-menu-trigger"
+                >
                   <Avatar className="h-8 w-8 border-2 border-sidebar-primary/20">
                     <AvatarImage src="/professional-headshot.png" />
                     <AvatarFallback className="bg-sidebar-primary/10 text-xs font-medium text-sidebar-primary">
@@ -341,7 +345,10 @@ export default function AppShell(
 
         <div className="flex flex-1 overflow-hidden">
           {SecondarySidebar ? (
-            <aside className="hidden w-[260px] border-r border-sidebar-border lg:block">
+            <aside
+              className="hidden w-[260px] border-r border-sidebar-border lg:block"
+              data-testid="shell-secondary-sidebar"
+            >
               <SecondarySidebar className="h-full" />
             </aside>
           ) : null}
