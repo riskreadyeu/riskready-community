@@ -14,7 +14,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  PageHeader,
   DataTable,
   StatusBadge,
   StatCard,
@@ -22,6 +21,7 @@ import {
   type Column,
   type RowAction,
 } from "@/components/common";
+import { ListPageLayout } from "@/components/archer";
 import { ActiveStatusBadge } from "@/components/shared/ActiveStatusBadge";
 import { getControls, getControlStats, type Control, type ControlStats, type ControlTheme, type ImplementationStatus, type ControlFramework } from "@/lib/controls-api";
 import { useBulkSelection } from "@/components/archer/hooks/use-bulk-selection";
@@ -260,32 +260,34 @@ export default function ControlsLibraryPage() {
   }
 
   return (
-    <div className="space-y-6 animate-slide-up">
-      <PageHeader
-        title="Controls Library"
-        description="Multi-framework control management: ISO 27001, SOC2, NIS2, DORA"
-        actions={
-          <div className="flex gap-2">
-            <ExportDropdown
-              data={controls}
-              columns={exportColumns}
-              filename={`Controls_Library_${new Date().toISOString().split('T')[0]}`}
-              onExport={handleExport}
-            />
-            <Link to="/controls">
-              <Button variant="outline" size="sm">
-                <LayoutDashboard className="h-4 w-4 mr-2" />
-                Dashboard
-              </Button>
-            </Link>
-            <Button onClick={() => navigate("/controls/library/new")}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Control
+    <ListPageLayout
+      title="Controls Library"
+      description="Multi-framework control management: ISO 27001, SOC2, NIS2, DORA"
+      breadcrumbs={[
+        { label: "Controls", href: "/controls" },
+        { label: "Library" },
+      ]}
+      actions={
+        <div className="flex gap-2">
+          <ExportDropdown
+            data={controls}
+            columns={exportColumns}
+            filename={`Controls_Library_${new Date().toISOString().split('T')[0]}`}
+            onExport={handleExport}
+          />
+          <Link to="/controls">
+            <Button variant="outline" size="sm">
+              <LayoutDashboard className="h-4 w-4 mr-2" />
+              Dashboard
             </Button>
-          </div>
-        }
-      />
-
+          </Link>
+          <Button onClick={() => navigate("/controls/library/new")}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Control
+          </Button>
+        </div>
+      }
+    >
       <StatCardGrid columns={4}>
         <StatCard
           title="Total Controls"
@@ -434,6 +436,6 @@ export default function ControlsLibraryPage() {
           pageSizeOptions: [10, 25, 50, 100],
         }}
       />
-    </div>
+    </ListPageLayout>
   );
 }
