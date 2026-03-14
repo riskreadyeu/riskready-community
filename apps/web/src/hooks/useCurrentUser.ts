@@ -1,27 +1,7 @@
-import { useState, useEffect } from 'react';
-import { getMe } from '@/lib/api';
-
-interface User {
-  id: string;
-  email: string;
-}
+import { useAuth } from "@/contexts/AuthContext";
 
 export function useCurrentUser() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isLoading } = useAuth();
 
-  useEffect(() => {
-    getMe()
-      .then((response) => {
-        setUser(response.user);
-      })
-      .catch(() => {
-        setUser(null);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
-
-  return { user, loading, userId: user?.id ?? null };
+  return { user, loading: isLoading, userId: user?.id ?? null };
 }

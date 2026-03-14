@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getMe } from "@/lib/api";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   FileText,
   Edit3,
@@ -112,7 +112,7 @@ const classificationColors: Record<string, string> = {
 
 export default function PolicyDocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const { userId: currentUserId } = useCurrentUser();
   const [loading, setLoading] = useState(true);
   const [document, setDocument] = useState<PolicyDocument | null>(null);
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
@@ -144,9 +144,6 @@ export default function PolicyDocumentDetailPage() {
   }>>([]);
 
   useEffect(() => {
-    // Load current user ID
-    getMe().then((data) => setCurrentUserId(data.user.id)).catch(console.error);
-
     if (id) {
       loadDocument(id);
     }

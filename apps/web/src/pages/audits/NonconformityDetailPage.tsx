@@ -25,7 +25,7 @@ import {
   type CAPStatus,
   type UserBasic,
 } from "@/lib/audits-api";
-import { getMe } from "@/lib/api";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   Edit,
   CheckCircle2,
@@ -85,7 +85,7 @@ export default function NonconformityDetailPage() {
   const [loading, setLoading] = useState(!isNew);
   const [nc, setNc] = useState<Nonconformity | null>(null);
   const [users, setUsers] = useState<UserBasic[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const { userId: currentUserId } = useCurrentUser();
   
   // Dialog states
   const [defineCapOpen, setDefineCapOpen] = useState(false);
@@ -99,14 +99,12 @@ export default function NonconformityDetailPage() {
     if (!id || id === 'new') return;
     try {
       setLoading(true);
-      const [ncData, usersData, meData] = await Promise.all([
+      const [ncData, usersData] = await Promise.all([
         getNonconformity(id),
         getUsers(),
-        getMe(),
       ]);
       setNc(ncData);
       setUsers(usersData);
-      setCurrentUserId(meData.user.id);
     } catch (err) {
       console.error("Error loading nonconformity:", err);
     } finally {
