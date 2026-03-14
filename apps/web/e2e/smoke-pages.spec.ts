@@ -50,12 +50,32 @@ async function login(page: Page) {
   await page.waitForURL('**/dashboard');
 }
 
+async function expectControlsModuleShell(page: Page) {
+  const sidebar = page.getByTestId('shell-secondary-sidebar');
+  const viewportWidth = page.viewportSize()?.width ?? 0;
+
+  if (viewportWidth >= 1024) {
+    await expect(sidebar).toBeVisible();
+    await expect(sidebar).toContainText('Controls');
+    await expect(sidebar).toContainText('Module Navigation');
+    await expect(sidebar).toContainText('Controls Library');
+    await expect(sidebar).toContainText('Statement of Applicability');
+    return;
+  }
+
+  await expect(sidebar).toBeHidden();
+}
+
 test.describe('Auth and shell smoke', () => {
   test.describe('fresh login flow', () => {
     test.use({ storageState: { cookies: [], origins: [] } });
 
     test('logs in, reaches a module route, and logs out', async ({ page }) => {
       test.setTimeout(60000);
+      test.skip(
+        test.info().project.name === 'Mobile Safari',
+        'Chromium already covers the fresh login/logout flow; mobile reuses setup auth state.',
+      );
 
       try {
         await login(page);
@@ -63,9 +83,7 @@ test.describe('Auth and shell smoke', () => {
 
         await page.goto(`${baseUrl}/controls/library`);
         await expect(page).toHaveURL(/\/controls\/library$/);
-        await expect(page.getByTestId('shell-secondary-sidebar')).toBeVisible();
-        await expect(page.getByTestId('shell-secondary-sidebar')).toContainText('Controls');
-        await expect(page.getByTestId('shell-secondary-sidebar')).toContainText('Controls Library');
+        await expectControlsModuleShell(page);
 
         const authRequest = await playwrightRequest.newContext({
           baseURL: baseUrl,
@@ -92,12 +110,7 @@ test.describe('Auth and shell smoke', () => {
   test('renders the controls secondary sidebar for module routes', async ({ page }) => {
     await page.goto('/controls/library');
 
-    const sidebar = page.getByTestId('shell-secondary-sidebar');
-    await expect(sidebar).toBeVisible();
-    await expect(sidebar).toContainText('Controls');
-    await expect(sidebar).toContainText('Module Navigation');
-    await expect(sidebar).toContainText('Controls Library');
-    await expect(sidebar).toContainText('Statement of Applicability');
+    await expectControlsModuleShell(page);
   });
 });
 
