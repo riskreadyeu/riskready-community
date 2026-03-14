@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,21 +11,18 @@ import { DetailStatCard } from "@/components/controls/detail-components/detail-s
 import { DefineCapDialog } from "@/components/audits/DefineCapDialog";
 import { ApproveCapDialog } from "@/components/audits/ApproveCapDialog";
 import {
-  getNonconformity,
   closeNonconformity,
-  getUsers,
   saveCapDraft,
   submitCapForApproval,
   approveCap,
   rejectCap,
   markCapNotRequired,
-  type Nonconformity,
   type NCStatus,
-  type NCSeverity,
   type CAPStatus,
-  type UserBasic,
 } from "@/lib/audits-api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useNonconformityDetail } from "@/hooks/audits/useNonconformityDetail";
+import { logAppError } from "@/lib/app-errors";
 import {
   Edit,
   CheckCircle2,
@@ -82,35 +79,12 @@ export default function NonconformityDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isNew = id === 'new';
-  const [loading, setLoading] = useState(!isNew);
-  const [nc, setNc] = useState<Nonconformity | null>(null);
-  const [users, setUsers] = useState<UserBasic[]>([]);
+  const { loading, nc, users, refresh } = useNonconformityDetail(id, isNew);
   const { userId: currentUserId } = useCurrentUser();
   
   // Dialog states
   const [defineCapOpen, setDefineCapOpen] = useState(false);
   const [approveCapOpen, setApproveCapOpen] = useState(false);
-
-  useEffect(() => {
-    if (id && id !== 'new') loadData();
-  }, [id]);
-
-  const loadData = async () => {
-    if (!id || id === 'new') return;
-    try {
-      setLoading(true);
-      const [ncData, usersData] = await Promise.all([
-        getNonconformity(id),
-        getUsers(),
-      ]);
-      setNc(ncData);
-      setUsers(usersData);
-    } catch (err) {
-      console.error("Error loading nonconformity:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleClose = async () => {
     if (!nc || !id) return;
@@ -119,10 +93,9 @@ export default function NonconformityDetailPage() {
 
     try {
       await closeNonconformity(id, currentUserId);
-      await loadData();
-    } catch (err) {
-      console.error("Error closing nonconformity:", err);
-      alert("Failed to close nonconformity");
+      await refresh();
+    } catch (error) {
+      alert(logAppError("Failed to close nonconformity", error));
     }
   };
 
@@ -139,10 +112,9 @@ export default function NonconformityDetailPage() {
         targetClosureDate: data.targetClosureDate.toISOString(),
         draftedById: currentUserId,
       });
-      await loadData();
-    } catch (err) {
-      console.error("Error saving CAP draft:", err);
-      alert("Failed to save CAP draft");
+      await refresh();
+    } catch (error) {
+      alert(logAppError("Failed to save CAP draft", error));
     }
   };
 
@@ -150,11 +122,10 @@ export default function NonconformityDetailPage() {
     if (!id) return;
     try {
       await submitCapForApproval(id, currentUserId);
-      await loadData();
+      await refresh();
       setDefineCapOpen(false);
-    } catch (err) {
-      console.error("Error submitting CAP:", err);
-      alert("Failed to submit CAP for approval");
+    } catch (error) {
+      alert(logAppError("Failed to submit CAP for approval", error));
     }
   };
 
@@ -162,10 +133,9 @@ export default function NonconformityDetailPage() {
     if (!id) return;
     try {
       await approveCap(id, currentUserId, comments);
-      await loadData();
-    } catch (err: unknown) {
-      console.error("Error approving CAP:", err);
-      alert(err instanceof Error ? err.message : "Failed to approve CAP");
+      await refresh();
+    } catch (error) {
+      alert(logAppError("Failed to approve CAP", error));
     }
   };
 
@@ -173,10 +143,9 @@ export default function NonconformityDetailPage() {
     if (!id) return;
     try {
       await rejectCap(id, currentUserId, reason);
-      await loadData();
-    } catch (err) {
-      console.error("Error rejecting CAP:", err);
-      alert("Failed to reject CAP");
+      await refresh();
+    } catch (error) {
+      alert(logAppError("Failed to reject CAP", error));
     }
   };
 
@@ -193,10 +162,9 @@ export default function NonconformityDetailPage() {
 
     try {
       await markCapNotRequired(id, currentUserId);
-      await loadData();
-    } catch (err) {
-      console.error("Error skipping CAP:", err);
-      alert("Failed to skip CAP");
+      await refresh();
+    } catch (error) {
+      alert(logAppError("Failed to skip CAP", error));
     }
   };
 

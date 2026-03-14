@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Shield, CheckCircle2, AlertTriangle, Clock, Eye, Edit3, LayoutDashboard, Power, PowerOff, Download, ClipboardList, Plus } from "lucide-react";
@@ -23,10 +23,11 @@ import {
 } from "@/components/common";
 import { ListPageLayout } from "@/components/archer";
 import { ActiveStatusBadge } from "@/components/shared/ActiveStatusBadge";
-import { getControls, getControlStats, type Control, type ControlStats, type ControlTheme, type ImplementationStatus, type ControlFramework } from "@/lib/controls-api";
+import { type Control } from "@/lib/controls-api";
 import { useBulkSelection } from "@/components/archer/hooks/use-bulk-selection";
 import { BulkActionBar } from "@/components/archer/bulk-action-bar";
 import { ExportDropdown } from "@/components/common/export-dropdown";
+import { useControlsLibrary } from "@/hooks/controls/useControlsLibrary";
 
 const themeLabels: Record<string, string> = {
   ORGANISATIONAL: "Organisational",
@@ -50,52 +51,32 @@ const frameworkLabels: Record<string, string> = {
 
 export default function ControlsLibraryPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [controls, setControls] = useState<Control[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [stats, setStats] = useState<ControlStats | null>(null);
-  const [themeFilter, setThemeFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [frameworkFilter, setFrameworkFilter] = useState<string>("all");
-  const [activeOnly, setActiveOnly] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const {
+    loading,
+    controls,
+    totalCount,
+    stats,
+    themeFilter,
+    setThemeFilter,
+    statusFilter,
+    setStatusFilter,
+    frameworkFilter,
+    setFrameworkFilter,
+    activeOnly,
+    setActiveOnly,
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
+  } = useControlsLibrary();
 
   // Bulk selection
   const bulkSelection = useBulkSelection(controls, (control) => control.id);
-
-  useEffect(() => {
-    loadData();
-  }, [currentPage, pageSize, themeFilter, statusFilter, frameworkFilter, activeOnly]);
 
   // Clear selection on filter/page change
   useEffect(() => {
     bulkSelection.clearSelection();
   }, [currentPage, pageSize, themeFilter, statusFilter, frameworkFilter, activeOnly]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [controlsData, statsData] = await Promise.all([
-        getControls({
-          skip: (currentPage - 1) * pageSize,
-          take: pageSize,
-          ...(themeFilter !== "all" && { theme: themeFilter as ControlTheme }),
-          ...(statusFilter !== "all" && { implementationStatus: statusFilter as ImplementationStatus }),
-          ...(frameworkFilter !== "all" && { framework: frameworkFilter as ControlFramework }),
-          ...(activeOnly && { activeOnly: true }),
-        }),
-        getControlStats(),
-      ]);
-      setControls(controlsData.results);
-      setTotalCount(controlsData.count);
-      setStats(statsData);
-    } catch (err) {
-      console.error("Error loading controls:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Filters are now handled server-side via API params
   const filteredControls = controls;
@@ -381,14 +362,14 @@ export default function ControlsLibraryPage() {
               <Switch
                 id="activeOnly"
                 checked={activeOnly}
-                onCheckedChange={(checked) => { setActiveOnly(checked); setCurrentPage(1); }}
+                onCheckedChange={setActiveOnly}
               />
               <Label htmlFor="activeOnly" className="text-sm cursor-pointer">
                 Active Only
               </Label>
             </div>
 
-            <Select value={frameworkFilter} onValueChange={(v) => { setFrameworkFilter(v); setCurrentPage(1); }}>
+            <Select value={frameworkFilter} onValueChange={setFrameworkFilter}>
               <SelectTrigger className="h-9 w-40 bg-secondary/50">
                 <SelectValue placeholder="Filter by framework" />
               </SelectTrigger>
@@ -401,7 +382,7 @@ export default function ControlsLibraryPage() {
               </SelectContent>
             </Select>
 
-            <Select value={themeFilter} onValueChange={(v) => { setThemeFilter(v); setCurrentPage(1); }}>
+            <Select value={themeFilter} onValueChange={setThemeFilter}>
               <SelectTrigger className="h-9 w-44 bg-secondary/50">
                 <SelectValue placeholder="Filter by theme" />
               </SelectTrigger>
@@ -414,7 +395,7 @@ export default function ControlsLibraryPage() {
               </SelectContent>
             </Select>
 
-            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="h-9 w-40 bg-secondary/50">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
