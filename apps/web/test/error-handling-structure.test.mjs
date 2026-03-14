@@ -38,9 +38,11 @@ test("representative data hooks use the shared notifier for load failures", asyn
   assert.doesNotMatch(nonconformityHook, /logAppError/);
 });
 
-test("NonconformityDetailPage uses shared notifications instead of alert dialogs for failures", async () => {
+test("Nonconformity detail flow avoids alert dialogs and keeps notifications in shared paths", async () => {
   const nonconformityDetail = await source("src/pages/audits/NonconformityDetailPage.tsx");
+  const nonconformityHook = await source("src/hooks/audits/useNonconformityDetail.ts");
 
-  assert.match(nonconformityDetail, /notifyError/);
+  assert.match(nonconformityHook, /notifyError/);
+  assert.match(nonconformityDetail, /useNonconformityDetail/);
   assert.doesNotMatch(nonconformityDetail, /alert\(/);
 });
