@@ -66,13 +66,21 @@ export function useNonconformityDetail(id: string | undefined, isNew: boolean) {
       nc.capStatus === "NOT_DEFINED"
   );
 
+  function getCurrentUserId() {
+    if (!currentUserId) {
+      throw new Error("Current user is not available");
+    }
+
+    return currentUserId;
+  }
+
   async function handleClose() {
     if (!nc || !id) return;
     const confirmed = window.confirm("Are you sure you want to close this nonconformity?");
     if (!confirmed) return;
 
     try {
-      await closeNonconformity(id, currentUserId);
+      await closeNonconformity(id, getCurrentUserId());
       await refresh();
     } catch (error) {
       notifyError("Failed to close nonconformity", error);
@@ -91,7 +99,7 @@ export function useNonconformityDetail(id: string | undefined, isNew: boolean) {
       await saveCapDraft(id, {
         ...data,
         targetClosureDate: data.targetClosureDate.toISOString(),
-        draftedById: currentUserId,
+        draftedById: getCurrentUserId(),
       });
       await refresh();
     } catch (error) {
@@ -103,7 +111,7 @@ export function useNonconformityDetail(id: string | undefined, isNew: boolean) {
     if (!id) return;
 
     try {
-      await submitCapForApproval(id, currentUserId);
+      await submitCapForApproval(id, getCurrentUserId());
       await refresh();
       setDefineCapOpen(false);
     } catch (error) {
@@ -115,7 +123,7 @@ export function useNonconformityDetail(id: string | undefined, isNew: boolean) {
     if (!id) return;
 
     try {
-      await approveCap(id, currentUserId, comments);
+      await approveCap(id, getCurrentUserId(), comments);
       await refresh();
     } catch (error) {
       notifyError("Failed to approve CAP", error);
@@ -126,7 +134,7 @@ export function useNonconformityDetail(id: string | undefined, isNew: boolean) {
     if (!id) return;
 
     try {
-      await rejectCap(id, currentUserId, reason);
+      await rejectCap(id, getCurrentUserId(), reason);
       await refresh();
     } catch (error) {
       notifyError("Failed to reject CAP", error);
@@ -146,7 +154,7 @@ export function useNonconformityDetail(id: string | undefined, isNew: boolean) {
     if (!confirmed) return;
 
     try {
-      await markCapNotRequired(id, currentUserId);
+      await markCapNotRequired(id, getCurrentUserId());
       await refresh();
     } catch (error) {
       notifyError("Failed to skip CAP", error);

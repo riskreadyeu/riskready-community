@@ -30,7 +30,7 @@ import type { Nonconformity } from "@/lib/audits-api";
 
 interface ApproveCapDialogProps {
   nc: Nonconformity;
-  currentUserId: string;
+  currentUserId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onApprove: (comments?: string) => Promise<void>;
@@ -325,7 +325,6 @@ export function ApproveCapDialog({
     </Dialog>
   );
 }
-
 
 
 

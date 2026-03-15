@@ -4,14 +4,20 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 type AnyComponent = ComponentType<any>;
 type RouteComponent = AnyComponent | LazyExoticComponent<AnyComponent>;
+type ComponentExportKey<TModule> = {
+  [TKey in keyof TModule]: TModule[TKey] extends AnyComponent ? TKey : never;
+}[keyof TModule];
 
 export function lazyNamed<
-  TModule extends Record<string, AnyComponent>,
-  TKey extends keyof TModule,
->(loader: () => Promise<TModule>, key: TKey): LazyExoticComponent<TModule[TKey]> {
+  TModule,
+  TKey extends ComponentExportKey<TModule>,
+>(
+  loader: () => Promise<TModule>,
+  key: TKey,
+): LazyExoticComponent<Extract<TModule[TKey], AnyComponent>> {
   return lazy(async () => {
     const module = await loader();
-    return { default: module[key] };
+    return { default: module[key] as Extract<TModule[TKey], AnyComponent> };
   });
 }
 
