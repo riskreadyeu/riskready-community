@@ -4,6 +4,38 @@ type MeResponse = { user: User };
 
 type LoginResponse = { user: User };
 
+export function getApiErrorMessage(text: string, fallback: string): string {
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    return fallback;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      message?: string;
+      error?: string;
+      details?: { message?: string };
+    };
+
+    if (typeof parsed.message === "string" && parsed.message.trim()) {
+      return parsed.message;
+    }
+
+    if (typeof parsed.error === "string" && parsed.error.trim()) {
+      return parsed.error;
+    }
+
+    if (typeof parsed.details?.message === "string" && parsed.details.message.trim()) {
+      return parsed.details.message;
+    }
+  } catch {
+    // Fallback to the raw response text when the payload is not JSON.
+  }
+
+  return trimmed;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
@@ -16,7 +48,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(text || `Request failed (${res.status})`);
+    throw new Error(getApiErrorMessage(text, `Request failed (${res.status})`));
   }
 
   // Handle empty responses (e.g., 204 No Content)
@@ -41,7 +73,7 @@ async function requestFormData<T>(path: string, init?: RequestInit): Promise<T> 
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(text || `Request failed (${res.status})`);
+    throw new Error(getApiErrorMessage(text, `Request failed (${res.status})`));
   }
 
   const text = await res.text();

@@ -1,22 +1,13 @@
-import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
-  ArrowLeft,
-  Calendar,
   CheckCircle2,
-  Clock,
-  Edit,
   FileText,
   MessageSquare,
-  Shield,
-  FileWarning,
-  User,
   Activity,
   Paperclip,
   Lightbulb,
   Bell,
-  Server,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -24,111 +15,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import {
-  getIncident,
-  getIncidentTimeline,
-  getIncidentEvidence,
-  getIncidentCommunications,
-  getIncidentLessonsLearned,
-  getIncidentNotifications,
-  type Incident,
-  type IncidentTimelineEntry,
-  type IncidentEvidence,
-  type IncidentCommunication,
-  type IncidentLessonsLearned,
-  type IncidentNotification,
-  severityLabels,
-  statusLabels,
-  categoryLabels,
-  sourceLabels,
-} from "@/lib/incidents-api";
-
-function SeverityBadge({ severity }: { severity: string }) {
-  const variants: Record<string, "destructive" | "warning" | "secondary" | "outline"> = {
-    CRITICAL: "destructive",
-    HIGH: "warning",
-    MEDIUM: "secondary",
-    LOW: "outline",
-  };
-  return (
-    <Badge variant={variants[severity] || "secondary"}>
-      {severityLabels[severity as keyof typeof severityLabels] || severity}
-    </Badge>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const variants: Record<string, "destructive" | "warning" | "secondary" | "success" | "outline"> = {
-    DETECTED: "destructive",
-    TRIAGED: "warning",
-    INVESTIGATING: "warning",
-    CONTAINING: "warning",
-    ERADICATING: "secondary",
-    RECOVERING: "secondary",
-    POST_INCIDENT: "outline",
-    CLOSED: "success",
-  };
-  return (
-    <Badge variant={variants[status] || "secondary"}>
-      {statusLabels[status as keyof typeof statusLabels] || status}
-    </Badge>
-  );
-}
-
-function InfoRow({ label, value, icon: Icon }: { label: string; value?: string | React.ReactNode; icon?: React.ElementType }) {
-  return (
-    <div className="flex items-start gap-3 py-2">
-      {Icon && <Icon className="mt-0.5 h-4 w-4 text-muted-foreground" />}
-      <div className="flex-1">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm font-medium">{value || "—"}</p>
-      </div>
-    </div>
-  );
-}
+import { IncidentDetailHeader } from "@/components/incidents/detail/IncidentDetailHeader";
+import { IncidentRegulatoryAlerts } from "@/components/incidents/detail/IncidentRegulatoryAlerts";
+import { IncidentSidebarPanels } from "@/components/incidents/detail/IncidentSidebarPanels";
+import { useIncidentDetail } from "@/hooks/incidents/useIncidentDetail";
 
 export default function IncidentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [incident, setIncident] = useState<Incident | null>(null);
-  const [timeline, setTimeline] = useState<IncidentTimelineEntry[]>([]);
-  const [evidence, setEvidence] = useState<IncidentEvidence[]>([]);
-  const [communications, setCommunications] = useState<IncidentCommunication[]>([]);
-  const [lessonsLearned, setLessonsLearned] = useState<IncidentLessonsLearned[]>([]);
-  const [notifications, setNotifications] = useState<IncidentNotification[]>([]);
-
-  useEffect(() => {
-    if (id) loadData();
-  }, [id]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const incidentData = await getIncident(id!);
-      setIncident(incidentData);
-
-      // Load related data in parallel
-      const [timelineData, evidenceData, commsData, lessonsData, notifData] = await Promise.all([
-        getIncidentTimeline(id!).catch(() => []),
-        getIncidentEvidence(id!).catch(() => []),
-        getIncidentCommunications(id!).catch(() => []),
-        getIncidentLessonsLearned(id!).catch(() => []),
-        getIncidentNotifications(id!).catch(() => []),
-      ]);
-
-      setTimeline(timelineData);
-      setEvidence(evidenceData);
-      setCommunications(commsData);
-      setLessonsLearned(lessonsData);
-      setNotifications(notifData);
-    } catch (err) {
-      console.error("Error loading incident:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    loading,
+    incident,
+    timeline,
+    evidence,
+    communications,
+    lessonsLearned,
+    notifications,
+  } = useIncidentDetail(id);
 
   if (loading) {
     return (
@@ -157,91 +60,11 @@ export default function IncidentDetailPage() {
     );
   }
 
-  const formatDate = (date?: string) => {
-    if (!date) return null;
-    return new Date(date).toLocaleString();
-  };
-
-  const getUserName = (user?: { firstName?: string; lastName?: string; email: string }) => {
-    if (!user) return null;
-    const name = `${user.firstName || ""} ${user.lastName || ""}`.trim();
-    return name || user.email;
-  };
-
   return (
     <div className="space-y-8 pb-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link to="/incidents" className="hover:text-foreground">
-            Incidents
-          </Link>
-          <span>/</span>
-          <Link to="/incidents/register" className="hover:text-foreground">
-            Register
-          </Link>
-          <span>/</span>
-          <span className="text-foreground">{incident.referenceNumber}</span>
-        </div>
+      <IncidentDetailHeader incident={incident} onBack={() => navigate(-1)} />
 
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-          <div className="flex items-start gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  {incident.referenceNumber}
-                </h1>
-                <SeverityBadge severity={incident.severity} />
-                <StatusBadge status={incident.status} />
-              </div>
-              <p className="mt-1 text-lg text-muted-foreground">{incident.title}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link to={`/incidents/${incident.id}/edit`}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Regulatory Alerts */}
-      {(incident.nis2Assessment?.isSignificantIncident || incident.doraAssessment?.isMajorIncident) && (
-        <div className="flex flex-wrap gap-4">
-          {incident.nis2Assessment?.isSignificantIncident && (
-            <Card className="border-blue-500/20 bg-blue-500/5">
-              <CardContent className="flex items-center gap-3 p-4">
-                <Shield className="h-5 w-5 text-blue-500" />
-                <div>
-                  <p className="text-sm font-medium">NIS2 Significant Incident</p>
-                  <p className="text-xs text-muted-foreground">
-                    Regulatory reporting required
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          {incident.doraAssessment?.isMajorIncident && (
-            <Card className="border-purple-500/20 bg-purple-500/5">
-              <CardContent className="flex items-center gap-3 p-4">
-                <FileWarning className="h-5 w-5 text-purple-500" />
-                <div>
-                  <p className="text-sm font-medium">DORA Major ICT Incident</p>
-                  <p className="text-xs text-muted-foreground">
-                    Score: {incident.doraAssessment.majorClassificationScore}/7 criteria
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
+      <IncidentRegulatoryAlerts incident={incident} />
 
       {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-3">
@@ -351,7 +174,7 @@ export default function IncidentDetailPage() {
                             <div>
                               <p className="font-medium">{entry.title}</p>
                               <p className="text-xs text-muted-foreground">
-                                {formatDate(entry.timestamp)}
+                            {new Date(entry.timestamp).toLocaleString()}
                               </p>
                             </div>
                             <Badge variant="outline" className="text-[10px]">
@@ -395,7 +218,7 @@ export default function IncidentDetailPage() {
                             <p className="font-medium">{e.title}</p>
                             <p className="text-xs text-muted-foreground">
                               {e.evidenceType.replace(/_/g, " ")} • Collected{" "}
-                              {formatDate(e.collectedAt)}
+                              {new Date(e.collectedAt).toLocaleString()}
                             </p>
                           </div>
                         </div>
@@ -441,7 +264,7 @@ export default function IncidentDetailPage() {
                           </p>
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {formatDate(c.occurredAt)}
+                          {new Date(c.occurredAt).toLocaleString()}
                         </span>
                       </div>
                       {c.summary && (
@@ -531,7 +354,7 @@ export default function IncidentDetailPage() {
                       </div>
                       {n.dueAt && (
                         <p className="mt-2 text-xs text-muted-foreground">
-                          Due: {formatDate(n.dueAt)}
+                          Due: {n.dueAt ? new Date(n.dueAt).toLocaleString() : null}
                         </p>
                       )}
                     </CardContent>
@@ -542,141 +365,8 @@ export default function IncidentDetailPage() {
           </Tabs>
         </div>
 
-        {/* Right Column - Details */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              <InfoRow
-                label="Category"
-                value={categoryLabels[incident.category]}
-                icon={AlertTriangle}
-              />
-              <InfoRow
-                label="Source"
-                value={sourceLabels[incident.source]}
-                icon={Activity}
-              />
-              {incident.sourceRef && (
-                <InfoRow label="Source Reference" value={incident.sourceRef} />
-              )}
-              <Separator className="my-3" />
-              <InfoRow
-                label="Incident Type"
-                value={incident.incidentType?.name}
-              />
-              <InfoRow
-                label="Attack Vector"
-                value={incident.attackVector?.name}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Timeline</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              <InfoRow
-                label="Detected"
-                value={formatDate(incident.detectedAt)}
-                icon={Clock}
-              />
-              <InfoRow
-                label="Occurred"
-                value={formatDate(incident.occurredAt)}
-                icon={Calendar}
-              />
-              <InfoRow
-                label="Reported"
-                value={formatDate(incident.reportedAt)}
-              />
-              <InfoRow
-                label="Classified"
-                value={formatDate(incident.classifiedAt)}
-              />
-              <Separator className="my-3" />
-              <InfoRow
-                label="Contained"
-                value={formatDate(incident.containedAt)}
-              />
-              <InfoRow
-                label="Eradicated"
-                value={formatDate(incident.eradicatedAt)}
-              />
-              <InfoRow
-                label="Recovered"
-                value={formatDate(incident.recoveredAt)}
-              />
-              <InfoRow
-                label="Closed"
-                value={formatDate(incident.closedAt)}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Ownership</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              <InfoRow
-                label="Reporter"
-                value={getUserName(incident.reporter)}
-                icon={User}
-              />
-              <InfoRow
-                label="Handler"
-                value={getUserName(incident.handler)}
-                icon={User}
-              />
-              <InfoRow
-                label="Incident Manager"
-                value={getUserName(incident.incidentManager)}
-                icon={User}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Related Items</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div className="flex items-center gap-2">
-                  <Server className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Affected Assets</span>
-                </div>
-                <Badge variant="secondary">
-                  {incident._count?.affectedAssets || 0}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div className="flex items-center gap-2">
-                  <Paperclip className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Evidence</span>
-                </div>
-                <Badge variant="secondary">
-                  {incident._count?.evidence || 0}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Notifications</span>
-                </div>
-                <Badge variant="secondary">
-                  {incident._count?.notifications || 0}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <IncidentSidebarPanels incident={incident} />
       </div>
     </div>
   );
 }
-

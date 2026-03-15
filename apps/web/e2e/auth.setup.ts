@@ -10,7 +10,7 @@ const authFile = path.join(__dirname, '..', '.auth', 'user.json');
 setup('authenticate', async ({ page }) => {
   await page.goto('/login');
   await page.getByRole('textbox').first().fill('admin@local.test');
-  await page.locator('input[type="password"]').fill('admin123456');
+  await page.locator('input[type="password"]').fill('password123');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL('**/dashboard');
   await expect(page.locator('body')).not.toBeEmpty();

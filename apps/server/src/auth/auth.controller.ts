@@ -10,6 +10,7 @@ const LoginDto = z.object({
   email: z.string().email(),
   password: z.string().min(8),
 });
+const LOGIN_THROTTLE_LIMIT = process.env['NODE_ENV'] === 'production' ? 5 : 20;
 
 @Controller('auth')
 export class AuthController {
@@ -40,7 +41,7 @@ export class AuthController {
   }
 
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: LOGIN_THROTTLE_LIMIT, ttl: 60000 } })
   @Post('login')
   async login(@Body() body: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     try {

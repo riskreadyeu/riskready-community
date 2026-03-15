@@ -26,7 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PageHeader, DataTable, StatusBadge, Column, RowAction } from "@/components/common";
+import { ListPageLayout } from "@/components/archer";
+import { DataTable, StatusBadge, Column, RowAction } from "@/components/common";
 import {
   getPolicies,
   type PolicyDocument,
@@ -258,28 +259,30 @@ export default function PolicyDocumentListPage() {
   ];
 
   return (
-    <div className="space-y-6 animate-slide-up">
-      <PageHeader
-        title="Policy Documents"
-        description="Manage all policies, standards, procedures, and work instructions"
-        actions={
-          <div className="flex gap-2">
-            <Link to="/policies/hierarchy">
-              <Button variant="outline" size="sm">
-                <FolderTree className="h-4 w-4 mr-2" />
-                Hierarchy View
-              </Button>
-            </Link>
-            <Link to="/policies/documents/new">
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                New Document
-              </Button>
-            </Link>
-          </div>
-        }
-      />
-
+    <ListPageLayout
+      title="Policy Documents"
+      description="Manage all policies, standards, procedures, and work instructions"
+      breadcrumbs={[
+        { label: "Policies", href: "/policies" },
+        { label: "Documents" },
+      ]}
+      actions={
+        <div className="flex gap-2">
+          <Link to="/policies/hierarchy">
+            <Button variant="outline" size="sm">
+              <FolderTree className="h-4 w-4 mr-2" />
+              Hierarchy View
+            </Button>
+          </Link>
+          <Link to="/policies/documents/new">
+            <Button size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              New Document
+            </Button>
+          </Link>
+        </div>
+      }
+    >
       <DataTable
         data={documents}
         columns={columns}
@@ -357,6 +360,6 @@ export default function PolicyDocumentListPage() {
           </div>
         }
       />
-    </div>
+    </ListPageLayout>
   );
 }
