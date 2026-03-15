@@ -231,7 +231,7 @@ All autonomous capabilities preserve the human-approval safety model. For full d
 
 > **Build memory:** The first build compiles 4 Docker images in parallel and requires **4 GB RAM minimum**. On memory-constrained VMs, build sequentially to reduce peak usage:
 > ```bash
-> docker compose build --parallel 1
+> docker compose --parallel 1 build
 > docker compose up -d
 > ```
 
