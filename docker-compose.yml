@@ -86,6 +86,7 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       GATEWAY_PORT: 3100
       GATEWAY_SECRET: ${GATEWAY_SECRET:-}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       NODE_ENV: production
     depends_on:
       db:

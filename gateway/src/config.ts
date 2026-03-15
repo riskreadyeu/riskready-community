@@ -28,7 +28,7 @@ export interface GatewayConfig {
 export function loadConfig(): GatewayConfig {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error('DATABASE_URL is required');
-  const gatewaySecret = process.env.GATEWAY_SECRET ?? process.env.JWT_SECRET;
+  const gatewaySecret = process.env.GATEWAY_SECRET || process.env.JWT_SECRET;
   if (!gatewaySecret) {
     throw new Error('GATEWAY_SECRET or JWT_SECRET is required');
   }
