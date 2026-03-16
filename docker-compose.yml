@@ -48,6 +48,7 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-riskready}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-riskready}?schema=public
+      GATEWAY_URL: ${GATEWAY_URL:-http://gateway:3100}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       ACCESS_TOKEN_TTL_SECONDS: ${ACCESS_TOKEN_TTL_SECONDS:-900}
       REFRESH_SESSION_TTL_DAYS: ${REFRESH_SESSION_TTL_DAYS:-14}

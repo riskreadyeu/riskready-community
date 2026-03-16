@@ -15,6 +15,10 @@ export interface GatewayConfigResponse {
 export class GatewayConfigService {
   constructor(private prisma: PrismaService) {}
 
+  private getDefaultGatewayUrl(): string {
+    return process.env['GATEWAY_URL'] || 'http://localhost:3100';
+  }
+
   async getConfig(organisationId: string): Promise<GatewayConfigResponse> {
     const config = await this.prisma.gatewayConfig.findUnique({
       where: { organisationId },
@@ -25,7 +29,7 @@ export class GatewayConfigService {
         anthropicApiKey: null,
         anthropicApiKeySet: false,
         agentModel: 'claude-haiku-4-5-20251001',
-        gatewayUrl: 'http://localhost:3100',
+        gatewayUrl: this.getDefaultGatewayUrl(),
         maxAgentTurns: 25,
         updatedAt: new Date().toISOString(),
       };
@@ -79,7 +83,7 @@ export class GatewayConfigService {
       create: {
         organisationId,
         agentModel: dto.agentModel ?? 'claude-haiku-4-5-20251001',
-        gatewayUrl: dto.gatewayUrl ?? 'http://localhost:3100',
+        gatewayUrl: dto.gatewayUrl ?? this.getDefaultGatewayUrl(),
         maxAgentTurns: dto.maxAgentTurns ?? 25,
         anthropicApiKey: encryptedKey ?? null,
         updatedById: userId ?? null,
