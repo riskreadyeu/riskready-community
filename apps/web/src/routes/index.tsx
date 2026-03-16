@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 
 import LoginPage from "@/pages/LoginPage";
 
+import { assistantRoutes } from "./assistant-routes";
 import { auditsRoutes } from "./audits-routes";
 import { controlsRoutes } from "./controls-routes";
 import { dashboardRoutes } from "./dashboard-routes";
@@ -39,6 +40,7 @@ export function buildUnauthenticatedRoutes(props: {
 export function buildAuthenticatedRoutes(): RouteObject[] {
   return [
     ...dashboardRoutes,
+    ...assistantRoutes,
     ...risksRoutes,
     ...controlsRoutes,
     ...policiesRoutes,

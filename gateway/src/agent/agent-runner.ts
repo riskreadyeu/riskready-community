@@ -9,6 +9,7 @@ import { SearchService } from '../memory/search.service.js';
 import { MemoryDistiller } from '../memory/distiller.js';
 import { extractBlock, hasBlockMapping } from './block-extractor.js';
 import { extractActionIdsFromToolResults } from './action-id-extractor.js';
+import { resolveConversationModel } from '../model-resolution.js';
 
 type QueryFn = typeof import('@anthropic-ai/claude-agent-sdk')['query'];
 
@@ -252,18 +253,23 @@ User: ${msg.text}`;
       delete cleanEnv.CLAUDECODE;
 
       // Load per-org config from DB, falling back to env vars
-      let model = process.env.AGENT_MODEL || 'claude-haiku-4-5-20251001';
+      let dbModel: string | undefined;
       let maxTurns = 25;
       if (this.deps.getDbConfig) {
         const dbConfig = await this.deps.getDbConfig(msg.organisationId);
         if (dbConfig) {
-          model = dbConfig.agentModel || model;
+          dbModel = dbConfig.agentModel || undefined;
           maxTurns = dbConfig.maxAgentTurns || maxTurns;
           if (dbConfig.anthropicApiKey) {
             cleanEnv.ANTHROPIC_API_KEY = dbConfig.anthropicApiKey;
           }
         }
       }
+      const model = resolveConversationModel({
+        envModel: process.env.AGENT_MODEL,
+        dbModel,
+        conversationModel: conversation.model,
+      });
 
       const mcpServers = this.deps.getMcpServers(msg.text);
 

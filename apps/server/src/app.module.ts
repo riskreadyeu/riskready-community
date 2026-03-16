@@ -21,6 +21,7 @@ import { AgentScheduleModule } from './agent-schedule/agent-schedule.module';
 import { AgentTriggerModule } from './agent-triggers/agent-trigger.module';
 import { AgentWorkflowModule } from './agent-workflow/agent-workflow.module';
 import { RequestContextMiddleware } from './shared/middleware/request-context.middleware';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { RequestContextMiddleware } from './shared/middleware/request-context.mi
     IncidentsModule,
     EvidenceModule,
     GatewayConfigModule,
+    ChatModule,
     McpApprovalModule,
     AgentScheduleModule,
     AgentTriggerModule,

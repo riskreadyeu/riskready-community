@@ -16,6 +16,7 @@ import { filterMcpServersForMember } from './council-members.js';
 import { renderDeliberation } from './council-renderer.js';
 import { CouncilClassifier } from './council-classifier.js';
 import type { Router } from '../router/router.js';
+import { resolveConversationModel } from '../model-resolution.js';
 
 type QueryFn = typeof import('@anthropic-ai/claude-agent-sdk')['query'];
 
@@ -65,6 +66,12 @@ export class CouncilOrchestrator {
       throw new Error('Council should not be convened for this message');
     }
 
+    const conversation = await prisma.chatConversation.findUnique({
+      where: { id: conversationId },
+      select: { model: true },
+    });
+    const conversationModel = conversation?.model ?? null;
+
     // Create council session in DB
     const session = await prisma.councilSession.create({
       data: {
@@ -89,6 +96,7 @@ export class CouncilOrchestrator {
         question,
         decision,
         organisationId,
+        conversationModel,
         signal,
         emit,
         allMcpServers,
@@ -120,6 +128,7 @@ export class CouncilOrchestrator {
         decision,
         session.id,
         organisationId,
+        conversationModel,
         signal,
         allMcpServers,
         queryFn,
@@ -160,6 +169,7 @@ export class CouncilOrchestrator {
     question: string,
     decision: CouncilDecision,
     organisationId: string,
+    conversationModel: string | null,
     signal: AbortSignal,
     emit: (event: ChatEvent) => void,
     allMcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>,
@@ -173,7 +183,7 @@ export class CouncilOrchestrator {
     if (decision.deliberationPattern === 'parallel_then_synthesis') {
       // Run all members in parallel
       const promises = analysisMembers.map((role) =>
-        this.runSingleMember(role, question, '', organisationId, signal, emit, allMcpServers, queryFn, getDbConfig),
+        this.runSingleMember(role, question, '', organisationId, conversationModel, signal, emit, allMcpServers, queryFn, getDbConfig),
       );
       const results = await Promise.allSettled(promises);
 
@@ -189,7 +199,7 @@ export class CouncilOrchestrator {
       let context = '';
       for (const role of analysisMembers) {
         const opinion = await this.runSingleMember(
-          role, question, context, organisationId, signal, emit, allMcpServers, queryFn, getDbConfig,
+          role, question, context, organisationId, conversationModel, signal, emit, allMcpServers, queryFn, getDbConfig,
         );
         opinions.push(opinion);
         context += `\n\n--- ${role} findings ---\n${this.summarizeOpinion(opinion)}`;
@@ -201,14 +211,14 @@ export class CouncilOrchestrator {
         const challenger = analysisMembers[1]!;
 
         const proposal = await this.runSingleMember(
-          proposer, question, '', organisationId, signal, emit, allMcpServers, queryFn, getDbConfig,
+          proposer, question, '', organisationId, conversationModel, signal, emit, allMcpServers, queryFn, getDbConfig,
         );
         opinions.push(proposal);
 
         const challenge = await this.runSingleMember(
           challenger,
           `Review and challenge these findings:\n${this.summarizeOpinion(proposal)}\n\nOriginal question: ${question}`,
-          '', organisationId, signal, emit, allMcpServers, queryFn, getDbConfig,
+          '', organisationId, conversationModel, signal, emit, allMcpServers, queryFn, getDbConfig,
         );
         opinions.push(challenge);
 
@@ -216,7 +226,7 @@ export class CouncilOrchestrator {
         const context = `Proposal by ${proposer}:\n${this.summarizeOpinion(proposal)}\n\nChallenge by ${challenger}:\n${this.summarizeOpinion(challenge)}`;
         for (const role of analysisMembers.slice(2)) {
           const opinion = await this.runSingleMember(
-            role, question, context, organisationId, signal, emit, allMcpServers, queryFn, getDbConfig,
+            role, question, context, organisationId, conversationModel, signal, emit, allMcpServers, queryFn, getDbConfig,
           );
           opinions.push(opinion);
         }
@@ -231,6 +241,7 @@ export class CouncilOrchestrator {
     question: string,
     previousContext: string,
     organisationId: string,
+    conversationModel: string | null,
     signal: AbortSignal,
     emit: (event: ChatEvent) => void,
     allMcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>,
@@ -250,17 +261,20 @@ export class CouncilOrchestrator {
     const cleanEnv = { ...process.env };
     delete cleanEnv.CLAUDECODE;
 
-    let model = process.env.AGENT_MODEL || 'claude-haiku-4-5-20251001';
-    if (this.config.memberModel) {
-      model = this.config.memberModel;
-    }
+    let dbModel: string | undefined;
     if (getDbConfig) {
       const dbConfig = await getDbConfig(organisationId);
       if (dbConfig) {
-        if (!this.config.memberModel) model = dbConfig.agentModel || model;
+        dbModel = dbConfig.agentModel || undefined;
         if (dbConfig.anthropicApiKey) cleanEnv.ANTHROPIC_API_KEY = dbConfig.anthropicApiKey;
       }
     }
+    const model = this.config.memberModel
+      || resolveConversationModel({
+        envModel: process.env.AGENT_MODEL,
+        dbModel,
+        conversationModel,
+      });
 
     const abortController = new AbortController();
     const onAbort = () => abortController.abort();
@@ -393,6 +407,7 @@ export class CouncilOrchestrator {
     decision: CouncilDecision,
     sessionId: string,
     organisationId: string,
+    conversationModel: string | null,
     signal: AbortSignal,
     allMcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>,
     queryFn: QueryFn,
@@ -427,14 +442,19 @@ Format your response using the structured output format from your instructions.`
     const cleanEnv = { ...process.env };
     delete cleanEnv.CLAUDECODE;
 
-    let model = process.env.AGENT_MODEL || 'claude-haiku-4-5-20251001';
+    let dbModel: string | undefined;
     if (getDbConfig) {
       const dbConfig = await getDbConfig(organisationId);
       if (dbConfig) {
-        model = dbConfig.agentModel || model;
+        dbModel = dbConfig.agentModel || undefined;
         if (dbConfig.anthropicApiKey) cleanEnv.ANTHROPIC_API_KEY = dbConfig.anthropicApiKey;
       }
     }
+    const model = resolveConversationModel({
+      envModel: process.env.AGENT_MODEL,
+      dbModel,
+      conversationModel,
+    });
 
     const abortController = new AbortController();
     const onAbort = () => abortController.abort();

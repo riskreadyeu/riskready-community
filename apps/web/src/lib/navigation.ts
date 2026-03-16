@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 
 import {
   AlertTriangle,
+  Bot,
   Building2,
   ClipboardCheck,
   FileCheck,
@@ -48,7 +49,10 @@ export const shellMeta = {
 export const navGroups: NavGroup[] = [
   {
     label: "Overview",
-    items: [{ title: "Dashboard", to: "/dashboard", icon: LayoutDashboard }],
+    items: [
+      { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+      { title: "Assistant", to: "/assistant", icon: Bot },
+    ],
   },
   {
     label: "Risk & Compliance",

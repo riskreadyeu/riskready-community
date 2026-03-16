@@ -3,6 +3,7 @@
 model ChatConversation {
   id             String        @id @default(cuid())
   title          String?
+  model          String?
   userId         String
   organisationId String
   createdAt      DateTime      @default(now())
