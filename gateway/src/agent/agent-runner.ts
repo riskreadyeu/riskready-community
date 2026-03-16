@@ -10,6 +10,7 @@ import { MemoryDistiller } from '../memory/distiller.js';
 import { extractBlock, hasBlockMapping } from './block-extractor.js';
 import { extractActionIdsFromToolResults } from './action-id-extractor.js';
 import { resolveConversationModel } from '../model-resolution.js';
+import { applyGroundingGuard, type GuardToolResult } from '../grounding-guard.js';
 
 type QueryFn = typeof import('@anthropic-ai/claude-agent-sdk')['query'];
 
@@ -34,6 +35,11 @@ interface ResultMessage {
     cache_creation_input_tokens?: number | null;
     cache_read_input_tokens?: number | null;
   };
+}
+
+interface HistoryMessage {
+  role: 'USER' | 'ASSISTANT';
+  content: string;
 }
 
 export interface AgentRunnerDeps {
@@ -158,7 +164,7 @@ export class AgentRunner {
     });
 
     let historyText: string;
-    const pastMessages = history.slice(0, -1); // exclude current user message
+    const pastMessages = history.slice(0, -1) as HistoryMessage[]; // exclude current user message
     if (pastMessages.length <= MAX_HISTORY) {
       historyText = pastMessages
         .map((m) => `${m.role === 'USER' ? 'User' : 'Assistant'}: ${m.content}`)
@@ -237,6 +243,7 @@ User: ${msg.text}`;
     const actionIds: string[] = [];
     const blocks: Array<{ type: string; [key: string]: unknown }> = [];
     const collectedToolResults: Array<{ content?: string | Array<{ type?: string; text?: string }> }> = [];
+    const groundingToolResults: GuardToolResult[] = [];
     let contentBlockIndex = 0;
     const toolCallsByIndex = new Map<number, number>(); // content block index → toolCalls array index
     let totalInputTokens = 0;
@@ -406,6 +413,14 @@ User: ${msg.text}`;
               }
               // Collect for structured action ID extraction
               collectedToolResults.push({ content: toolSummary.result });
+              groundingToolResults.push({
+                toolName: toolSummary.tool_name,
+                status: toolSummary.is_error ? 'error' : 'success',
+                rawResult: {
+                  content: [{ type: 'text', text: typeof toolSummary.result === 'string' ? toolSummary.result : JSON.stringify(toolSummary.result) }],
+                  isError: toolSummary.is_error ?? false,
+                },
+              });
             }
           }
         }
@@ -448,6 +463,12 @@ User: ${msg.text}`;
           toolCallCount: toolCalls.length,
         }, 'Token usage');
       }
+
+      const grounded = applyGroundingGuard({
+        text: fullText || 'I was unable to generate a response.',
+        toolResults: groundingToolResults,
+      });
+      fullText = grounded.text;
 
       const saved = await prisma.chatMessage.create({
         data: {
