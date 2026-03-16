@@ -91,6 +91,50 @@ describe('ChatService', () => {
     await expect(service.getConversation(user, 'foreign-conv')).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('lists messages for an owned conversation', async () => {
+    prisma.chatConversation.findFirst.mockResolvedValue({
+      id: 'conv-1',
+      title: 'New chat',
+      model: 'claude-sonnet-4-5-20250929',
+      userId: user.id,
+      organisationId: user.organisationId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    prisma.chatMessage.findMany.mockResolvedValue([
+      {
+        id: 'msg-1',
+        role: 'USER',
+        content: 'hello',
+        toolCalls: null,
+        actionIds: [],
+        blocks: null,
+        inputTokens: null,
+        outputTokens: null,
+        model: 'claude-sonnet-4-5-20250929',
+        createdAt: new Date(),
+      },
+    ]);
+
+    const result = await service.listMessages(user, 'conv-1');
+
+    expect(prisma.chatMessage.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { conversationId: 'conv-1' },
+        orderBy: { createdAt: 'asc' },
+      }),
+    );
+    expect(result).toEqual({
+      results: [
+        expect.objectContaining({
+          id: 'msg-1',
+          content: 'hello',
+        }),
+      ],
+      count: 1,
+    });
+  });
+
   it('dispatches a message to the gateway with trusted identity headers', async () => {
     prisma.chatConversation.findFirst.mockResolvedValue({
       id: 'conv-1',

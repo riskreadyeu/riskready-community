@@ -38,3 +38,10 @@ test("assistant page uses chat api and live stream primitives", async () => {
   assert.match(pageSource, /EventSource/);
   assert.match(pageSource, /createConversation|sendMessage|listConversations/);
 });
+
+test("web entry does not depend on blocked external Google Fonts", async () => {
+  const htmlSource = await readFile(path.join(webRoot, "index.html"), "utf8");
+
+  assert.doesNotMatch(htmlSource, /fonts\.googleapis\.com/);
+  assert.doesNotMatch(htmlSource, /fonts\.gstatic\.com/);
+});
