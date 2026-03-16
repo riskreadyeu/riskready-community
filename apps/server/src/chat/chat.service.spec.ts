@@ -40,6 +40,7 @@ describe('ChatService', () => {
   afterEach(() => {
     jest.restoreAllMocks();
     delete process.env['GATEWAY_SECRET'];
+    delete process.env['JWT_SECRET'];
   });
 
   it('creates a conversation with a validated fixed model', async () => {
@@ -162,5 +163,31 @@ describe('ChatService', () => {
       }),
     );
     expect(result).toEqual({ runId: 'run-1' });
+  });
+
+  it('falls back to JWT_SECRET for gateway auth when GATEWAY_SECRET is unset', async () => {
+    prisma.chatConversation.findFirst.mockResolvedValue({
+      id: 'conv-1',
+      userId: user.id,
+      organisationId: user.organisationId,
+      model: 'claude-sonnet-4-5-20250929',
+    });
+    process.env['JWT_SECRET'] = 'jwt-secret';
+    const fetchMock = jest.spyOn(global, 'fetch' as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ runId: 'run-2' }),
+      text: async () => '',
+    } as Response);
+
+    await service.sendMessage(user, 'conv-1', { text: 'Show me top risks' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3100/dispatch',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'x-gateway-secret': 'jwt-secret',
+        }),
+      }),
+    );
   });
 });

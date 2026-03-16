@@ -193,8 +193,9 @@ export class ChatService {
       headers['x-conversation-id'] = conversationId;
     }
 
-    if (process.env['GATEWAY_SECRET']) {
-      headers['x-gateway-secret'] = process.env['GATEWAY_SECRET'];
+    const gatewaySecret = process.env['GATEWAY_SECRET'] || process.env['JWT_SECRET'];
+    if (gatewaySecret) {
+      headers['x-gateway-secret'] = gatewaySecret;
     }
 
     return headers;
