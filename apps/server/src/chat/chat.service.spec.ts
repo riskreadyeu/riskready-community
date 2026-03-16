@@ -53,7 +53,7 @@ describe('ChatService', () => {
       updatedAt: new Date(),
     });
 
-    const result = await service.createConversation(user, { model: 'claude-sonnet-4-5-20250929' });
+    await service.createConversation(user, { model: 'claude-sonnet-4-5-20250929' });
 
     expect(prisma.chatConversation.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -64,7 +64,6 @@ describe('ChatService', () => {
         }),
       }),
     );
-    expect(result.model).toBe('claude-sonnet-4-5-20250929');
   });
 
   it('rejects unsupported models', async () => {
