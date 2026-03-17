@@ -1,6 +1,6 @@
 # RiskReady Gateway — AI Assistant for Community Edition
 
-The Gateway is a multi-channel AI agent orchestrator that powers the RiskReady AI GRC Assistant. It uses the [Claude Agent SDK](https://docs.anthropic.com/en/docs/agents-and-tools/claude-agent-sdk) to run agentic loops with MCP servers as tools, exposed via HTTP/SSE (Fastify).
+The Gateway is a multi-channel AI agent orchestrator that powers the RiskReady AI GRC Assistant. It uses the Anthropic SDK with tool search to run agentic message loops with MCP servers as tools, exposed via HTTP/SSE (Fastify).
 
 ## Architecture
 
