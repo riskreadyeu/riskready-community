@@ -158,7 +158,7 @@ test.describe('Risks Endpoints', () => {
 
 test.describe('Controls Endpoints', () => {
   test.fixme('GET /api/controls', async () => {
-    // Known 500 - service has TS errors from missing Prisma models (transpile-only mode)
+    // Temporarily skipped until DB-backed smoke verification is restored in local test env.
     const res = await api.get('/api/controls');
     expect(res.status()).toBeLessThan(500);
   });
@@ -196,7 +196,7 @@ test.describe('Policies Endpoints', () => {
 
 test.describe('Incidents Endpoints', () => {
   test.fixme('GET /api/incidents', async () => {
-    // Known 500 - service has TS errors from missing Prisma models (transpile-only mode)
+    // Temporarily skipped until DB-backed smoke verification is restored in local test env.
     const res = await api.get('/api/incidents');
     expect(res.status()).toBeLessThan(500);
   });
@@ -208,7 +208,7 @@ test.describe('Incidents Endpoints', () => {
 
 test.describe('Evidence Endpoints', () => {
   test.fixme('GET /api/evidence', async () => {
-    // Known 500 - service has TS errors from missing Prisma models (transpile-only mode)
+    // Temporarily skipped until DB-backed smoke verification is restored in local test env.
     const res = await api.get('/api/evidence');
     expect(res.status()).toBeLessThan(500);
   });

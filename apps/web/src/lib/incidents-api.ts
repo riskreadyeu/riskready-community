@@ -443,7 +443,7 @@ export interface UpdateIncidentDto extends Partial<CreateIncidentDto> {
 
 export async function updateIncident(id: string, data: UpdateIncidentDto): Promise<Incident> {
   return request<Incident>(`/api/incidents/${id}`, {
-    method: 'PATCH',
+    method: 'PUT',
     body: JSON.stringify(data),
   });
 }
@@ -652,4 +652,3 @@ export const sourceLabels: Record<IncidentSource, string> = {
   PENETRATION_TEST: 'Penetration Test',
   OTHER: 'Other',
 };
-
