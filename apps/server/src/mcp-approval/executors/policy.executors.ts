@@ -19,26 +19,26 @@ export function registerPolicyExecutors(executors: ExecutorMap, services: Policy
   );
 
   executors.set('UPDATE_POLICY', (p, userId) => {
-    const { policyId, ...data } = p as { policyId: string; [k: string]: any };
-    return policyDocumentService.update(policyId, data as any, userId);
+    const { documentId, ...data } = p as { documentId: string; [k: string]: any };
+    return policyDocumentService.update(documentId, data as any, userId);
   });
 
   // --- Policy lifecycle (all via updateStatus) ---
 
   executors.set('SUBMIT_POLICY_REVIEW', (p, userId) =>
-    policyDocumentService.updateStatus(p['policyId'], 'PENDING_REVIEW' as any, userId),
+    policyDocumentService.updateStatus(p['documentId'], 'PENDING_REVIEW' as any, userId),
   );
 
   executors.set('APPROVE_POLICY', (p, userId) =>
-    policyDocumentService.updateStatus(p['policyId'], 'APPROVED' as any, userId),
+    policyDocumentService.updateStatus(p['documentId'], 'APPROVED' as any, userId),
   );
 
   executors.set('PUBLISH_POLICY', (p, userId) =>
-    policyDocumentService.updateStatus(p['policyId'], 'PUBLISHED' as any, userId),
+    policyDocumentService.updateStatus(p['documentId'], 'PUBLISHED' as any, userId),
   );
 
   executors.set('RETIRE_POLICY', (p, userId) =>
-    policyDocumentService.updateStatus(p['policyId'], 'RETIRED' as any, userId),
+    policyDocumentService.updateStatus(p['documentId'], 'RETIRED' as any, userId),
   );
 
   // --- Exceptions ---
