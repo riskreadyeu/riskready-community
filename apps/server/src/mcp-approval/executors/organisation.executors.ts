@@ -64,8 +64,8 @@ export function registerOrganisationExecutors(executors: ExecutorMap, services: 
   );
 
   executors.set('UPDATE_BUSINESS_PROCESS', (p) => {
-    const { businessProcessId, ...data } = p as { businessProcessId: string; [k: string]: any };
-    return businessProcessService.update(businessProcessId, data as any);
+    const { processId, ...data } = p as { processId: string; [k: string]: any };
+    return businessProcessService.update(processId, data as any);
   });
 
   // --- Security Committees ---
@@ -90,7 +90,7 @@ export function registerOrganisationExecutors(executors: ExecutorMap, services: 
   );
 
   executors.set('UPDATE_EXTERNAL_DEPENDENCY', (p) => {
-    const { externalDependencyId, ...data } = p as { externalDependencyId: string; [k: string]: any };
-    return externalDependencyService.update(externalDependencyId, data as any);
+    const { dependencyId, ...data } = p as { dependencyId: string; [k: string]: any };
+    return externalDependencyService.update(dependencyId, data as any);
   });
 }

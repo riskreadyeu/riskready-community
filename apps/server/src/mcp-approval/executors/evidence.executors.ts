@@ -28,8 +28,8 @@ export function registerEvidenceExecutors(executors: ExecutorMap, services: Evid
   executors.set('LINK_EVIDENCE', (p, userId) =>
     evidenceLinkService.linkEvidence(
       p['evidenceId'],
-      p['entityType'],
-      p['entityId'],
+      p['targetType'],
+      p['targetId'],
       p['linkType'],
       p['notes'],
       userId,

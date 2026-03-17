@@ -15,33 +15,33 @@ export function registerAuditExecutors(executors: ExecutorMap, services: AuditEx
   );
 
   executors.set('UPDATE_NONCONFORMITY', (p) => {
-    const { nonconformityId, ...data } = p as { nonconformityId: string; [k: string]: any };
-    return nonconformityService.update(nonconformityId, data as any);
+    const { ncId, ...data } = p as { ncId: string; [k: string]: any };
+    return nonconformityService.update(ncId, data as any);
   });
 
   // --- Nonconformity transitions ---
 
   executors.set('TRANSITION_NONCONFORMITY', (p) =>
-    nonconformityService.update(p['nonconformityId'], { status: p['targetStatus'] } as any),
+    nonconformityService.update(p['ncId'], { status: p['targetStatus'] } as any),
   );
 
   // --- CAP workflow ---
 
   executors.set('SUBMIT_CAP', (p, userId) =>
-    nonconformityService.submitCapForApproval(p['nonconformityId'], userId),
+    nonconformityService.submitCapForApproval(p['ncId'], userId),
   );
 
   executors.set('APPROVE_CAP', (p, userId) =>
-    nonconformityService.approveCap(p['nonconformityId'], userId, p['approvalComments']),
+    nonconformityService.approveCap(p['ncId'], userId, p['approvalComments']),
   );
 
   executors.set('REJECT_CAP', (p, userId) =>
-    nonconformityService.rejectCap(p['nonconformityId'], userId, p['rejectionReason']),
+    nonconformityService.rejectCap(p['ncId'], userId, p['rejectionReason']),
   );
 
   // --- Close ---
 
   executors.set('CLOSE_NONCONFORMITY', (p, userId) =>
-    nonconformityService.close(p['nonconformityId'], userId),
+    nonconformityService.close(p['ncId'], userId),
   );
 }
