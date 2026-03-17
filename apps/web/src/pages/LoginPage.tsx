@@ -218,12 +218,6 @@ export default function LoginPage(props: {
                     <span>AGPL-3.0</span>
                   </div>
                 </div>
-                <div className="rounded border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-400">
-                  <span className="font-medium">Demo data only.</span> Do not use production data or
-                  real personal information. MCP servers connect directly to your database —
-                  with personal AI subscriptions, data is sent to Anthropic's API. For
-                  production use, get an Anthropic Enterprise subscription.
-                </div>
                 <a
                   href="https://github.com/riskreadyeu/riskready-community"
                   target="_blank"

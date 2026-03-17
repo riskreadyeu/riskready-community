@@ -754,7 +754,7 @@ export async function createDepartment(data: CreateDepartmentDto) {
 
 export async function updateDepartment(id: string, data: Partial<CreateDepartmentDto>) {
   return request<Department>(`/api/organisation/departments/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: JSON.stringify(data),
   });
 }
@@ -782,27 +782,12 @@ export async function getLocation(id: string) {
 export interface CreateLocationDto {
   name: string;
   address?: string;
-  locationCode?: string;
-  region?: string;
   city?: string;
   state?: string;
   country?: string;
   postalCode?: string;
   locationType?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  timezone?: string;
-  employeeCount?: number;
-  maxCapacity?: number;
-  floorSpace?: number;
-  physicalSecurityLevel?: string;
-  accessControlType?: string;
-  isDataCenter?: boolean;
-  hasServerRoom?: boolean;
-  networkType?: string;
-  backupPower?: boolean;
-  inIsmsScope?: boolean;
-  scopeJustification?: string;
+  isHeadquarters?: boolean;
   isActive?: boolean;
 }
 
@@ -815,7 +800,7 @@ export async function createLocation(data: CreateLocationDto) {
 
 export async function updateLocation(id: string, data: Partial<CreateLocationDto>) {
   return request<Location>(`/api/organisation/locations/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: JSON.stringify(data),
   });
 }
@@ -1310,16 +1295,6 @@ export interface SecurityChampion {
   appointmentDate?: string;
 }
 
-export async function getSecurityChampions(params?: { skip?: number; take?: number; departmentId?: string; isActive?: boolean }) {
-  const searchParams = new URLSearchParams();
-  if (params?.skip !== undefined) searchParams.set('skip', String(params.skip));
-  if (params?.take !== undefined) searchParams.set('take', String(params.take));
-  if (params?.departmentId) searchParams.set('departmentId', params.departmentId);
-  if (params?.isActive !== undefined) searchParams.set('isActive', String(params.isActive));
-  const query = searchParams.toString();
-  return request<PaginatedResponse<SecurityChampion>>(`/api/organisation/security-champions${query ? `?${query}` : ''}`);
-}
-
 export async function getSecurityChampion(id: string) {
   return request<SecurityChampion>(`/api/organisation/security-champions/${id}`);
 }
@@ -1770,7 +1745,7 @@ export async function createOrganisationalUnit(data: Partial<OrganisationalUnit>
 
 export async function updateOrganisationalUnit(id: string, data: Partial<OrganisationalUnit>) {
   return request<OrganisationalUnit>(`/api/organisation/organisational-units/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: JSON.stringify(data),
   });
 }

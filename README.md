@@ -285,8 +285,6 @@ The demo includes: 15 risks with 30 scenarios, 40 ISO 27001 controls, 12 policie
 
 > Change these in your `.env` file before deploying to production.
 
-> **Important:** This Community Edition is designed for evaluation with demo data. Do not use production data or connect to databases containing real personal information. MCP servers connect directly to your database — when using personal AI subscriptions (Claude Pro, Team, etc.), data is sent to Anthropic's API. For production use with real data, use an [Anthropic Enterprise](https://www.anthropic.com/enterprise) subscription which provides data privacy guarantees, SSO, and compliance controls.
-
 To use AI features, connect the MCP servers to **Claude Code** or **Claude Desktop**. See the [AI Assistant Guide](documentation/AI_ASSISTANT.md) for setup instructions.
 
 > For detailed configuration, production setup, and troubleshooting, see the [Deployment Guide](documentation/DEPLOYMENT.md).

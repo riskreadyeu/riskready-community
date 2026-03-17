@@ -11,15 +11,31 @@ import {
   StatusBadge,
   StatCard,
   StatCardGrid,
-  ConfirmDialog,
   type Column,
   type RowAction,
 } from "@/components/common";
-import {
-  getSecurityChampions,
-  deleteSecurityChampion,
-  type SecurityChampion,
-} from "@/lib/organisation-api";
+
+interface SecurityChampion {
+  id: string;
+  user: {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+  };
+  department: {
+    id: string;
+    name: string;
+    departmentCode: string;
+  };
+  championRole: string;
+  certificationLevel?: string;
+  specializations?: string[];
+  isActive: boolean;
+  appointmentDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const championRoleLabels: Record<string, string> = {
   primary: "Primary",
@@ -42,12 +58,17 @@ const certificationLevelVariants: Record<string, "default" | "secondary"> = {
   expert: "default",
 };
 
+async function getSecurityChampions(): Promise<{ results: SecurityChampion[]; count: number }> {
+  const res = await fetch('/api/organisation/security-champions', {
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('Failed to fetch security champions');
+  return res.json();
+}
+
 export default function SecurityChampionsPage() {
   const [loading, setLoading] = useState(true);
   const [champions, setChampions] = useState<SecurityChampion[]>([]);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deletingChampion, setDeletingChampion] = useState<SecurityChampion | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -65,52 +86,26 @@ export default function SecurityChampionsPage() {
     }
   };
 
-  const handleDeleteClick = (champion: SecurityChampion) => {
-    setDeletingChampion(champion);
-    setDeleteOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deletingChampion) return;
-    try {
-      setIsDeleting(true);
-      await deleteSecurityChampion(deletingChampion.id);
-      toast.success("Security champion deleted successfully");
-      setDeleteOpen(false);
-      setDeletingChampion(null);
-      await loadData();
-    } catch (err) {
-      console.error("Error deleting security champion:", err);
-      toast.error("Failed to delete security champion");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   const columns: Column<SecurityChampion>[] = [
     {
       key: "user",
       header: "Champion",
-      render: (champion) => {
-        const initials = `${champion.user?.firstName?.[0] || ""}${champion.user?.lastName?.[0] || ""}` || "SC";
-        const name = `${champion.user?.firstName || ""} ${champion.user?.lastName || ""}`.trim() || champion.user?.email || "Unknown Champion";
-        return (
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
-              {initials}
-            </div>
-            <div className="flex flex-col">
-              <Link
-                to={`/organisation/security-champions/${champion.id}`}
-                className="font-medium text-foreground group-hover:text-primary transition-colors hover:underline"
-              >
-                {name}
-              </Link>
-              <span className="text-xs text-muted-foreground">{champion.user?.email || "-"}</span>
-            </div>
+      render: (champion) => (
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
+            {champion.user.firstName?.[0]}{champion.user.lastName?.[0]}
           </div>
-        );
-      },
+          <div className="flex flex-col">
+            <Link
+              to={`/organisation/security-champions/${champion.id}`}
+              className="font-medium text-foreground group-hover:text-primary transition-colors hover:underline"
+            >
+              {champion.user.firstName} {champion.user.lastName}
+            </Link>
+            <span className="text-xs text-muted-foreground">{champion.user.email}</span>
+          </div>
+        </div>
+      ),
     },
     {
       key: "department",
@@ -118,7 +113,7 @@ export default function SecurityChampionsPage() {
       render: (champion) => (
         <div className="flex items-center gap-2">
           <Building2 className="h-3 w-3 text-muted-foreground" />
-          <span className="text-sm">{champion.department?.name || "-"}</span>
+          <span className="text-sm">{champion.department.name}</span>
         </div>
       ),
     },
@@ -127,7 +122,7 @@ export default function SecurityChampionsPage() {
       header: "Role",
       render: (champion) => (
         <Badge variant="outline">
-          {championRoleLabels[champion.championRole || ""] || champion.championRole || "-"}
+          {championRoleLabels[champion.championRole] || champion.championRole}
         </Badge>
       ),
     },
@@ -167,7 +162,7 @@ export default function SecurityChampionsPage() {
     {
       key: "appointmentDate",
       header: "Appointed",
-      render: (champion) => champion.appointmentDate ? new Date(champion.appointmentDate).toLocaleDateString() : "-",
+      render: (champion) => new Date(champion.appointmentDate).toLocaleDateString(),
     },
     {
       key: "status",
@@ -191,12 +186,12 @@ export default function SecurityChampionsPage() {
     {
       label: "Edit",
       icon: <Edit3 className="w-4 h-4" />,
-      href: (champion) => `/organisation/security-champions/${champion.id}`,
+      onClick: () => toast.info("Edit functionality not yet available"),
     },
     {
       label: "Delete",
       icon: <Trash2 className="w-4 h-4" />,
-      onClick: (champion) => handleDeleteClick(champion),
+      onClick: () => toast.info("Delete functionality not yet available"),
       variant: "destructive",
       separator: true,
     },
@@ -217,9 +212,6 @@ export default function SecurityChampionsPage() {
   const activeCount = champions.filter((c) => c.isActive).length;
   const primaryCount = champions.filter((c) => c.championRole === "primary").length;
   const certifiedCount = champions.filter((c) => c.certificationLevel).length;
-  const deletingChampionName = deletingChampion?.user
-    ? `${deletingChampion.user.firstName || ""} ${deletingChampion.user.lastName || ""}`.trim()
-    : "";
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -269,28 +261,12 @@ export default function SecurityChampionsPage() {
         keyExtractor={(champion) => champion.id}
         searchPlaceholder="Search champions..."
         searchFilter={(champion, query) =>
-          (champion.user?.firstName?.toLowerCase().includes(query.toLowerCase()) ?? false) ||
-          (champion.user?.lastName?.toLowerCase().includes(query.toLowerCase()) ?? false) ||
-          (champion.user?.email?.toLowerCase().includes(query.toLowerCase()) ?? false) ||
-          (champion.department?.name?.toLowerCase().includes(query.toLowerCase()) ?? false)
+          (champion.user.firstName?.toLowerCase().includes(query.toLowerCase()) ?? false) ||
+          (champion.user.lastName?.toLowerCase().includes(query.toLowerCase()) ?? false) ||
+          champion.department.name.toLowerCase().includes(query.toLowerCase())
         }
         rowActions={rowActions}
         emptyMessage="No security champions found"
-      />
-
-      <ConfirmDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        title="Delete Security Champion"
-        description={
-          deletingChampionName
-            ? `Are you sure you want to remove "${deletingChampionName}" as a security champion? This action cannot be undone.`
-            : "Are you sure you want to remove this security champion? This action cannot be undone."
-        }
-        onConfirm={handleDeleteConfirm}
-        confirmLabel="Delete"
-        isLoading={isDeleting}
-        variant="destructive"
       />
     </div>
   );

@@ -3,11 +3,6 @@ import {
   IsOptional,
   IsBoolean,
   IsInt,
-  IsNumber,
-  IsArray,
-  IsObject,
-  IsEmail,
-  IsDateString,
   MinLength,
   MaxLength,
   Min,
@@ -52,90 +47,14 @@ export class CreateDepartmentDto {
   @IsOptional()
   departmentHeadId?: string;
 
-  @IsString()
-  @IsOptional()
-  @MaxLength(100)
-  deputyHeadId?: string;
-
   @IsInt()
   @IsOptional()
   @Min(0)
   headcount?: number;
 
-  @IsInt()
-  @IsOptional()
-  @Min(0)
-  contractorCount?: number;
-
-  @IsArray()
-  @IsOptional()
-  keyResponsibilities?: string[];
-
-  @IsArray()
-  @IsOptional()
-  regulatoryObligations?: string[];
-
-  @IsArray()
-  @IsOptional()
-  externalInterfaces?: string[];
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(50)
-  costCenter?: string;
-
-  @IsNumber()
-  @IsOptional()
-  budget?: number;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(10)
-  budgetCurrency?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(255)
-  location?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(255)
-  floorPlanReference?: string;
-
-  @IsObject()
-  @IsOptional()
-  businessHours?: Record<string, string>;
-
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
-
-  @IsDateString()
-  @IsOptional()
-  establishedDate?: string;
-
-  @IsBoolean()
-  @IsOptional()
-  handlesPersonalData?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
-  handlesFinancialData?: boolean;
-
-  @IsEmail()
-  @IsOptional()
-  @MaxLength(200)
-  contactEmail?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(50)
-  contactPhone?: string;
-
-  @IsObject()
-  @IsOptional()
-  emergencyContact?: Record<string, string>;
 }
 
 export class UpdateDepartmentDto {
@@ -173,92 +92,12 @@ export class UpdateDepartmentDto {
   @IsOptional()
   departmentHeadId?: string;
 
-  @IsString()
-  @IsOptional()
-  @MaxLength(100)
-  deputyHeadId?: string;
-
   @IsInt()
   @IsOptional()
   @Min(0)
   headcount?: number;
 
-  @IsInt()
-  @IsOptional()
-  @Min(0)
-  contractorCount?: number;
-
-  @IsArray()
-  @IsOptional()
-  keyResponsibilities?: string[];
-
-  @IsArray()
-  @IsOptional()
-  regulatoryObligations?: string[];
-
-  @IsArray()
-  @IsOptional()
-  externalInterfaces?: string[];
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(50)
-  costCenter?: string;
-
-  @IsNumber()
-  @IsOptional()
-  budget?: number;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(10)
-  budgetCurrency?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(255)
-  location?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(255)
-  floorPlanReference?: string;
-
-  @IsObject()
-  @IsOptional()
-  businessHours?: Record<string, string>;
-
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
-
-  @IsDateString()
-  @IsOptional()
-  establishedDate?: string;
-
-  @IsDateString()
-  @IsOptional()
-  closureDate?: string;
-
-  @IsBoolean()
-  @IsOptional()
-  handlesPersonalData?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
-  handlesFinancialData?: boolean;
-
-  @IsEmail()
-  @IsOptional()
-  @MaxLength(200)
-  contactEmail?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(50)
-  contactPhone?: string;
-
-  @IsObject()
-  @IsOptional()
-  emergencyContact?: Record<string, string>;
 }

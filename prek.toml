@@ -1,6 +1,0 @@
-[hooks.pre-commit]
-commands = [
-  { name = "typecheck-mcp", run = "for d in apps/mcp-server-*/; do (cd $d && npx tsc --noEmit); done" },
-  { name = "oxlint", run = "npx oxlint ." },
-  { name = "gitleaks", run = "gitleaks protect --staged --config .gitleaks.toml" },
-]

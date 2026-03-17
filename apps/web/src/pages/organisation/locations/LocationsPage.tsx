@@ -34,6 +34,7 @@ const emptyFormData: CreateLocationDto = {
   country: "",
   postalCode: "",
   locationType: "",
+  isHeadquarters: false,
   isActive: true,
 };
 
