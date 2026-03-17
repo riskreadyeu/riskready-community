@@ -22,12 +22,20 @@ export interface GuardToolCall {
 }
 
 const UNSUPPORTED_FAILURE_CLAIMS = [
+  // Direct permission claims
   'i don\'t have permission',
   'i do not have permission',
   'i don\'t have access',
   'i do not have access',
   'i cannot access',
   'i can\'t access',
+  'i\'m unable to access',
+  'i am unable to access',
+  'unable to access the',
+  'could not access the',
+  'unable to retrieve',
+  'unable to query',
+  // Auth failure claims
   'access denied',
   'i am unauthorized',
   'i am not authorised',
@@ -35,6 +43,7 @@ const UNSUPPORTED_FAILURE_CLAIMS = [
   'request was unauthorized',
   'returned unauthorized',
   'returned not authorized',
+  // Configuration/enablement claims
   'not enabled for this',
   'configuration issue',
   'configuration problem',
@@ -44,8 +53,20 @@ const UNSUPPORTED_FAILURE_CLAIMS = [
   'appears to be disabled',
   'doesn\'t appear to be enabled',
   'does not appear to be enabled',
-  'unable to access the',
-  'could not access the',
+  // "don't ask" mode hallucination
+  'permission configuration',
+  'permissions issue',
+  'permissions problem',
+  'currently blocked',
+  'tools are blocked',
+  'tools are currently blocked',
+  'tool access is restricted',
+  'don\'t ask mode',
+  'dontask mode',
+  'prevents me from retrieving',
+  'prevented from retrieving',
+  'encountering a permission',
+  'encountering a technical issue',
 ];
 
 const SUPPORTED_ERROR_MARKERS = [
