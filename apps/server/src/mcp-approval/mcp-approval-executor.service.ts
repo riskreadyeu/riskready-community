@@ -110,6 +110,8 @@ export class McpApprovalExecutorService {
       soaService: this.soaService,
       soaEntryService: this.soaEntryService,
       scopeItemService: this.scopeItemService,
+      prismaService: this.prismaService,
+      treatmentPlanService: this.treatmentPlanService,
     });
 
     registerRiskExecutors(this.executors, {
@@ -145,6 +147,7 @@ export class McpApprovalExecutorService {
       changeService: this.changeService,
       assetService: this.assetService,
       capacityService: this.capacityService,
+      prismaService: this.prismaService,
     });
 
     registerOrganisationExecutors(this.executors, {

@@ -1,16 +1,18 @@
 import { ChangeService } from '../../itsm/services/change.service';
 import { AssetService } from '../../itsm/services/asset.service';
 import { CapacityService } from '../../itsm/services/capacity.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { ExecutorMap } from './types';
 
 export interface ItsmExecutorServices {
   changeService: ChangeService;
   assetService: AssetService;
   capacityService: CapacityService;
+  prismaService: PrismaService;
 }
 
 export function registerItsmExecutors(executors: ExecutorMap, services: ItsmExecutorServices): void {
-  const { changeService, assetService, capacityService } = services;
+  const { changeService, assetService, capacityService, prismaService } = services;
 
   // --- Change management ---
 
@@ -79,7 +81,67 @@ export function registerItsmExecutors(executors: ExecutorMap, services: ItsmExec
 
   // --- Asset management ---
 
+  executors.set('CREATE_ASSET', (p) =>
+    assetService.create(p as any),
+  );
+
+  executors.set('UPDATE_ASSET', (p) => {
+    const { assetId, ...data } = p as { assetId: string; [k: string]: any };
+    return assetService.update(assetId, data as any);
+  });
+
   executors.set('DELETE_ASSET', (p) =>
     assetService.delete(p['assetId']),
+  );
+
+  executors.set('CREATE_ASSET_RELATIONSHIP', (p, userId) =>
+    prismaService.assetRelationship.create({
+      data: {
+        fromAssetId: p['fromAssetId'],
+        toAssetId: p['toAssetId'],
+        relationshipType: p['relationshipType'],
+        isCritical: p['isCritical'] ?? false,
+        description: p['description'],
+        notes: p['notes'],
+        createdById: userId,
+      },
+    }),
+  );
+
+  executors.set('LINK_ASSET_CONTROL', (p) =>
+    prismaService.assetControl.create({
+      data: {
+        assetId: p['assetId'],
+        controlId: p['controlId'],
+        status: p['status'] || 'planned',
+        implementationNotes: p['implementationNotes'],
+        implementedDate: p['implementedDate'] ? new Date(p['implementedDate']) : undefined,
+        evidenceUrl: p['evidenceUrl'],
+        lastVerified: p['lastVerified'] ? new Date(p['lastVerified']) : undefined,
+      },
+    }),
+  );
+
+  executors.set('LINK_ASSET_RISK', (p) =>
+    prismaService.assetRisk.create({
+      data: {
+        assetId: p['assetId'],
+        riskId: p['riskId'],
+        impactLevel: p['impactLevel'],
+        notes: p['notes'],
+      },
+    }),
+  );
+
+  // --- Change management (create) ---
+
+  executors.set('CREATE_CHANGE', (p, userId) =>
+    changeService.create(p as any, userId),
+  );
+
+  // --- Capacity planning (create) ---
+
+  executors.set('CREATE_CAPACITY_PLAN', (p) =>
+    capacityService.createCapacityPlan(p as any),
   );
 }

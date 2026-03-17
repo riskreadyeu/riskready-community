@@ -4,6 +4,8 @@ import { AssessmentTestService } from '../../controls/services/assessment-test.s
 import { SOAService } from '../../controls/services/soa.service';
 import { SOAEntryService } from '../../controls/services/soa-entry.service';
 import { ScopeItemService } from '../../controls/services/scope-item.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { TreatmentPlanService } from '../../risks/services/treatment-plan.service';
 import { ExecutorMap } from './types';
 
 export interface ControlExecutorServices {
@@ -13,6 +15,8 @@ export interface ControlExecutorServices {
   soaService: SOAService;
   soaEntryService: SOAEntryService;
   scopeItemService: ScopeItemService;
+  prismaService: PrismaService;
+  treatmentPlanService: TreatmentPlanService;
 }
 
 export function registerControlExecutors(executors: ExecutorMap, services: ControlExecutorServices): void {
@@ -23,6 +27,8 @@ export function registerControlExecutors(executors: ExecutorMap, services: Contr
     soaService,
     soaEntryService,
     scopeItemService,
+    prismaService,
+    treatmentPlanService,
   } = services;
 
   // --- Control executors ---
@@ -248,5 +254,41 @@ export function registerControlExecutors(executors: ExecutorMap, services: Contr
 
   executors.set('DELETE_SCOPE_ITEM', (p) =>
     scopeItemService.delete(p['scopeItemId']),
+  );
+
+  // --- Remediation executors ---
+
+  executors.set('CREATE_REMEDIATION', (p, userId) =>
+    treatmentPlanService.createAction({
+      ...p,
+      createdById: userId,
+    } as any),
+  );
+
+  // --- Metric executors ---
+
+  executors.set('UPDATE_METRIC_VALUE', (p, userId) =>
+    prismaService.$transaction(async (tx) => {
+      // Record the history entry
+      await tx.controlMetricHistory.create({
+        data: {
+          metricId: p['metricId'],
+          value: p['value'],
+          status: p['status'],
+          measuredAt: new Date(),
+          measuredBy: userId,
+          notes: p['notes'],
+        },
+      });
+      // Update the metric's current value
+      return tx.controlMetric.update({
+        where: { id: p['metricId'] },
+        data: {
+          currentValue: p['value'],
+          status: p['status'],
+          lastMeasured: new Date(),
+        },
+      });
+    }),
   );
 }
