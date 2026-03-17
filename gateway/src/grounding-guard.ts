@@ -16,6 +16,11 @@ export interface GroundingGuardResult {
   wasRewritten: boolean;
 }
 
+export interface GuardToolCall {
+  name: string;
+  status: string;
+}
+
 const UNSUPPORTED_FAILURE_CLAIMS = [
   'permission',
   'access denied',
@@ -126,6 +131,27 @@ function buildFallback(toolResults: GuardToolResult[]): string {
 
   lines.push('I cannot conclude there is a permission, access, or configuration problem because the tool results did not report one.');
   return lines.join('\n');
+}
+
+export function withFallbackGroundingToolResults(
+  toolResults: GuardToolResult[],
+  toolCalls: GuardToolCall[],
+): GuardToolResult[] {
+  if (toolResults.length > 0) {
+    return toolResults;
+  }
+
+  const completedToolNames = [...new Set(
+    toolCalls
+      .filter((toolCall) => toolCall.status === 'done')
+      .map((toolCall) => toolCall.name),
+  )];
+
+  return completedToolNames.map((toolName) => ({
+    toolName,
+    status: 'success' as const,
+    rawResult: { content: [] },
+  }));
 }
 
 export function applyGroundingGuard(input: GroundingGuardInput): GroundingGuardResult {

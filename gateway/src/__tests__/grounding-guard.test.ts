@@ -50,4 +50,22 @@ describe('applyGroundingGuard', () => {
     expect(result.wasRewritten).toBe(false);
     expect(result.text).toBe(text);
   });
+
+  it('falls back to successful tool call metadata when structured tool summaries are unavailable', async () => {
+    const grounding = await import('../grounding-guard.js') as any;
+    const toolResults = grounding.withFallbackGroundingToolResults([], [
+      { name: 'mcp__riskready-risks__list_risks', status: 'done' },
+      { name: 'mcp__riskready-risks__get_risk_dashboard', status: 'done' },
+    ]);
+
+    const result = applyGroundingGuard({
+      text: 'I am unable to access the risk tools because of permission restrictions.',
+      toolResults,
+    });
+
+    expect(result.wasRewritten).toBe(true);
+    expect(result.text).toContain('I queried 2 tool(s) successfully.');
+    expect(result.text).toContain('mcp__riskready-risks__list_risks');
+    expect(result.text).toContain('mcp__riskready-risks__get_risk_dashboard');
+  });
 });

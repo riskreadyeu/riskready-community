@@ -10,7 +10,7 @@ import { MemoryDistiller } from '../memory/distiller.js';
 import { extractBlock, hasBlockMapping } from './block-extractor.js';
 import { extractActionIdsFromToolResults } from './action-id-extractor.js';
 import { resolveConversationModel } from '../model-resolution.js';
-import { applyGroundingGuard, type GuardToolResult } from '../grounding-guard.js';
+import { applyGroundingGuard, type GuardToolResult, withFallbackGroundingToolResults } from '../grounding-guard.js';
 
 type QueryFn = typeof import('@anthropic-ai/claude-agent-sdk')['query'];
 
@@ -466,7 +466,7 @@ User: ${msg.text}`;
 
       const grounded = applyGroundingGuard({
         text: fullText || 'I was unable to generate a response.',
-        toolResults: groundingToolResults,
+        toolResults: withFallbackGroundingToolResults(groundingToolResults, toolCalls),
       });
       fullText = grounded.text;
 
