@@ -43,13 +43,24 @@ Gateway (unchanged)
 │   └── MessageLoop (new)
 │       ├── Anthropic Messages API (stream: true)
 │       │   ├── tool_search_tool_bm25 (always loaded)
-│       │   ├── code_execution_20260120 (always loaded)
+│       │   ├── code_execution_20260120 (opt-in per org)
 │       │   └── 253 MCP tools with defer_loading: true
 │       ├── McpToolExecutor (new) — spawns MCP servers, calls tools
 │       └── Same emit() / ChatEvent interface
 │
 └── CouncilOrchestrator ← CHANGES (same pattern)
 ```
+
+## Design Refinements
+
+Based on architecture review (polymathic-engineer) and security review (OWASP + OWASP AI):
+
+1. **Server pooling per-conversation, not per-run** — a user sending 5 messages about risks shouldn't spawn `riskready-risks` 5 times. Use reference-counted pool with 60s idle timeout.
+2. **Text-only history for past messages** — only the current turn gets full tool blocks. Past messages are text-only to control token growth.
+3. **Split `allowed_callers` by read/write** — read-only tools (`list_*`, `get_*`, `search_*`) use `["code_execution_20260120"]` for batching. Mutation tools (`propose_*`) use `["direct"]` only — they must be explicit and one-at-a-time for human-in-the-loop approval.
+4. **`code_execution` is opt-in per org** — not ZDR-eligible per Anthropic docs. Default off in Community Edition. Controlled by `allowCodeExecution` in org gateway config.
+5. **Container reuse** — pass `container_id` across turns within a run to maintain state in code_execution.
+6. **Token budget tracking** — log before/after metrics per request to prove the 85% reduction.
 
 ## Detailed Design
 
@@ -107,12 +118,30 @@ interface ToolResult {
 ```
 
 **Implementation:**
+- Validate tool name against `^mcp__[a-z][a-z0-9-]*__[a-z][a-z0-9_]*$` regex before dispatch (A03: Injection)
 - Parse tool name: `mcp__riskready-risks__list_risks` → server `riskready-risks`, tool `list_risks`
+- **Force-inject `organisationId`** into every tool call input, overriding whatever Claude provides (A01: Access Control). The model may hallucinate or be prompt-injected into passing a different org's ID — never trust it.
 - Get server config from `SkillRegistry.getMcpServers()`
-- Spawn MCP server as stdio child process (or reuse if already spawned for this run)
+- Spawn MCP server as stdio child process (or reuse if already spawned in this conversation)
 - Call tool via MCP protocol (JSON-RPC over stdio)
 - Return result text
-- Pool servers per-run, shut down all at end of `execute()`
+- **Server pooling**: per-conversation with 60s idle timeout, not per-run. Shut down idle servers automatically.
+
+```typescript
+class McpToolExecutor {
+  private organisationId: string; // Set at construction, immutable
+
+  async execute(toolName: string, input: Record<string, unknown>): Promise<ToolResult> {
+    // A03: Validate tool name format
+    if (!/^mcp__[a-z][a-z0-9-]*__[a-z][a-z0-9_]*$/.test(toolName)) {
+      return { content: `Invalid tool name: ${toolName}`, isError: true };
+    }
+    // A01: Force org scoping — never trust model-supplied organisationId
+    input.organisationId = this.organisationId;
+    // ... spawn and call
+  }
+}
+```
 
 We already have `@modelcontextprotocol/sdk` as a dependency via `packages/mcp-shared`. Use `Client` from that SDK to connect to spawned servers.
 
@@ -126,24 +155,45 @@ function buildToolDefinitions(
 ): Anthropic.Tool[]
 ```
 
-**Output format per tool:**
+**Output format — read-only tools (list_*, get_*, search_*):**
 ```json
 {
   "name": "mcp__riskready-risks__list_risks",
   "description": "List risks in the register with optional filters",
   "input_schema": { ... },
   "defer_loading": true,
-  "allowed_callers": ["direct", "code_execution_20260120"]
+  "allowed_callers": ["code_execution_20260120"]
 }
 ```
+
+**Output format — mutation tools (propose_*):**
+```json
+{
+  "name": "mcp__riskready-risks__propose_create_risk",
+  "description": "Propose creating a new risk (requires human approval)",
+  "input_schema": { ... },
+  "defer_loading": true,
+  "allowed_callers": ["direct"]
+}
+```
+
+Mutation tools use `"direct"` only — they must be explicit, one-at-a-time calls so the human-in-the-loop approval flow works correctly. Read-only tools use `"code_execution_20260120"` so Claude can batch them in a single script.
 
 **Always-loaded tools (no defer_loading):**
 ```json
 [
-  { "type": "tool_search_tool_bm25_20251119", "name": "tool_search_tool_bm25" },
+  { "type": "tool_search_tool_bm25_20251119", "name": "tool_search_tool_bm25" }
+]
+```
+
+**Conditionally loaded (when org has `allowCodeExecution: true`):**
+```json
+[
   { "type": "code_execution_20260120", "name": "code_execution" }
 ]
 ```
+
+When `code_execution` is disabled, all tools fall back to `"allowed_callers": ["direct"]`.
 
 ### 4. Refactored `AgentRunner.execute()`
 
@@ -197,6 +247,8 @@ function buildConversationMessages(
 ```
 
 This converts stored `ChatMessage` records into proper `{role: 'user' | 'assistant', content: ...}` message params. Memory context and task context go into the system prompt or a prefixed user message.
+
+**Important:** Past messages use **text-only content** (no tool_use/tool_result blocks) to control token growth. Only the current turn includes full tool blocks. This matches what the Agent SDK was doing implicitly with concatenated text history.
 
 ### 6. Streaming Event Mapping
 
@@ -255,6 +307,42 @@ const result = await runMessageLoop({
 - Database persistence of ChatMessage records
 - CouncilHook interface
 
+## Security (OWASP + OWASP AI Top 10)
+
+### A01: Broken Access Control
+- **McpToolExecutor force-injects `organisationId`** into every tool call, overriding model-supplied values. The model may hallucinate or be prompt-injected into passing a different org's ID.
+- Tool results are scoped by the MCP servers' own org filtering, but the executor adds a second layer of enforcement.
+
+### A02: Cryptographic Failures
+- API keys are passed directly to the Anthropic client constructor, never logged, never stored in the `MessageLoopOptions` after the loop completes.
+- Per-org keys are decrypted from DB via AES-256-GCM in `loadDbConfig()` and live only in request-scoped memory.
+
+### A03: Injection
+- Tool names validated against `^mcp__[a-z][a-z0-9-]*__[a-z][a-z0-9_]*$` before dispatch — prevents path traversal or injection via crafted tool names.
+- Tool inputs pass through MCP servers' Zod validation as a second defense layer.
+- No string interpolation or shell commands in the tool execution path.
+
+### A05: Security Misconfiguration — Code Execution Data Retention
+- `code_execution_20260120` is **not ZDR-eligible** per Anthropic docs. Tool inputs and outputs pass through Anthropic's sandboxed containers.
+- Code execution is **opt-in per org** via `allowCodeExecution` gateway config flag. Default: `false`.
+- When disabled, all tools use `allowed_callers: ["direct"]` and no code_execution tool is included.
+
+### A09: Security Logging
+- Log which tools were discovered via tool search (tool names only, not inputs)
+- Log tool execution: tool name, org ID, success/failure, duration
+- **Never log tool input/output payloads at info level** — they may contain PII from the database. Debug level only, gated behind `LOG_LEVEL=debug`.
+- Log token counts per request for cost monitoring and anomaly detection.
+
+### OWASP AI — LLM01: Prompt Injection
+- The `organisationId` force-injection in McpToolExecutor mitigates indirect prompt injection where a malicious tool result tries to make Claude call tools against a different org.
+- The grounding guard catches hallucinated failure claims (existing defense, unchanged).
+- Mutation tools (`propose_*`) require human approval — even if Claude is prompt-injected into proposing malicious changes, they won't execute without human review.
+
+### OWASP AI — LLM04: Excessive Agency
+- `maxTurns` limits how many API round trips Claude can make (default 25, configurable per org).
+- Mutation tools create `McpPendingAction` records requiring human approval — Claude cannot directly modify data.
+- `code_execution` batching is limited to read-only tools. Mutations cannot be batched in scripts.
+
 ## Error Handling
 
 - **MCP server spawn failure:** Log error, return tool_result with `is_error: true`, let Claude decide next step
@@ -276,8 +364,12 @@ const result = await runMessageLoop({
 1. Implement new modules alongside existing code
 2. Feature flag: `USE_TOOL_SEARCH=true` env var to switch between old and new paths
 3. Test with flag on in Docker
-4. Remove Agent SDK once validated
-5. Remove feature flag
+4. Validate: average input tokens drops below 30k per request
+5. Validate: error rate stays below 5%
+6. Remove Agent SDK once validated
+7. Remove feature flag
+
+**Rollback criteria:** If average input tokens don't drop below 30k, or error rate exceeds 5%, flip `USE_TOOL_SEARCH=false` and investigate.
 
 ## Files to Create
 
