@@ -74,8 +74,8 @@ function MessageBubble(props: { message: ChatMessage }) {
         <div className="whitespace-pre-wrap text-sm leading-6">{props.message.content}</div>
         {!isUser && props.message.toolCalls?.length ? (
           <div className="mt-3 flex flex-wrap gap-2">
-            {props.message.toolCalls.map((toolCall) => (
-              <Badge key={`${props.message.id}-${toolCall.name}`} variant="secondary" className="gap-1">
+            {props.message.toolCalls.map((toolCall, index) => (
+              <Badge key={`${props.message.id}-tool-${index}`} variant="secondary" className="gap-1">
                 <Wrench className="h-3 w-3" />
                 {toolCall.name}
               </Badge>
@@ -161,6 +161,7 @@ export default function AssistantPage() {
   const [streamState, setStreamState] = useState<StreamState | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const selectedConversation = useMemo(
     () => conversations.find((conversation) => conversation.id === selectedConversationId) ?? null,
@@ -219,6 +220,11 @@ export default function AssistantPage() {
 
     refreshMessages(selectedConversationId);
   }, [selectedConversationId]);
+
+  // Auto-scroll to bottom when messages or streaming text changes
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, streamState?.text]);
 
   async function handleCreateConversation() {
     if (!newChatModel) return;
@@ -300,6 +306,7 @@ export default function AssistantPage() {
         source.close();
         eventSourceRef.current = null;
         setSending(false);
+        setStreamState(null);
         setStreamError("Stream connection failed");
         toast.error("Assistant stream connection failed");
       };
@@ -423,6 +430,7 @@ export default function AssistantPage() {
                     <MessageBubble key={message.id} message={message} />
                   ))}
                   {streamState ? <StreamingBubble stream={streamState} /> : null}
+                  <div ref={messagesEndRef} />
                 </>
               )}
             </div>
@@ -433,6 +441,12 @@ export default function AssistantPage() {
               <Textarea
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
                 placeholder={selectedConversation ? "Ask the assistant about risks, controls, audits, incidents..." : "Create a conversation first"}
                 className="min-h-[96px] resize-none"
                 disabled={!selectedConversation || sending}

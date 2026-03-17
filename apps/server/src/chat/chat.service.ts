@@ -8,6 +8,9 @@ import type { CreateConversationDto, SendMessageDto } from './chat.dto';
 
 @Injectable()
 export class ChatService {
+  /** Maps runId → userId for stream ownership verification */
+  private readonly runOwners = new Map<string, string>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly gatewayConfigService: GatewayConfigService,
@@ -102,10 +105,22 @@ export class ChatService {
       throw new BadGatewayException(await this.readGatewayError(response));
     }
 
-    return response.json() as Promise<{ runId: string }>;
+    const result = await response.json() as { runId: string };
+
+    // Track run ownership so proxyRunStream can verify the caller
+    this.runOwners.set(result.runId, user.id);
+    setTimeout(() => this.runOwners.delete(result.runId), 10 * 60_000);
+
+    return result;
   }
 
   async proxyRunStream(user: JwtUser, runId: string, res: ExpressResponse) {
+    // Verify the requesting user owns this run
+    const ownerId = this.runOwners.get(runId);
+    if (ownerId && ownerId !== user.id) {
+      throw new ForbiddenException('Run not found');
+    }
+
     const organisationId = this.getOrganisationId(user);
     const gatewayUrl = await this.getGatewayUrl(organisationId);
     const response = await fetch(`${gatewayUrl}/stream/${runId}`, {
@@ -123,13 +138,20 @@ export class ChatService {
 
     const reader = response.body.getReader();
 
+    // Abort the upstream read when the client disconnects
+    const onClose = () => reader.cancel();
+    res.on('close', onClose);
+
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         res.write(Buffer.from(value));
       }
+    } catch {
+      // reader.cancel() from client disconnect causes a read rejection — expected
     } finally {
+      res.off('close', onClose);
       reader.releaseLock();
       res.end();
     }
