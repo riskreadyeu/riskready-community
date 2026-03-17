@@ -22,16 +22,30 @@ export interface GuardToolCall {
 }
 
 const UNSUPPORTED_FAILURE_CLAIMS = [
-  'permission',
+  'i don\'t have permission',
+  'i do not have permission',
+  'i don\'t have access',
+  'i do not have access',
+  'i cannot access',
+  'i can\'t access',
   'access denied',
-  'unauthorized',
-  'not authorised',
-  'not authorized',
-  'not enabled',
+  'i am unauthorized',
+  'i am not authorised',
+  'i am not authorized',
+  'request was unauthorized',
+  'returned unauthorized',
+  'returned not authorized',
+  'not enabled for this',
   'configuration issue',
   'configuration problem',
   'module is disabled',
+  'module is not enabled',
   'preventing me from accessing',
+  'appears to be disabled',
+  'doesn\'t appear to be enabled',
+  'does not appear to be enabled',
+  'unable to access the',
+  'could not access the',
 ];
 
 const SUPPORTED_ERROR_MARKERS = [
