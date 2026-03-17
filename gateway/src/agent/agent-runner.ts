@@ -1,5 +1,6 @@
 // gateway/src/agent/agent-runner.ts
 
+import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '../prisma.js';
 import { logger } from '../logger.js';
 import { SYSTEM_PROMPT } from './system-prompt.js';
@@ -11,6 +12,12 @@ import { extractBlock, hasBlockMapping } from './block-extractor.js';
 import { extractActionIdsFromToolResults } from './action-id-extractor.js';
 import { resolveConversationModel } from '../model-resolution.js';
 import { applyGroundingGuard, type GuardToolResult, withFallbackGroundingToolResults } from '../grounding-guard.js';
+import { runMessageLoop } from './message-loop.js';
+import { McpToolExecutor } from './mcp-tool-executor.js';
+import { buildToolDefinitions } from './tool-builder.js';
+import { buildConversationMessages } from './conversation-builder.js';
+import type { FullToolSchema } from './tool-schema-loader.js';
+import type { SkillRegistry } from './skill-registry.js';
 
 type QueryFn = typeof import('@anthropic-ai/claude-agent-sdk')['query'];
 
@@ -49,6 +56,9 @@ export interface AgentRunnerDeps {
   searchService?: SearchService;
   distiller?: MemoryDistiller;
   getDbConfig?: (organisationId: string) => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>;
+  toolSchemas?: FullToolSchema[];
+  skillRegistry?: SkillRegistry;
+  basePath?: string;
 }
 
 export interface CouncilHook {
@@ -75,6 +85,10 @@ export class AgentRunner {
 
   setCouncilHook(hook: CouncilHook): void {
     this.councilHook = hook;
+  }
+
+  updateToolSchemas(schemas: FullToolSchema[]): void {
+    this.deps.toolSchemas = schemas;
   }
 
   private async getQueryFn(): Promise<QueryFn> {
@@ -228,6 +242,21 @@ Trigger: ${task.trigger}`;
       } catch (err) {
         logger.warn({ err, taskId }, 'Failed to load task context');
       }
+    }
+
+    // Feature flag: use new tool search path
+    if (process.env.USE_TOOL_SEARCH === 'true' && this.deps.toolSchemas?.length) {
+      return this.executeWithToolSearch({
+        conversationId,
+        conversation,
+        msg,
+        emit,
+        signal,
+        taskId,
+        memoryContext,
+        taskContext,
+        history: history as HistoryMessage[],
+      });
     }
 
     // File attachments are not supported in Community Edition
@@ -552,6 +581,196 @@ User: ${msg.text}`;
       throw err;
     } finally {
       signal.removeEventListener('abort', onAbort);
+    }
+  }
+
+  private async executeWithToolSearch(params: {
+    conversationId: string;
+    conversation: { id: string; model: string | null; userId: string; organisationId: string };
+    msg: UnifiedMessage;
+    emit: (event: ChatEvent) => void;
+    signal: AbortSignal;
+    taskId?: string;
+    memoryContext: string;
+    taskContext: string;
+    history: HistoryMessage[];
+  }): Promise<{ messageId: string }> {
+    const { conversationId, conversation, msg, emit, signal, taskId, memoryContext, taskContext, history } = params;
+
+    // Resolve per-org config
+    let dbModel: string | undefined;
+    let maxTurns = 25;
+    let apiKey = process.env.ANTHROPIC_API_KEY;
+    if (this.deps.getDbConfig) {
+      const dbConfig = await this.deps.getDbConfig(msg.organisationId);
+      if (dbConfig) {
+        dbModel = dbConfig.agentModel || undefined;
+        maxTurns = dbConfig.maxAgentTurns || maxTurns;
+        if (dbConfig.anthropicApiKey) {
+          apiKey = dbConfig.anthropicApiKey;
+        }
+      }
+    }
+    const model = resolveConversationModel({
+      envModel: process.env.AGENT_MODEL,
+      dbModel,
+      conversationModel: conversation.model,
+    });
+
+    if (!apiKey) {
+      throw new Error('No Anthropic API key configured');
+    }
+
+    const client = new Anthropic({ apiKey });
+
+    // Build server config accessor for the McpToolExecutor
+    const executor = new McpToolExecutor({
+      organisationId: msg.organisationId,
+      getServerConfig: (serverName: string) => {
+        if (!this.deps.skillRegistry || !this.deps.basePath) return undefined;
+        const configs = this.deps.skillRegistry.getMcpServers(
+          [serverName],
+          this.deps.databaseUrl,
+          this.deps.basePath,
+        );
+        return configs[serverName];
+      },
+    });
+
+    try {
+      // Build conversation messages from history
+      const pastMessages = history.slice(0, -1); // exclude current user message
+      const systemPromptWithContext = SYSTEM_PROMPT +
+        (memoryContext ? `\n${memoryContext}` : '') +
+        (taskContext ? `\n${taskContext}` : '') +
+        `\n\nOrganisation ID: ${msg.organisationId}`;
+
+      const messages = buildConversationMessages(pastMessages, msg.text);
+
+      // Build tool definitions from loaded schemas
+      const tools = buildToolDefinitions(this.deps.toolSchemas!, {
+        allowCodeExecution: false,
+      });
+
+      // Run the message loop
+      const result = await runMessageLoop({
+        client,
+        model,
+        systemPrompt: systemPromptWithContext,
+        messages,
+        tools,
+        maxTurns,
+        signal,
+        onEvent: emit,
+        executeTool: (name, input) => executor.execute(name, input),
+      });
+
+      // Apply grounding guard
+      const grounded = applyGroundingGuard({
+        text: result.text || 'I was unable to generate a response.',
+        toolResults: withFallbackGroundingToolResults(
+          result.toolResults as GuardToolResult[],
+          result.toolCalls,
+        ),
+      });
+      let fullText = grounded.text;
+
+      // Extract action IDs from tool results
+      const collectedToolResults = result.toolResults.map((tr) => ({
+        content: tr.rawResult as string | Array<{ type?: string; text?: string }>,
+      }));
+      const structuredIds = extractActionIdsFromToolResults(collectedToolResults);
+      const regexIds: string[] = [];
+      const regexPattern = /"actionId"\s*:\s*"([^"]+)"/g;
+      let regexMatch;
+      while ((regexMatch = regexPattern.exec(fullText)) !== null) {
+        regexIds.push(regexMatch[1]);
+      }
+      const actionIds = [...new Set([...structuredIds, ...regexIds])];
+
+      for (const actionId of actionIds) {
+        emit({
+          type: 'action_proposed',
+          actionId,
+          summary: 'Action proposed — check AI Approvals queue',
+        });
+      }
+
+      // Extract blocks from tool results
+      const blocks: Array<{ type: string; [key: string]: unknown }> = [];
+      for (const tr of result.toolResults) {
+        const rawText = typeof tr.rawResult === 'string' ? tr.rawResult : JSON.stringify(tr.rawResult);
+        const block = extractBlock(tr.toolName, rawText);
+        if (block) {
+          blocks.push(block);
+          emit({ type: 'block', block });
+        }
+      }
+
+      // Log token usage
+      if (result.usage.inputTokens > 0 || result.usage.outputTokens > 0) {
+        logger.info({
+          conversationId,
+          inputTokens: result.usage.inputTokens,
+          outputTokens: result.usage.outputTokens,
+          totalTokens: result.usage.inputTokens + result.usage.outputTokens,
+          toolCallCount: result.toolCalls.length,
+        }, 'Token usage');
+      }
+
+      // Save assistant message
+      const saved = await prisma.chatMessage.create({
+        data: {
+          conversationId,
+          role: 'ASSISTANT',
+          content: fullText || 'I was unable to generate a response.',
+          toolCalls: result.toolCalls.length > 0 ? result.toolCalls : undefined,
+          actionIds: actionIds.length > 0 ? actionIds : [],
+          blocks: blocks.length > 0 ? (blocks as any) : undefined,
+          inputTokens: result.usage.inputTokens || undefined,
+          outputTokens: result.usage.outputTokens || undefined,
+          model: model || undefined,
+        },
+      });
+
+      await prisma.chatConversation.update({
+        where: { id: conversationId },
+        data: { updatedAt: new Date() },
+      });
+
+      emit({ type: 'done', messageId: saved.id });
+
+      // Update task with results if running with a task
+      if (taskId) {
+        try {
+          const hasPendingActions = actionIds.length > 0;
+          await prisma.agentTask.update({
+            where: { id: taskId },
+            data: {
+              status: hasPendingActions ? 'AWAITING_APPROVAL' : 'COMPLETED',
+              result: fullText.slice(0, 10000),
+              actionIds: { push: actionIds },
+              completedAt: hasPendingActions ? undefined : new Date(),
+            },
+          });
+        } catch (err) {
+          logger.warn({ err, taskId }, 'Failed to update task after execution');
+        }
+      }
+
+      // Non-blocking: distill memories after conversation
+      if (this.deps.distiller) {
+        const allMessages = await prisma.chatMessage.findMany({
+          where: { conversationId },
+          orderBy: { createdAt: 'asc' },
+        });
+        this.deps.distiller.distillConversation(allMessages, msg.organisationId, msg.userId)
+          .catch((err) => logger.error({ err }, 'Memory distillation failed'));
+      }
+
+      return { messageId: saved.id };
+    } finally {
+      await executor.shutdown();
     }
   }
 }

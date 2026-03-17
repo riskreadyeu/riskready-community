@@ -11,6 +11,8 @@ import { AgentRunner } from './agent/agent-runner.js';
 import { SkillRegistry } from './agent/skill-registry.js';
 import { Router } from './router/router.js';
 import { ToolCatalog } from './catalog/tool-catalog.js';
+import { loadToolSchemas } from './agent/tool-schema-loader.js';
+import type { FullToolSchema } from './agent/tool-schema-loader.js';
 
 import { MemoryService } from './memory/memory.service.js';
 import { SearchService } from './memory/search.service.js';
@@ -35,6 +37,8 @@ export class Gateway {
   private router: Router;
   private toolCatalog: ToolCatalog;
   private scheduler: SchedulerService;
+  private toolSchemas: FullToolSchema[] = [];
+  private readonly projectRoot: string;
 
   constructor(config: GatewayConfig) {
     this.config = config;
@@ -78,7 +82,7 @@ export class Gateway {
         .join('');
     });
 
-    const PROJECT_ROOT = join(process.cwd(), '..');
+    this.projectRoot = join(process.cwd(), '..');
     this.agentRunner = new AgentRunner({
       databaseUrl: config.databaseUrl,
       getMcpServers: (messageText?: string) => {
@@ -87,16 +91,19 @@ export class Gateway {
           const results = this.toolCatalog.search(messageText, 15);
           const serverNames = this.toolCatalog.getServersForTools(results);
           logger.debug({ query: messageText.substring(0, 80), servers: serverNames, matches: results.length }, 'Catalog routing');
-          return this.skillRegistry.getMcpServers(serverNames, config.databaseUrl, join(PROJECT_ROOT, 'apps'));
+          return this.skillRegistry.getMcpServers(serverNames, config.databaseUrl, join(this.projectRoot, 'apps'));
         }
         // Fallback: all servers
         const allSkillNames = this.skillRegistry.listAll().map(s => s.name);
-        return this.skillRegistry.getMcpServers(allSkillNames, config.databaseUrl, join(PROJECT_ROOT, 'apps'));
+        return this.skillRegistry.getMcpServers(allSkillNames, config.databaseUrl, join(this.projectRoot, 'apps'));
       },
       memoryService,
       searchService,
       distiller,
       getDbConfig: loadDbConfig,
+      toolSchemas: this.toolSchemas,
+      skillRegistry: this.skillRegistry,
+      basePath: join(this.projectRoot, 'apps'),
     });
 
     // Council orchestrator for multi-agent deliberation
@@ -118,6 +125,18 @@ export class Gateway {
   }
 
   async start(): Promise<void> {
+    // Load tool schemas for tool search mode
+    if (process.env.USE_TOOL_SEARCH === 'true') {
+      this.toolSchemas = await loadToolSchemas(
+        this.skillRegistry,
+        this.config.databaseUrl,
+        join(this.projectRoot, 'apps'),
+      );
+      // Update the AgentRunner's reference to the loaded schemas
+      this.agentRunner.updateToolSchemas(this.toolSchemas);
+      logger.info({ tools: this.toolSchemas.length }, 'Tool schemas loaded for tool search');
+    }
+
     // Start skill watching for hot-reload
     if (this.hotReloadSkills) {
       this.skillRegistry.startWatching(this.config.skills.configPath);
