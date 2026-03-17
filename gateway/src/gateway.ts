@@ -38,6 +38,7 @@ export class Gateway {
   private toolCatalog: ToolCatalog;
   private scheduler: SchedulerService;
   private toolSchemas: FullToolSchema[] = [];
+  private councilOrchestrator: CouncilOrchestrator | null = null;
   private readonly projectRoot: string;
 
   constructor(config: GatewayConfig) {
@@ -111,7 +112,12 @@ export class Gateway {
       const councilOrchestrator = new CouncilOrchestrator({
         router: this.router,
         config: config.council,
+        toolSchemas: this.toolSchemas,
+        skillRegistry: this.skillRegistry,
+        databaseUrl: config.databaseUrl,
+        basePath: join(this.projectRoot, 'apps'),
       });
+      this.councilOrchestrator = councilOrchestrator;
       this.agentRunner.setCouncilHook({
         shouldConvene: (message: string) => councilOrchestrator.shouldConvene(message),
         deliberate: (question, organisationId, conversationId, signal, emit, mcpServers, getDbConfig) =>
@@ -125,17 +131,18 @@ export class Gateway {
   }
 
   async start(): Promise<void> {
-    // Load tool schemas for tool search mode
-    if (process.env.USE_TOOL_SEARCH === 'true') {
-      this.toolSchemas = await loadToolSchemas(
-        this.skillRegistry,
-        this.config.databaseUrl,
-        join(this.projectRoot, 'apps'),
-      );
-      // Update the AgentRunner's reference to the loaded schemas
-      this.agentRunner.updateToolSchemas(this.toolSchemas);
-      logger.info({ tools: this.toolSchemas.length }, 'Tool schemas loaded for tool search');
+    // Load tool schemas from all MCP servers
+    this.toolSchemas = await loadToolSchemas(
+      this.skillRegistry,
+      this.config.databaseUrl,
+      join(this.projectRoot, 'apps'),
+    );
+    // Update the AgentRunner and Council with the loaded schemas
+    this.agentRunner.updateToolSchemas(this.toolSchemas);
+    if (this.councilOrchestrator) {
+      this.councilOrchestrator.updateToolSchemas(this.toolSchemas);
     }
+    logger.info({ tools: this.toolSchemas.length }, 'Tool schemas loaded');
 
     // Start skill watching for hot-reload
     if (this.hotReloadSkills) {

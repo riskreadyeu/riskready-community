@@ -8,7 +8,7 @@ import type { UnifiedMessage, ChatEvent } from '../channels/types.js';
 import { MemoryService } from '../memory/memory.service.js';
 import { SearchService } from '../memory/search.service.js';
 import { MemoryDistiller } from '../memory/distiller.js';
-import { extractBlock, hasBlockMapping } from './block-extractor.js';
+import { extractBlock } from './block-extractor.js';
 import { extractActionIdsFromToolResults } from './action-id-extractor.js';
 import { resolveConversationModel } from '../model-resolution.js';
 import { applyGroundingGuard, type GuardToolResult, withFallbackGroundingToolResults } from '../grounding-guard.js';
@@ -18,31 +18,6 @@ import { buildToolDefinitions } from './tool-builder.js';
 import { buildConversationMessages } from './conversation-builder.js';
 import type { FullToolSchema } from './tool-schema-loader.js';
 import type { SkillRegistry } from './skill-registry.js';
-
-type QueryFn = typeof import('@anthropic-ai/claude-agent-sdk')['query'];
-
-interface StreamEventPayload {
-  type: string;
-  content_block?: { type: string; name?: string };
-  delta?: { type: string; text?: string };
-}
-
-interface AssistantMessage {
-  type: string;
-  message?: { content: Array<{ type: string; text?: string }> };
-}
-
-interface ResultMessage {
-  type: string;
-  subtype?: string;
-  result?: string;
-  usage?: {
-    input_tokens: number;
-    output_tokens: number;
-    cache_creation_input_tokens?: number | null;
-    cache_read_input_tokens?: number | null;
-  };
-}
 
 interface HistoryMessage {
   role: 'USER' | 'ASSISTANT';
@@ -75,7 +50,6 @@ export interface CouncilHook {
 }
 
 export class AgentRunner {
-  private queryFn: QueryFn | null = null;
   private deps: AgentRunnerDeps;
   private councilHook: CouncilHook | null = null;
 
@@ -89,13 +63,6 @@ export class AgentRunner {
 
   updateToolSchemas(schemas: FullToolSchema[]): void {
     this.deps.toolSchemas = schemas;
-  }
-
-  private async getQueryFn(): Promise<QueryFn> {
-    if (this.queryFn) return this.queryFn;
-    const sdk = await import('@anthropic-ai/claude-agent-sdk');
-    this.queryFn = sdk.query;
-    return this.queryFn;
   }
 
   private async ensureConversation(
@@ -128,7 +95,6 @@ export class AgentRunner {
     emit: (event: ChatEvent) => void,
     taskId?: string,
   ): Promise<{ messageId: string }> {
-    const queryFn = await this.getQueryFn();
     const conversationId = (msg.metadata.conversationId as string) ?? msg.channelId;
 
     // If running with a task, update status to IN_PROGRESS
@@ -170,27 +136,11 @@ export class AgentRunner {
       data: { updatedAt: new Date() },
     });
 
-    // Build conversation history (cap at last 20 messages for context window)
-    const MAX_HISTORY = 20;
+    // Build conversation history
     const history = await prisma.chatMessage.findMany({
       where: { conversationId },
       orderBy: { createdAt: 'asc' },
     });
-
-    let historyText: string;
-    const pastMessages = history.slice(0, -1) as HistoryMessage[]; // exclude current user message
-    if (pastMessages.length <= MAX_HISTORY) {
-      historyText = pastMessages
-        .map((m) => `${m.role === 'USER' ? 'User' : 'Assistant'}: ${m.content}`)
-        .join('\n\n');
-    } else {
-      const olderCount = pastMessages.length - MAX_HISTORY;
-      const recent = pastMessages.slice(-MAX_HISTORY);
-      historyText = `[Earlier in this conversation: ${olderCount} messages exchanged]\n\n` +
-        recent
-          .map((m) => `${m.role === 'USER' ? 'User' : 'Assistant'}: ${m.content}`)
-          .join('\n\n');
-    }
 
     // Recall relevant memories
     let memoryContext = '';
@@ -244,72 +194,55 @@ Trigger: ${task.trigger}`;
       }
     }
 
-    // Feature flag: use new tool search path
-    if (process.env.USE_TOOL_SEARCH === 'true' && this.deps.toolSchemas?.length) {
-      return this.executeWithToolSearch({
-        conversationId,
-        conversation,
-        msg,
-        emit,
-        signal,
-        taskId,
-        memoryContext,
-        taskContext,
-        history: history as HistoryMessage[],
-      });
-    }
-
-    // File attachments are not supported in Community Edition
-    const fileContext = '';
-
-    const prompt = `Organisation ID: ${msg.organisationId}
-${historyText ? `\nConversation history:\n${historyText}` : ''}${memoryContext}${taskContext}${fileContext}
-
-User: ${msg.text}`;
-
-    let fullText = '';
-    const toolCalls: Array<{ name: string; server: string; status: string }> = [];
-    const actionIds: string[] = [];
-    const blocks: Array<{ type: string; [key: string]: unknown }> = [];
-    const collectedToolResults: Array<{ content?: string | Array<{ type?: string; text?: string }> }> = [];
-    const groundingToolResults: GuardToolResult[] = [];
-    let contentBlockIndex = 0;
-    const toolCallsByIndex = new Map<number, number>(); // content block index → toolCalls array index
-    let totalInputTokens = 0;
-    let totalOutputTokens = 0;
-    const abortController = new AbortController();
-
-    // Link external signal to our controller, using { once } to prevent listener leak
-    const onAbort = () => abortController.abort();
-    signal.addEventListener('abort', onAbort, { once: true });
-
-    try {
-      // Build a clean env without CLAUDECODE to avoid "nested session" guard
-      const cleanEnv = { ...process.env };
-      delete cleanEnv.CLAUDECODE;
-
-      // Load per-org config from DB, falling back to env vars
-      let dbModel: string | undefined;
-      let maxTurns = 25;
-      if (this.deps.getDbConfig) {
-        const dbConfig = await this.deps.getDbConfig(msg.organisationId);
-        if (dbConfig) {
-          dbModel = dbConfig.agentModel || undefined;
-          maxTurns = dbConfig.maxAgentTurns || maxTurns;
-          if (dbConfig.anthropicApiKey) {
-            cleanEnv.ANTHROPIC_API_KEY = dbConfig.anthropicApiKey;
-          }
+    // Resolve per-org config
+    let dbModel: string | undefined;
+    let maxTurns = 25;
+    let apiKey = process.env.ANTHROPIC_API_KEY;
+    if (this.deps.getDbConfig) {
+      const dbConfig = await this.deps.getDbConfig(msg.organisationId);
+      if (dbConfig) {
+        dbModel = dbConfig.agentModel || undefined;
+        maxTurns = dbConfig.maxAgentTurns || maxTurns;
+        if (dbConfig.anthropicApiKey) {
+          apiKey = dbConfig.anthropicApiKey;
         }
       }
-      const model = resolveConversationModel({
-        envModel: process.env.AGENT_MODEL,
-        dbModel,
-        conversationModel: conversation.model,
-      });
+    }
+    const model = resolveConversationModel({
+      envModel: process.env.AGENT_MODEL,
+      dbModel,
+      conversationModel: conversation.model,
+    });
 
-      const mcpServers = this.deps.getMcpServers(msg.text);
+    if (!apiKey) {
+      throw new Error('No Anthropic API key configured');
+    }
 
+    if (!this.deps.toolSchemas?.length) {
+      throw new Error('No tool schemas loaded — cannot run agent without tool definitions');
+    }
+
+    const client = new Anthropic({ apiKey });
+
+    // Build server config accessor for the McpToolExecutor
+    const executor = new McpToolExecutor({
+      organisationId: msg.organisationId,
+      getServerConfig: (serverName: string) => {
+        if (!this.deps.skillRegistry || !this.deps.basePath) return undefined;
+        const configs = this.deps.skillRegistry.getMcpServers(
+          [serverName],
+          this.deps.databaseUrl,
+          this.deps.basePath,
+        );
+        return configs[serverName];
+      },
+    });
+
+    let fullText = '';
+
+    try {
       // Council decision: check if multi-agent deliberation is needed
+      const mcpServers = this.deps.getMcpServers(msg.text);
       if (this.councilHook && this.councilHook.shouldConvene(msg.text)) {
         emit({ type: 'council_start' as ChatEvent['type'], message: 'Convening AI Agents Council for multi-perspective analysis...' });
 
@@ -337,125 +270,53 @@ User: ${msg.text}`;
       }
 
       // Single-agent path (also fallback from council failure)
+      let result: Awaited<ReturnType<typeof runMessageLoop>> | undefined;
+
       if (!fullText) {
-        const queryIterator = queryFn({
-          prompt,
-          options: {
-            abortController,
-            env: cleanEnv,
-            model,
-            mcpServers,
-            allowedTools: ['mcp__*'],
-            permissionMode: 'dontAsk',
-            maxTurns,
-            includePartialMessages: true,
-            tools: [],
-            systemPrompt: SYSTEM_PROMPT,
-            persistSession: false,
-            stderr: (data: string) => {
-              logger.debug({ stderr: data }, 'agent-sdk-stderr');
-            },
-          },
+        // Build conversation messages from history
+        const pastMessages = (history as HistoryMessage[]).slice(0, -1); // exclude current user message
+        const systemPromptWithContext = SYSTEM_PROMPT +
+          (memoryContext ? `\n${memoryContext}` : '') +
+          (taskContext ? `\n${taskContext}` : '') +
+          `\n\nOrganisation ID: ${msg.organisationId}`;
+
+        const messages = buildConversationMessages(pastMessages, msg.text);
+
+        // Build tool definitions from loaded schemas
+        const tools = buildToolDefinitions(this.deps.toolSchemas, {
+          allowCodeExecution: false,
         });
 
-        for await (const message of queryIterator) {
-          if (signal.aborted) break;
+        // Run the message loop
+        result = await runMessageLoop({
+          client,
+          model,
+          systemPrompt: systemPromptWithContext,
+          messages,
+          tools,
+          maxTurns,
+          signal,
+          onEvent: emit,
+          executeTool: (name, input) => executor.execute(name, input),
+        });
 
-          if (message.type === 'stream_event') {
-            const event = (message as { type: string; event: StreamEventPayload }).event;
-
-            // Track token usage per-event (supplementary — final totals come from result message)
-            if (event.type === 'message_start') {
-              const usage = (event as any).message?.usage;
-              if (usage) {
-                totalInputTokens += (usage.input_tokens ?? 0)
-                  + (usage.cache_creation_input_tokens ?? 0)
-                  + (usage.cache_read_input_tokens ?? 0);
-              }
-            }
-            if (event.type === 'message_delta') {
-              const usage = (event as any).usage;
-              if (usage) {
-                totalOutputTokens += (usage.output_tokens ?? 0);
-                totalInputTokens += (usage.cache_creation_input_tokens ?? 0)
-                  + (usage.cache_read_input_tokens ?? 0);
-              }
-            }
-
-            if (event.type === 'content_block_start') {
-              if (event.content_block?.type === 'tool_use') {
-                const toolName: string = event.content_block.name ?? '';
-                const server = toolName.split('__')[1] ?? 'unknown';
-                const idx = toolCalls.push({ name: toolName, server, status: 'running' }) - 1;
-                toolCallsByIndex.set(contentBlockIndex, idx);
-                emit({ type: 'tool_start', tool: toolName, server });
-              }
-              contentBlockIndex++;
-            }
-
-            if (
-              event.type === 'content_block_delta' &&
-              event.delta?.type === 'text_delta'
-            ) {
-              const text: string = event.delta.text ?? '';
-              fullText += text;
-              emit({ type: 'text_delta', text });
-            }
-
-            if (event.type === 'content_block_stop') {
-              const blockIdx = contentBlockIndex - 1;
-              const toolIdx = toolCallsByIndex.get(blockIdx);
-              if (toolIdx !== undefined && toolCalls[toolIdx]?.status === 'running') {
-                toolCalls[toolIdx].status = 'done';
-                emit({ type: 'tool_done', tool: toolCalls[toolIdx].name, status: 'success' });
-              }
-            }
-          }
-
-          // Collect tool results from assistant messages for structured action ID extraction
-          if (message.type === 'assistant') {
-            // kept for later regex fallback — no longer primary extraction
-          }
-
-          if (message.type === 'result') {
-            const resultMsg = message as ResultMessage;
-            if (resultMsg.subtype === 'success' && resultMsg.result && !fullText) {
-              fullText += resultMsg.result;
-            }
-            // Prefer SDK-accumulated totals (includes cache tokens across all turns)
-            if (resultMsg.usage) {
-              totalInputTokens = (resultMsg.usage.input_tokens ?? 0)
-                + (resultMsg.usage.cache_creation_input_tokens ?? 0)
-                + (resultMsg.usage.cache_read_input_tokens ?? 0);
-              totalOutputTokens = resultMsg.usage.output_tokens ?? 0;
-            }
-          }
-
-          // Intercept tool results for block extraction and action ID collection
-          if (message.type === 'tool_use_summary') {
-            const toolSummary = message as any;
-            if (toolSummary.tool_name && toolSummary.result) {
-              const block = extractBlock(toolSummary.tool_name, toolSummary.result);
-              if (block) {
-                blocks.push(block);
-                emit({ type: 'block', block });
-              }
-              // Collect for structured action ID extraction
-              collectedToolResults.push({ content: toolSummary.result });
-              groundingToolResults.push({
-                toolName: toolSummary.tool_name,
-                status: toolSummary.is_error ? 'error' : 'success',
-                rawResult: {
-                  content: [{ type: 'text', text: typeof toolSummary.result === 'string' ? toolSummary.result : JSON.stringify(toolSummary.result) }],
-                  isError: toolSummary.is_error ?? false,
-                },
-              });
-            }
-          }
-        }
+        // Apply grounding guard
+        const grounded = applyGroundingGuard({
+          text: result.text || 'I was unable to generate a response.',
+          toolResults: withFallbackGroundingToolResults(
+            result.toolResults as GuardToolResult[],
+            result.toolCalls,
+          ),
+        });
+        fullText = grounded.text;
       }
 
-      // Extract action IDs: prefer structured tool results, regex on text as fallback
+      // Extract action IDs from tool results
+      const collectedToolResults = result
+        ? result.toolResults.map((tr) => ({
+            content: tr.rawResult as string | Array<{ type?: string; text?: string }>,
+          }))
+        : [];
       const structuredIds = extractActionIdsFromToolResults(collectedToolResults);
       const regexIds: string[] = [];
       const regexPattern = /"actionId"\s*:\s*"([^"]+)"/g;
@@ -463,42 +324,45 @@ User: ${msg.text}`;
       while ((regexMatch = regexPattern.exec(fullText)) !== null) {
         regexIds.push(regexMatch[1]);
       }
-      const allActionIds = [...new Set([...structuredIds, ...regexIds])];
-      for (const actionId of allActionIds) {
-        if (!actionIds.includes(actionId)) {
-          actionIds.push(actionId);
-          emit({
-            type: 'action_proposed',
-            actionId,
-            summary: 'Action proposed — check AI Approvals queue',
-          });
-        }
+      const actionIds = [...new Set([...structuredIds, ...regexIds])];
+
+      for (const actionId of actionIds) {
+        emit({
+          type: 'action_proposed',
+          actionId,
+          summary: 'Action proposed — check AI Approvals queue',
+        });
       }
 
-      // Log block-eligible tools for debugging
-      for (const tc of toolCalls) {
-        if (tc.status === 'done' && hasBlockMapping(tc.name)) {
-          logger.debug({ tool: tc.name }, 'Block-eligible tool completed');
+      // Extract blocks from tool results
+      const blocks: Array<{ type: string; [key: string]: unknown }> = [];
+      if (result) {
+        for (const tr of result.toolResults) {
+          const rawText = typeof tr.rawResult === 'string' ? tr.rawResult : JSON.stringify(tr.rawResult);
+          const block = extractBlock(tr.toolName, rawText);
+          if (block) {
+            blocks.push(block);
+            emit({ type: 'block', block });
+          }
         }
       }
 
       // Log token usage
-      if (totalInputTokens > 0 || totalOutputTokens > 0) {
+      const inputTokens = result?.usage.inputTokens ?? 0;
+      const outputTokens = result?.usage.outputTokens ?? 0;
+      if (inputTokens > 0 || outputTokens > 0) {
         logger.info({
           conversationId,
-          inputTokens: totalInputTokens,
-          outputTokens: totalOutputTokens,
-          totalTokens: totalInputTokens + totalOutputTokens,
-          toolCallCount: toolCalls.length,
+          inputTokens,
+          outputTokens,
+          totalTokens: inputTokens + outputTokens,
+          toolCallCount: result?.toolCalls.length ?? 0,
         }, 'Token usage');
       }
 
-      const grounded = applyGroundingGuard({
-        text: fullText || 'I was unable to generate a response.',
-        toolResults: withFallbackGroundingToolResults(groundingToolResults, toolCalls),
-      });
-      fullText = grounded.text;
+      const toolCalls = result?.toolCalls ?? [];
 
+      // Save assistant message
       const saved = await prisma.chatMessage.create({
         data: {
           conversationId,
@@ -507,8 +371,8 @@ User: ${msg.text}`;
           toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
           actionIds: actionIds.length > 0 ? actionIds : [],
           blocks: blocks.length > 0 ? (blocks as any) : undefined,
-          inputTokens: totalInputTokens || undefined,
-          outputTokens: totalOutputTokens || undefined,
+          inputTokens: inputTokens || undefined,
+          outputTokens: outputTokens || undefined,
           model: model || undefined,
         },
       });
@@ -528,7 +392,7 @@ User: ${msg.text}`;
             where: { id: taskId },
             data: {
               status: hasPendingActions ? 'AWAITING_APPROVAL' : 'COMPLETED',
-              result: fullText.slice(0, 10000), // cap at 10k chars
+              result: fullText.slice(0, 10000),
               actionIds: { push: actionIds },
               completedAt: hasPendingActions ? undefined : new Date(),
             },
@@ -572,203 +436,11 @@ User: ${msg.text}`;
             conversationId,
             role: 'ASSISTANT',
             content: fullText,
-            toolCalls,
-            actionIds,
-            blocks: blocks.length > 0 ? (blocks as any) : undefined,
+            actionIds: [],
           },
         });
       }
       throw err;
-    } finally {
-      signal.removeEventListener('abort', onAbort);
-    }
-  }
-
-  private async executeWithToolSearch(params: {
-    conversationId: string;
-    conversation: { id: string; model: string | null; userId: string; organisationId: string };
-    msg: UnifiedMessage;
-    emit: (event: ChatEvent) => void;
-    signal: AbortSignal;
-    taskId?: string;
-    memoryContext: string;
-    taskContext: string;
-    history: HistoryMessage[];
-  }): Promise<{ messageId: string }> {
-    const { conversationId, conversation, msg, emit, signal, taskId, memoryContext, taskContext, history } = params;
-
-    // Resolve per-org config
-    let dbModel: string | undefined;
-    let maxTurns = 25;
-    let apiKey = process.env.ANTHROPIC_API_KEY;
-    if (this.deps.getDbConfig) {
-      const dbConfig = await this.deps.getDbConfig(msg.organisationId);
-      if (dbConfig) {
-        dbModel = dbConfig.agentModel || undefined;
-        maxTurns = dbConfig.maxAgentTurns || maxTurns;
-        if (dbConfig.anthropicApiKey) {
-          apiKey = dbConfig.anthropicApiKey;
-        }
-      }
-    }
-    const model = resolveConversationModel({
-      envModel: process.env.AGENT_MODEL,
-      dbModel,
-      conversationModel: conversation.model,
-    });
-
-    if (!apiKey) {
-      throw new Error('No Anthropic API key configured');
-    }
-
-    const client = new Anthropic({ apiKey });
-
-    // Build server config accessor for the McpToolExecutor
-    const executor = new McpToolExecutor({
-      organisationId: msg.organisationId,
-      getServerConfig: (serverName: string) => {
-        if (!this.deps.skillRegistry || !this.deps.basePath) return undefined;
-        const configs = this.deps.skillRegistry.getMcpServers(
-          [serverName],
-          this.deps.databaseUrl,
-          this.deps.basePath,
-        );
-        return configs[serverName];
-      },
-    });
-
-    try {
-      // Build conversation messages from history
-      const pastMessages = history.slice(0, -1); // exclude current user message
-      const systemPromptWithContext = SYSTEM_PROMPT +
-        (memoryContext ? `\n${memoryContext}` : '') +
-        (taskContext ? `\n${taskContext}` : '') +
-        `\n\nOrganisation ID: ${msg.organisationId}`;
-
-      const messages = buildConversationMessages(pastMessages, msg.text);
-
-      // Build tool definitions from loaded schemas
-      const tools = buildToolDefinitions(this.deps.toolSchemas!, {
-        allowCodeExecution: false,
-      });
-
-      // Run the message loop
-      const result = await runMessageLoop({
-        client,
-        model,
-        systemPrompt: systemPromptWithContext,
-        messages,
-        tools,
-        maxTurns,
-        signal,
-        onEvent: emit,
-        executeTool: (name, input) => executor.execute(name, input),
-      });
-
-      // Apply grounding guard
-      const grounded = applyGroundingGuard({
-        text: result.text || 'I was unable to generate a response.',
-        toolResults: withFallbackGroundingToolResults(
-          result.toolResults as GuardToolResult[],
-          result.toolCalls,
-        ),
-      });
-      let fullText = grounded.text;
-
-      // Extract action IDs from tool results
-      const collectedToolResults = result.toolResults.map((tr) => ({
-        content: tr.rawResult as string | Array<{ type?: string; text?: string }>,
-      }));
-      const structuredIds = extractActionIdsFromToolResults(collectedToolResults);
-      const regexIds: string[] = [];
-      const regexPattern = /"actionId"\s*:\s*"([^"]+)"/g;
-      let regexMatch;
-      while ((regexMatch = regexPattern.exec(fullText)) !== null) {
-        regexIds.push(regexMatch[1]);
-      }
-      const actionIds = [...new Set([...structuredIds, ...regexIds])];
-
-      for (const actionId of actionIds) {
-        emit({
-          type: 'action_proposed',
-          actionId,
-          summary: 'Action proposed — check AI Approvals queue',
-        });
-      }
-
-      // Extract blocks from tool results
-      const blocks: Array<{ type: string; [key: string]: unknown }> = [];
-      for (const tr of result.toolResults) {
-        const rawText = typeof tr.rawResult === 'string' ? tr.rawResult : JSON.stringify(tr.rawResult);
-        const block = extractBlock(tr.toolName, rawText);
-        if (block) {
-          blocks.push(block);
-          emit({ type: 'block', block });
-        }
-      }
-
-      // Log token usage
-      if (result.usage.inputTokens > 0 || result.usage.outputTokens > 0) {
-        logger.info({
-          conversationId,
-          inputTokens: result.usage.inputTokens,
-          outputTokens: result.usage.outputTokens,
-          totalTokens: result.usage.inputTokens + result.usage.outputTokens,
-          toolCallCount: result.toolCalls.length,
-        }, 'Token usage');
-      }
-
-      // Save assistant message
-      const saved = await prisma.chatMessage.create({
-        data: {
-          conversationId,
-          role: 'ASSISTANT',
-          content: fullText || 'I was unable to generate a response.',
-          toolCalls: result.toolCalls.length > 0 ? result.toolCalls : undefined,
-          actionIds: actionIds.length > 0 ? actionIds : [],
-          blocks: blocks.length > 0 ? (blocks as any) : undefined,
-          inputTokens: result.usage.inputTokens || undefined,
-          outputTokens: result.usage.outputTokens || undefined,
-          model: model || undefined,
-        },
-      });
-
-      await prisma.chatConversation.update({
-        where: { id: conversationId },
-        data: { updatedAt: new Date() },
-      });
-
-      emit({ type: 'done', messageId: saved.id });
-
-      // Update task with results if running with a task
-      if (taskId) {
-        try {
-          const hasPendingActions = actionIds.length > 0;
-          await prisma.agentTask.update({
-            where: { id: taskId },
-            data: {
-              status: hasPendingActions ? 'AWAITING_APPROVAL' : 'COMPLETED',
-              result: fullText.slice(0, 10000),
-              actionIds: { push: actionIds },
-              completedAt: hasPendingActions ? undefined : new Date(),
-            },
-          });
-        } catch (err) {
-          logger.warn({ err, taskId }, 'Failed to update task after execution');
-        }
-      }
-
-      // Non-blocking: distill memories after conversation
-      if (this.deps.distiller) {
-        const allMessages = await prisma.chatMessage.findMany({
-          where: { conversationId },
-          orderBy: { createdAt: 'asc' },
-        });
-        this.deps.distiller.distillConversation(allMessages, msg.organisationId, msg.userId)
-          .catch((err) => logger.error({ err }, 'Memory distillation failed'));
-      }
-
-      return { messageId: saved.id };
     } finally {
       await executor.shutdown();
     }

@@ -1,5 +1,6 @@
 // gateway/src/council/council-orchestrator.ts
 
+import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '../prisma.js';
 import { logger } from '../logger.js';
 import type { ChatEvent } from '../channels/types.js';
@@ -17,29 +18,40 @@ import { renderDeliberation } from './council-renderer.js';
 import { CouncilClassifier } from './council-classifier.js';
 import type { Router } from '../router/router.js';
 import { resolveConversationModel } from '../model-resolution.js';
-
-type QueryFn = typeof import('@anthropic-ai/claude-agent-sdk')['query'];
+import { runMessageLoop } from '../agent/message-loop.js';
+import { McpToolExecutor } from '../agent/mcp-tool-executor.js';
+import { buildToolDefinitions } from '../agent/tool-builder.js';
+import type { FullToolSchema } from '../agent/tool-schema-loader.js';
+import type { SkillRegistry } from '../agent/skill-registry.js';
 
 interface CouncilOrchestratorDeps {
   router: Router;
   config?: Partial<CouncilConfig>;
+  toolSchemas?: FullToolSchema[];
+  skillRegistry?: SkillRegistry;
+  databaseUrl?: string;
+  basePath?: string;
 }
 
 export class CouncilOrchestrator {
   private classifier: CouncilClassifier;
   private config: CouncilConfig;
-  private queryFn: QueryFn | null = null;
+  private toolSchemas: FullToolSchema[];
+  private skillRegistry?: SkillRegistry;
+  private databaseUrl?: string;
+  private basePath?: string;
 
   constructor(deps: CouncilOrchestratorDeps) {
     this.config = { ...DEFAULT_COUNCIL_CONFIG, ...deps.config };
     this.classifier = new CouncilClassifier(deps.router, this.config);
+    this.toolSchemas = deps.toolSchemas ?? [];
+    this.skillRegistry = deps.skillRegistry;
+    this.databaseUrl = deps.databaseUrl;
+    this.basePath = deps.basePath;
   }
 
-  private async getQueryFn(): Promise<QueryFn> {
-    if (this.queryFn) return this.queryFn;
-    const sdk = await import('@anthropic-ai/claude-agent-sdk');
-    this.queryFn = sdk.query;
-    return this.queryFn;
+  updateToolSchemas(schemas: FullToolSchema[]): void {
+    this.toolSchemas = schemas;
   }
 
   shouldConvene(message: string): boolean {
@@ -59,7 +71,6 @@ export class CouncilOrchestrator {
     allMcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>,
     getDbConfig?: (organisationId: string) => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
   ): Promise<{ text: string; sessionId: string }> {
-    const queryFn = await this.getQueryFn();
     const decision = this.classifier.classify(question);
 
     if (!decision.convene) {
@@ -100,7 +111,6 @@ export class CouncilOrchestrator {
         signal,
         emit,
         allMcpServers,
-        queryFn,
         getDbConfig,
       );
 
@@ -131,7 +141,6 @@ export class CouncilOrchestrator {
         conversationModel,
         signal,
         allMcpServers,
-        queryFn,
         getDbConfig,
       );
 
@@ -173,7 +182,6 @@ export class CouncilOrchestrator {
     signal: AbortSignal,
     emit: (event: ChatEvent) => void,
     allMcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>,
-    queryFn: QueryFn,
     getDbConfig?: (organisationId: string) => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
   ): Promise<CouncilOpinionData[]> {
     // Exclude ciso-strategist from member analysis (they do synthesis)
@@ -183,7 +191,7 @@ export class CouncilOrchestrator {
     if (decision.deliberationPattern === 'parallel_then_synthesis') {
       // Run all members in parallel
       const promises = analysisMembers.map((role) =>
-        this.runSingleMember(role, question, '', organisationId, conversationModel, signal, emit, allMcpServers, queryFn, getDbConfig),
+        this.runSingleMember(role, question, '', organisationId, conversationModel, signal, emit, allMcpServers, getDbConfig),
       );
       const results = await Promise.allSettled(promises);
 
@@ -199,7 +207,7 @@ export class CouncilOrchestrator {
       let context = '';
       for (const role of analysisMembers) {
         const opinion = await this.runSingleMember(
-          role, question, context, organisationId, conversationModel, signal, emit, allMcpServers, queryFn, getDbConfig,
+          role, question, context, organisationId, conversationModel, signal, emit, allMcpServers, getDbConfig,
         );
         opinions.push(opinion);
         context += `\n\n--- ${role} findings ---\n${this.summarizeOpinion(opinion)}`;
@@ -211,14 +219,14 @@ export class CouncilOrchestrator {
         const challenger = analysisMembers[1]!;
 
         const proposal = await this.runSingleMember(
-          proposer, question, '', organisationId, conversationModel, signal, emit, allMcpServers, queryFn, getDbConfig,
+          proposer, question, '', organisationId, conversationModel, signal, emit, allMcpServers, getDbConfig,
         );
         opinions.push(proposal);
 
         const challenge = await this.runSingleMember(
           challenger,
           `Review and challenge these findings:\n${this.summarizeOpinion(proposal)}\n\nOriginal question: ${question}`,
-          '', organisationId, conversationModel, signal, emit, allMcpServers, queryFn, getDbConfig,
+          '', organisationId, conversationModel, signal, emit, allMcpServers, getDbConfig,
         );
         opinions.push(challenge);
 
@@ -226,7 +234,7 @@ export class CouncilOrchestrator {
         const context = `Proposal by ${proposer}:\n${this.summarizeOpinion(proposal)}\n\nChallenge by ${challenger}:\n${this.summarizeOpinion(challenge)}`;
         for (const role of analysisMembers.slice(2)) {
           const opinion = await this.runSingleMember(
-            role, question, context, organisationId, conversationModel, signal, emit, allMcpServers, queryFn, getDbConfig,
+            role, question, context, organisationId, conversationModel, signal, emit, allMcpServers, getDbConfig,
           );
           opinions.push(opinion);
         }
@@ -245,30 +253,30 @@ export class CouncilOrchestrator {
     signal: AbortSignal,
     emit: (event: ChatEvent) => void,
     allMcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>,
-    queryFn: QueryFn,
     getDbConfig?: (organisationId: string) => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
   ): Promise<CouncilOpinionData> {
     emit({ type: 'council_member_start', agentRole: role, message: `${role} analyzing...` });
 
-    const memberServers = filterMcpServersForMember(role, allMcpServers);
     const systemPrompt = getCouncilMemberPrompt(role);
 
-    const prompt = previousContext
+    const userMessage = previousContext
       ? `Organisation ID: ${organisationId}\n\nPrevious council member findings:\n${previousContext}\n\nQuestion: ${question}`
       : `Organisation ID: ${organisationId}\n\nQuestion: ${question}`;
 
-    // Build env
-    const cleanEnv = { ...process.env };
-    delete cleanEnv.CLAUDECODE;
-
+    let apiKey = process.env.ANTHROPIC_API_KEY;
     let dbModel: string | undefined;
     if (getDbConfig) {
       const dbConfig = await getDbConfig(organisationId);
       if (dbConfig) {
         dbModel = dbConfig.agentModel || undefined;
-        if (dbConfig.anthropicApiKey) cleanEnv.ANTHROPIC_API_KEY = dbConfig.anthropicApiKey;
+        if (dbConfig.anthropicApiKey) apiKey = dbConfig.anthropicApiKey;
       }
     }
+
+    if (!apiKey) {
+      throw new Error('No Anthropic API key configured for council member');
+    }
+
     const model = this.config.memberModel
       || resolveConversationModel({
         envModel: process.env.AGENT_MODEL,
@@ -276,43 +284,39 @@ export class CouncilOrchestrator {
         conversationModel,
       });
 
-    const abortController = new AbortController();
-    const onAbort = () => abortController.abort();
-    signal.addEventListener('abort', onAbort, { once: true });
+    const client = new Anthropic({ apiKey });
+
+    // Filter tool schemas to only those belonging to the member's servers
+    const memberServers = filterMcpServersForMember(role, allMcpServers);
+    const memberServerNames = Object.keys(memberServers);
+    const memberToolSchemas = this.toolSchemas.filter((s) => memberServerNames.includes(s.serverName));
+
+    // Build tool definitions — council members don't need code execution
+    const tools = buildToolDefinitions(memberToolSchemas, { allowCodeExecution: false });
+
+    // Build executor scoped to this member's servers
+    const executor = new McpToolExecutor({
+      organisationId,
+      getServerConfig: (serverName: string) => memberServers[serverName],
+    });
 
     let fullText = '';
     try {
-      const queryIterator = queryFn({
-        prompt,
-        options: {
-          abortController,
-          env: cleanEnv,
-          model,
-          mcpServers: memberServers,
-          allowedTools: ['mcp__*'],
-          permissionMode: 'dontAsk',
-          maxTurns: this.config.maxTurnsPerMember,
-          tools: [],
-          systemPrompt,
-          persistSession: false,
-          stderr: (data: string) => {
-            logger.debug({ stderr: data, member: role }, 'council-member-stderr');
-          },
-        },
+      const result = await runMessageLoop({
+        client,
+        model,
+        systemPrompt,
+        messages: [{ role: 'user', content: userMessage }],
+        tools,
+        maxTurns: this.config.maxTurnsPerMember,
+        signal,
+        onEvent: () => {}, // council members don't stream to the user
+        executeTool: (name, input) => executor.execute(name, input),
       });
 
-      for await (const message of queryIterator) {
-        if (signal.aborted) break;
-
-        if (message.type === 'result') {
-          const resultMsg = message as { type: string; subtype?: string; result?: string };
-          if (resultMsg.subtype === 'success' && resultMsg.result) {
-            fullText = resultMsg.result;
-          }
-        }
-      }
+      fullText = result.text;
     } finally {
-      signal.removeEventListener('abort', onAbort);
+      await executor.shutdown();
     }
 
     emit({ type: 'council_member_done', agentRole: role, message: `${role} complete` });
@@ -410,7 +414,6 @@ export class CouncilOrchestrator {
     conversationModel: string | null,
     signal: AbortSignal,
     allMcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>,
-    queryFn: QueryFn,
     getDbConfig?: (organisationId: string) => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
   ): Promise<CouncilDeliberation> {
     // Build synthesis prompt with all opinions
@@ -439,59 +442,55 @@ Format your response using the structured output format from your instructions.`
     const cisoPrompt = getCouncilMemberPrompt('ciso-strategist');
     const cisoServers = filterMcpServersForMember('ciso-strategist', allMcpServers);
 
-    const cleanEnv = { ...process.env };
-    delete cleanEnv.CLAUDECODE;
-
+    let apiKey = process.env.ANTHROPIC_API_KEY;
     let dbModel: string | undefined;
     if (getDbConfig) {
       const dbConfig = await getDbConfig(organisationId);
       if (dbConfig) {
         dbModel = dbConfig.agentModel || undefined;
-        if (dbConfig.anthropicApiKey) cleanEnv.ANTHROPIC_API_KEY = dbConfig.anthropicApiKey;
+        if (dbConfig.anthropicApiKey) apiKey = dbConfig.anthropicApiKey;
       }
     }
+
+    if (!apiKey) {
+      throw new Error('No Anthropic API key configured for council synthesis');
+    }
+
     const model = resolveConversationModel({
       envModel: process.env.AGENT_MODEL,
       dbModel,
       conversationModel,
     });
 
-    const abortController = new AbortController();
-    const onAbort = () => abortController.abort();
-    signal.addEventListener('abort', onAbort, { once: true });
+    const client = new Anthropic({ apiKey });
+
+    // Filter tool schemas to CISO's servers
+    const cisoServerNames = Object.keys(cisoServers);
+    const cisoToolSchemas = this.toolSchemas.filter((s) => cisoServerNames.includes(s.serverName));
+    const tools = buildToolDefinitions(cisoToolSchemas, { allowCodeExecution: false });
+
+    const executor = new McpToolExecutor({
+      organisationId,
+      getServerConfig: (serverName: string) => cisoServers[serverName],
+    });
 
     let fullText = '';
     try {
-      const queryIterator = queryFn({
-        prompt: synthesisPrompt,
-        options: {
-          abortController,
-          env: cleanEnv,
-          model,
-          mcpServers: cisoServers,
-          allowedTools: ['mcp__*'],
-          permissionMode: 'dontAsk',
-          maxTurns: this.config.maxTurnsPerMember,
-          tools: [],
-          systemPrompt: cisoPrompt,
-          persistSession: false,
-          stderr: (data: string) => {
-            logger.debug({ stderr: data }, 'council-synthesis-stderr');
-          },
-        },
+      const result = await runMessageLoop({
+        client,
+        model,
+        systemPrompt: cisoPrompt,
+        messages: [{ role: 'user', content: synthesisPrompt }],
+        tools,
+        maxTurns: this.config.maxTurnsPerMember,
+        signal,
+        onEvent: () => {}, // synthesis doesn't stream to the user
+        executeTool: (name, input) => executor.execute(name, input),
       });
 
-      for await (const message of queryIterator) {
-        if (signal.aborted) break;
-        if (message.type === 'result') {
-          const resultMsg = message as { type: string; subtype?: string; result?: string };
-          if (resultMsg.subtype === 'success' && resultMsg.result) {
-            fullText = resultMsg.result;
-          }
-        }
-      }
+      fullText = result.text;
     } finally {
-      signal.removeEventListener('abort', onAbort);
+      await executor.shutdown();
     }
 
     // Build the deliberation from synthesis + individual opinions
