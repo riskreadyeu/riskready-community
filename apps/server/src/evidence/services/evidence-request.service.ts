@@ -46,7 +46,7 @@ export class EvidenceRequestService {
       this.prisma.evidenceRequest.findMany({
         where,
         skip: params?.skip,
-        take: params?.take,
+        take: params?.take ?? 200,
         include: {
           requestedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
           assignedTo: { select: { id: true, email: true, firstName: true, lastName: true } },

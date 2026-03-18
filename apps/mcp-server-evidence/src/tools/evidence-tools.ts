@@ -12,11 +12,13 @@ export function registerEvidenceTools(server: McpServer) {
       evidenceType: z.enum(['DOCUMENT', 'CERTIFICATE', 'REPORT', 'POLICY', 'PROCEDURE', 'SCREENSHOT', 'LOG', 'CONFIGURATION', 'NETWORK_CAPTURE', 'MEMORY_DUMP', 'DISK_IMAGE', 'MALWARE_SAMPLE', 'EMAIL', 'MEETING_NOTES', 'APPROVAL_RECORD', 'AUDIT_REPORT', 'ASSESSMENT_RESULT', 'TEST_RESULT', 'SCAN_RESULT', 'VIDEO', 'AUDIO', 'OTHER']).optional().describe('Filter by evidence type'),
       classification: z.enum(['PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED']).optional().describe('Filter by classification'),
       category: z.string().optional().describe('Filter by category'),
+      organisationId: z.string().optional().describe('Organisation UUID'),
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
     },
     withErrorHandling('list_evidence', async (params) => {
       const where: Record<string, unknown> = {};
+      if (params.organisationId) where.organisationId = params.organisationId;
       if (params.status) where.status = params.status;
       if (params.evidenceType) where.evidenceType = params.evidenceType;
       if (params.classification) where.classification = params.classification;
@@ -113,10 +115,12 @@ export function registerEvidenceTools(server: McpServer) {
     'Search evidence by reference, title, or description.',
     {
       query: z.string().max(200).describe('Search term (matches against evidenceRef, title, description)'),
+      organisationId: z.string().optional().describe('Organisation UUID'),
     },
-    withErrorHandling('search_evidence', async ({ query }) => {
+    withErrorHandling('search_evidence', async ({ query, organisationId }) => {
       const evidence = await prisma.evidence.findMany({
         where: {
+          ...(organisationId && { organisationId }),
           OR: [
             { evidenceRef: { contains: query, mode: 'insensitive' } },
             { title: { contains: query, mode: 'insensitive' } },

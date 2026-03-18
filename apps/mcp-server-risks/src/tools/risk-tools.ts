@@ -20,7 +20,7 @@ export function registerRiskTools(server: McpServer) {
       if (status) where.status = status;
       if (tier) where.tier = tier;
       if (framework) where.framework = framework;
-      if (organisationId) where.organisationId = organisationId;
+      if (organisationId) where.organisationId = organisationId; // gateway always injects this
 
       const [results, count] = await Promise.all([
         prisma.risk.findMany({
@@ -70,10 +70,11 @@ export function registerRiskTools(server: McpServer) {
     'Get a single risk with full details: scenarios, KRIs, treatment plans, tolerance statements, and audit metadata.',
     {
       id: z.string().describe('Risk UUID'),
+      organisationId: z.string().optional().describe('Organisation UUID'),
     },
-    withErrorHandling('get_risk', async ({ id }) => {
-      const risk = await prisma.risk.findUnique({
-        where: { id },
+    withErrorHandling('get_risk', async ({ id, organisationId }) => {
+      const risk = await prisma.risk.findFirst({
+        where: { id, ...(organisationId && { organisationId }) },
         include: {
           scenarios: {
             orderBy: { scenarioId: 'asc' },
@@ -146,10 +147,12 @@ export function registerRiskTools(server: McpServer) {
     'Search risks by title or riskId pattern. Returns matching risks with basic info.',
     {
       query: z.string().max(200).describe('Search term (matches against title and riskId)'),
+      organisationId: z.string().optional().describe('Organisation UUID'),
     },
-    withErrorHandling('search_risks', async ({ query }) => {
+    withErrorHandling('search_risks', async ({ query, organisationId }) => {
       const results = await prisma.risk.findMany({
         where: {
+          ...(organisationId && { organisationId }),
           OR: [
             { riskId: { contains: query, mode: 'insensitive' } },
             { title: { contains: query, mode: 'insensitive' } },
@@ -191,15 +194,16 @@ export function registerRiskTools(server: McpServer) {
     withErrorHandling('get_risk_stats', async ({ organisationId }) => {
       const where: Record<string, unknown> = {};
       if (organisationId) where.organisationId = organisationId;
+      const relWhere = organisationId ? { risk: { organisationId } } : {};
 
       const [total, byStatus, byTier, byFramework, scenarioCount, kriCount, treatmentCount] = await Promise.all([
         prisma.risk.count({ where }),
         prisma.risk.groupBy({ by: ['status'], _count: true, where }),
         prisma.risk.groupBy({ by: ['tier'], _count: true, where }),
         prisma.risk.groupBy({ by: ['framework'], _count: true, where }),
-        prisma.riskScenario.count(),
-        prisma.keyRiskIndicator.count(),
-        prisma.treatmentPlan.count(),
+        prisma.riskScenario.count({ where: relWhere }),
+        prisma.keyRiskIndicator.count({ where: relWhere }),
+        prisma.treatmentPlan.count({ where: relWhere }),
       ]);
 
       return {

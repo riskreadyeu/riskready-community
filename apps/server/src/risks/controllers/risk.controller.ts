@@ -9,6 +9,7 @@ import {
   Body,
   Request,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { RiskService } from '../services/risk.service';
 import { RiskAuditService } from '../services/risk-audit.service';
@@ -30,19 +31,19 @@ export class RiskController {
 
   @Get()
   async findAll(
+    @Request() req: AuthenticatedRequest,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
     @Query('tier') tier?: RiskTier,
     @Query('status') status?: RiskStatus,
     @Query('framework') framework?: ControlFramework,
-    @Query('organisationId') organisationId?: string,
     @Query('search') search?: string,
   ) {
     const where: Prisma.RiskWhereInput = {};
     if (tier) where.tier = tier;
     if (status) where.status = status;
     if (framework) where.framework = framework;
-    if (organisationId) where.organisationId = organisationId;
+    where.organisationId = req.user.organisationId;
     if (search) {
       where.OR = [
         { riskId: { contains: search, mode: 'insensitive' } },
@@ -60,8 +61,8 @@ export class RiskController {
   }
 
   @Get('stats')
-  async getStats(@Query('organisationId') organisationId?: string) {
-    return this.service.getStats(organisationId);
+  async getStats(@Request() req: AuthenticatedRequest) {
+    return this.service.getStats(req.user.organisationId);
   }
 
   @Post()
@@ -84,15 +85,24 @@ export class RiskController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    const record = await this.service.findOne(id);
+    if (!record || record.organisationId !== req.user.organisationId) {
+      throw new NotFoundException();
+    }
+    return record;
   }
 
   @Put(':id')
   async update(
     @Param('id') id: string,
     @Body() data: UpdateRiskDto,
+    @Request() req: AuthenticatedRequest,
   ) {
+    const record = await this.service.findOne(id);
+    if (!record || record.organisationId !== req.user.organisationId) {
+      throw new NotFoundException();
+    }
     return this.service.update(id, {
       ...data,
       likelihood: data.likelihood as LikelihoodLevel | undefined,
@@ -159,11 +169,11 @@ export class RiskController {
    */
   @Get('export/register')
   async exportRiskRegister(
-    @Query('organisationId') organisationId?: string,
+    @Request() req: AuthenticatedRequest,
     @Query('format') format?: 'json' | 'csv',
   ) {
     return this.exportService.exportRiskRegister({
-      organisationId,
+      organisationId: req.user.organisationId,
       format: format || 'json',
     });
   }
@@ -172,23 +182,23 @@ export class RiskController {
    * Export heat map data
    */
   @Get('export/heatmap')
-  async exportHeatMap(@Query('organisationId') organisationId?: string) {
-    return this.exportService.exportHeatMapData(organisationId);
+  async exportHeatMap(@Request() req: AuthenticatedRequest) {
+    return this.exportService.exportHeatMapData(req.user.organisationId);
   }
 
   /**
    * Export treatment summary
    */
   @Get('export/treatments')
-  async exportTreatments(@Query('organisationId') organisationId?: string) {
-    return this.exportService.exportTreatmentSummary(organisationId);
+  async exportTreatments(@Request() req: AuthenticatedRequest) {
+    return this.exportService.exportTreatmentSummary(req.user.organisationId);
   }
 
   /**
    * Export KRI dashboard
    */
   @Get('export/kris')
-  async exportKRIs(@Query('organisationId') organisationId?: string) {
-    return this.exportService.exportKRIDashboard(organisationId);
+  async exportKRIs(@Request() req: AuthenticatedRequest) {
+    return this.exportService.exportKRIDashboard(req.user.organisationId);
   }
 }

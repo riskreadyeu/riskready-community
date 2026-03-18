@@ -63,7 +63,7 @@ export class DocumentAttachmentController {
   }
 
   @Post(':documentId/attachments')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 } }))
   async uploadAttachment(
     @Request() req: AuthenticatedRequest,
     @Param('documentId') documentId: string,

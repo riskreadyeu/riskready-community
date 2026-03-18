@@ -48,7 +48,7 @@ export class DocumentAttachmentService {
     'image/jpeg',
     'image/png',
     'image/gif',
-    'image/svg+xml',
+    // SVG removed: can contain embedded <script> XSS payloads
     // Archives
     'application/zip',
     'application/x-zip-compressed',

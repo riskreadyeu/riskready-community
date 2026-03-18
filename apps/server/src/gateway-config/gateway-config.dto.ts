@@ -1,4 +1,5 @@
 import { IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsSafeUrl } from '../shared/utils/url-validation.util';
 
 export class UpdateGatewayConfigDto {
   @IsString()
@@ -14,6 +15,7 @@ export class UpdateGatewayConfigDto {
   @IsString()
   @IsOptional()
   @MaxLength(1000)
+  @IsSafeUrl({ message: 'gatewayUrl must be a valid http/https URL that does not point to private/internal addresses' })
   gatewayUrl?: string;
 
   @IsNumber()

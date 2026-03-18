@@ -16,6 +16,9 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
+  // Trust first proxy hop (Caddy/nginx) for correct req.ip
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
   // Security headers
   app.use(helmet({
     contentSecurityPolicy: {

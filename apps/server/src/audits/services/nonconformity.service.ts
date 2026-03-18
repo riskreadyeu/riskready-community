@@ -72,7 +72,7 @@ export class NonconformityService implements OnModuleInit {
       this.prisma.nonconformity.findMany({
         where,
         skip: params?.skip,
-        take: params?.take,
+        take: params?.take ?? 200,
         include: {
           control: { select: { id: true, controlId: true, name: true } },
           responsibleUser: { select: { id: true, email: true, firstName: true, lastName: true } },

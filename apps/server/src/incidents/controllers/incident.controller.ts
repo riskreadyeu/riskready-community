@@ -9,6 +9,7 @@ import {
   Body,
   Request,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { IncidentService } from '../services/incident.service';
 import { IncidentClassificationService } from '../services/incident-classification.service';
@@ -48,6 +49,7 @@ export class IncidentController {
 
   @Get()
   async findAll(
+    @Request() req: AuthenticatedRequest,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
     @Query('status') status?: IncidentStatus,
@@ -56,7 +58,6 @@ export class IncidentController {
     @Query('source') source?: IncidentSource,
     @Query('handlerId') handlerId?: string,
     @Query('incidentManagerId') incidentManagerId?: string,
-    @Query('organisationId') organisationId?: string,
     @Query('search') search?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
@@ -72,7 +73,7 @@ export class IncidentController {
         source,
         handlerId,
         incidentManagerId,
-        organisationId,
+        organisationId: req.user.organisationId,
         search,
         dateFrom: dateFrom ? new Date(dateFrom) : undefined,
         dateTo: dateTo ? new Date(dateTo) : undefined,
@@ -82,40 +83,43 @@ export class IncidentController {
   }
 
   @Get('stats')
-  async getStats(@Query('organisationId') organisationId?: string) {
-    return this.service.getStats(organisationId);
+  async getStats(@Request() req: AuthenticatedRequest) {
+    return this.service.getStats(req.user.organisationId);
   }
 
   @Get('dashboard')
-  async getDashboard(@Query('organisationId') organisationId?: string) {
-    return this.service.getDashboardData(organisationId);
+  async getDashboard(@Request() req: AuthenticatedRequest) {
+    return this.service.getDashboardData(req.user.organisationId);
   }
 
   @Get('types')
-  async getTypes(@Query('organisationId') organisationId?: string) {
+  async getTypes(@Request() req: AuthenticatedRequest) {
     return this.prisma.incidentType.findMany({
       where: {
         isActive: true,
-        ...(organisationId && { organisationId }),
+        organisationId: req.user.organisationId,
       },
       orderBy: { name: 'asc' },
     });
   }
 
   @Get('attack-vectors')
-  async getAttackVectors(@Query('organisationId') organisationId?: string) {
+  async getAttackVectors() {
     return this.prisma.attackVector.findMany({
       where: {
         isActive: true,
-        ...(organisationId && { organisationId }),
       },
       orderBy: { name: 'asc' },
     });
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    const record = await this.service.findOne(id);
+    if (!record || record.organisationId !== req.user.organisationId) {
+      throw new NotFoundException();
+    }
+    return record;
   }
 
   @Post()
@@ -143,7 +147,11 @@ export class IncidentController {
   }
 
   @Delete(':id')
-  async delete(@Param('id') id: string) {
+  async delete(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    const record = await this.service.findOne(id);
+    if (!record || record.organisationId !== req.user.organisationId) {
+      throw new NotFoundException();
+    }
     return this.service.delete(id);
   }
 

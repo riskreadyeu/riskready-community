@@ -8,6 +8,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { EvidenceLinkService } from '../services/evidence-link.service';
+import { BulkLinkEvidenceDto } from '../dto/evidence-link.dto';
 
 type LinkEntityType =
   | 'control'
@@ -86,18 +87,11 @@ export class EvidenceLinkController {
 
   @Post('bulk')
   async bulkLinkEvidence(
-    @Body()
-    data: {
-      evidenceIds: string[];
-      entityType: LinkEntityType;
-      entityId: string;
-      linkType?: string;
-      createdById?: string;
-    },
+    @Body() data: BulkLinkEvidenceDto,
   ) {
     return this.service.bulkLinkEvidence(
       data.evidenceIds,
-      data.entityType,
+      data.entityType as LinkEntityType,
       data.entityId,
       data.linkType,
       data.createdById,

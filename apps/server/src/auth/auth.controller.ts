@@ -22,9 +22,10 @@ export class AuthController {
   ) {}
 
   @Get('users')
-  async getUsers() {
+  async getUsers(@Req() req: Request) {
+    const organisationId = (req as any).user?.organisationId;
     const users = await this.prisma.user.findMany({
-      where: { isActive: true },
+      where: { isActive: true, ...(organisationId && { organisationId }) },
       select: {
         id: true,
         email: true,

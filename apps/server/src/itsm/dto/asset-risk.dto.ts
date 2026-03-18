@@ -3,6 +3,7 @@ import {
     IsOptional,
     IsArray,
     MaxLength,
+    ArrayMaxSize,
 } from 'class-validator';
 
 /**
@@ -30,6 +31,7 @@ export class LinkAssetRiskDto {
  */
 export class BulkLinkDto {
     @IsArray()
+    @ArrayMaxSize(100)
     @IsString({ each: true })
     assets!: string[];
 

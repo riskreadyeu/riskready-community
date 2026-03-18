@@ -117,7 +117,7 @@ export class ChatService {
   async proxyRunStream(user: JwtUser, runId: string, res: ExpressResponse) {
     // Verify the requesting user owns this run
     const ownerId = this.runOwners.get(runId);
-    if (ownerId && ownerId !== user.id) {
+    if (!ownerId || ownerId !== user.id) {
       throw new ForbiddenException('Run not found');
     }
 

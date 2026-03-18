@@ -115,7 +115,7 @@ export class RiskScenarioService {
     const [results, count] = await Promise.all([
       this.prisma.riskScenario.findMany({
         skip: params?.skip,
-        take: params?.take,
+        take: params?.take ?? 200,
         orderBy: [{ scenarioId: 'asc' }],
         include: {
           risk: {

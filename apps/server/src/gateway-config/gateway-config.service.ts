@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { encryptCredential, decryptCredential, maskCredential } from '../shared/utils/crypto.util';
+import { isUrlSafe } from '../shared/utils/url-validation.util';
 
 export interface GatewayConfigResponse {
   anthropicApiKey: string | null;
@@ -74,7 +75,13 @@ export class GatewayConfigService {
       updatedById: userId ?? null,
     };
     if (dto.agentModel !== undefined) updateData['agentModel'] = dto.agentModel;
-    if (dto.gatewayUrl !== undefined) updateData['gatewayUrl'] = dto.gatewayUrl;
+    if (dto.gatewayUrl !== undefined) {
+      const urlCheck = isUrlSafe(dto.gatewayUrl);
+      if (!urlCheck.safe) {
+        throw new BadRequestException(`Invalid gatewayUrl: ${urlCheck.reason}`);
+      }
+      updateData['gatewayUrl'] = dto.gatewayUrl;
+    }
     if (dto.maxAgentTurns !== undefined) updateData['maxAgentTurns'] = dto.maxAgentTurns;
     if (encryptedKey !== undefined) updateData['anthropicApiKey'] = encryptedKey;
 

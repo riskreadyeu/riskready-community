@@ -11,14 +11,16 @@ export function registerScenarioTools(server: McpServer) {
       riskId: z.string().optional().describe('Filter by parent risk UUID'),
       status: z.enum(['DRAFT', 'ASSESSED', 'EVALUATED', 'TREATING', 'TREATED', 'ACCEPTED', 'MONITORING', 'ESCALATED', 'REVIEW', 'CLOSED', 'ARCHIVED']).optional().describe('Filter by scenario status'),
       toleranceStatus: z.enum(['WITHIN', 'EXCEEDS', 'CRITICAL']).optional().describe('Filter by tolerance status'),
+      organisationId: z.string().optional().describe('Organisation UUID'),
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    withErrorHandling('list_scenarios', async ({ riskId, status, toleranceStatus, skip, take }) => {
+    withErrorHandling('list_scenarios', async ({ riskId, status, toleranceStatus, organisationId, skip, take }) => {
       const where: Record<string, unknown> = {};
       if (riskId) where.riskId = riskId;
       if (status) where.status = status;
       if (toleranceStatus) where.toleranceStatus = toleranceStatus;
+      if (organisationId) where.risk = { organisationId };
 
       const [results, count] = await Promise.all([
         prisma.riskScenario.findMany({

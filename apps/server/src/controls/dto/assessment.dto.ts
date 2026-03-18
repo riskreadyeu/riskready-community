@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, IsDateString, IsEnum, IsInt, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsDateString, IsEnum, IsInt, IsNumber, ArrayMaxSize } from 'class-validator';
 import { ControlAssessmentStatus, AssessmentTestStatus, TestResult, RootCauseCategory, RemediationEffort, TestMethod } from '@prisma/client';
 
 export class CreateAssessmentDto {
@@ -211,6 +211,7 @@ export class UpdateAssessmentTestDto {
 
 export class BulkAssignDto {
   @IsArray()
+  @ArrayMaxSize(100)
   @IsString({ each: true })
   testIds!: string[];
 

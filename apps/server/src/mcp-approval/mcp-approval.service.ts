@@ -84,22 +84,25 @@ export class McpApprovalService {
   }
 
   async approve(id: string, reviewedById: string, reviewNotes?: string) {
-    const action = await this.findOne(id);
-
-    if (action.status !== 'PENDING') {
-      throw new BadRequestException(
-        `Cannot approve action with status ${action.status}. Only PENDING actions can be approved.`,
-      );
-    }
-
-    return this.prisma.mcpPendingAction.update({
-      where: { id },
+    // Atomic check-and-update to prevent TOCTOU race condition
+    const result = await this.prisma.mcpPendingAction.updateMany({
+      where: { id, status: 'PENDING' },
       data: {
         status: 'APPROVED',
         reviewedById,
         reviewedAt: new Date(),
         reviewNotes,
       },
+    });
+
+    if (result.count === 0) {
+      throw new BadRequestException(
+        'Action is not pending or does not exist. Only PENDING actions can be approved.',
+      );
+    }
+
+    return this.prisma.mcpPendingAction.findUniqueOrThrow({
+      where: { id },
       include: {
         reviewedBy: { select: { id: true, email: true } },
         organisation: { select: { id: true, name: true } },
@@ -108,22 +111,25 @@ export class McpApprovalService {
   }
 
   async reject(id: string, reviewedById: string, reviewNotes?: string) {
-    const action = await this.findOne(id);
-
-    if (action.status !== 'PENDING') {
-      throw new BadRequestException(
-        `Cannot reject action with status ${action.status}. Only PENDING actions can be rejected.`,
-      );
-    }
-
-    return this.prisma.mcpPendingAction.update({
-      where: { id },
+    // Atomic check-and-update to prevent TOCTOU race condition
+    const result = await this.prisma.mcpPendingAction.updateMany({
+      where: { id, status: 'PENDING' },
       data: {
         status: 'REJECTED',
         reviewedById,
         reviewedAt: new Date(),
         reviewNotes,
       },
+    });
+
+    if (result.count === 0) {
+      throw new BadRequestException(
+        'Action is not pending or does not exist. Only PENDING actions can be rejected.',
+      );
+    }
+
+    return this.prisma.mcpPendingAction.findUniqueOrThrow({
+      where: { id },
       include: {
         reviewedBy: { select: { id: true, email: true } },
         organisation: { select: { id: true, name: true } },

@@ -9,10 +9,11 @@ export function registerActionTools(server: McpServer) {
     'Check the status of a previously proposed action by its ID. Returns status (PENDING/APPROVED/REJECTED/EXECUTED/FAILED), reviewer notes, and result data.',
     {
       actionId: z.string().describe('The action ID returned when the action was proposed'),
+      organisationId: z.string().optional().describe('Organisation UUID'),
     },
-    withErrorHandling('check_action_status', async ({ actionId }) => {
-      const action = await prisma.mcpPendingAction.findUnique({
-        where: { id: actionId },
+    withErrorHandling('check_action_status', async ({ actionId, organisationId }) => {
+      const action = await prisma.mcpPendingAction.findFirst({
+        where: { id: actionId, ...(organisationId && { organisationId }) },
         select: {
           id: true,
           actionType: true,

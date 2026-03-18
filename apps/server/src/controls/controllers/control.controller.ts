@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Param, Query, Body, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Query, Body, Req, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ControlService } from '../services/control.service';
 import { ControlReportingService } from '../services/control-reporting.service';
@@ -21,6 +21,7 @@ export class ControlController {
 
   @Get()
   async findAll(
+    @Req() req: AuthenticatedRequest,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
     @Query('theme') theme?: string,
@@ -29,7 +30,6 @@ export class ControlController {
     @Query('applicable') applicable?: string,
     @Query('enabled') enabled?: string,
     @Query('activeOnly') activeOnly?: string,
-    @Query('organisationId') organisationId?: string,
     @Query('search') search?: string,
   ) {
     const where: Prisma.ControlWhereInput = {};
@@ -44,7 +44,7 @@ export class ControlController {
       where.applicable = true;
       where.enabled = true;
     }
-    if (organisationId) where.organisationId = organisationId;
+    where.organisationId = req.user.organisationId;
     if (search) {
       where.OR = [
         { controlId: { contains: search, mode: 'insensitive' } },
@@ -60,18 +60,18 @@ export class ControlController {
   }
 
   @Get('stats')
-  async getStats(@Query('organisationId') organisationId: string) {
-    return this.service.getStats(organisationId);
+  async getStats(@Req() req: AuthenticatedRequest) {
+    return this.service.getStats(req.user.organisationId!);
   }
 
   @Get('effectiveness')
-  async getEffectivenessReport(@Query('organisationId') organisationId: string) {
-    return this.reportingService.getEffectivenessReport(organisationId);
+  async getEffectivenessReport(@Req() req: AuthenticatedRequest) {
+    return this.reportingService.getEffectivenessReport(req.user.organisationId!);
   }
 
   @Get('gap-analysis')
-  async getGapAnalysis(@Query('organisationId') organisationId: string) {
-    return this.gapAnalysisService.getGapAnalysis(organisationId);
+  async getGapAnalysis(@Req() req: AuthenticatedRequest) {
+    return this.gapAnalysisService.getGapAnalysis(req.user.organisationId!);
   }
 
   @Post()
@@ -93,12 +93,20 @@ export class ControlController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    const record = await this.service.findOne(id);
+    if (!record || record.organisationId !== req.user.organisationId) {
+      throw new NotFoundException();
+    }
+    return record;
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: UpdateControlDto) {
+  async update(@Param('id') id: string, @Body() data: UpdateControlDto, @Req() req: AuthenticatedRequest) {
+    const record = await this.service.findOne(id);
+    if (!record || record.organisationId !== req.user.organisationId) {
+      throw new NotFoundException();
+    }
     return this.service.update(id, data);
   }
 

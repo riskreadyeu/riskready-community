@@ -11,14 +11,16 @@ export function registerKRITools(server: McpServer) {
       riskId: z.string().optional().describe('Filter by parent risk UUID'),
       status: z.enum(['GREEN', 'AMBER', 'RED']).optional().describe('Filter by RAG status'),
       tier: z.enum(['CORE', 'EXTENDED', 'ADVANCED']).optional().describe('Filter by tier'),
+      organisationId: z.string().optional().describe('Organisation UUID'),
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
-    withErrorHandling('list_kris', async ({ riskId, status, tier, skip, take }) => {
+    withErrorHandling('list_kris', async ({ riskId, status, tier, organisationId, skip, take }) => {
       const where: Record<string, unknown> = {};
       if (riskId) where.riskId = riskId;
       if (status) where.status = status;
       if (tier) where.tier = tier;
+      if (organisationId) where.risk = { organisationId };
 
       const [results, count] = await Promise.all([
         prisma.keyRiskIndicator.findMany({

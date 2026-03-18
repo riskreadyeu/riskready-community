@@ -11,11 +11,13 @@ export function registerIncidentTools(server: McpServer) {
       status: z.enum(['DETECTED', 'TRIAGED', 'INVESTIGATING', 'CONTAINING', 'ERADICATING', 'RECOVERING', 'POST_INCIDENT', 'CLOSED']).optional().describe('Filter by incident status'),
       severity: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Filter by severity'),
       category: z.enum(['MALWARE', 'PHISHING', 'DENIAL_OF_SERVICE', 'DATA_BREACH', 'UNAUTHORIZED_ACCESS', 'INSIDER_THREAT', 'PHYSICAL', 'SUPPLY_CHAIN', 'SYSTEM_FAILURE', 'CONFIGURATION_ERROR', 'OTHER']).optional().describe('Filter by category'),
+      organisationId: z.string().optional().describe('Organisation UUID'),
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
     },
     withErrorHandling('list_incidents', async (params) => {
       const where: Record<string, unknown> = {};
+      if (params.organisationId) where.organisationId = params.organisationId;
       if (params.status) where.status = params.status;
       if (params.severity) where.severity = params.severity;
       if (params.category) where.category = params.category;
@@ -104,10 +106,12 @@ export function registerIncidentTools(server: McpServer) {
     'Search incidents by reference number, title, or description.',
     {
       query: z.string().max(200).describe('Search term (matches against referenceNumber, title, description)'),
+      organisationId: z.string().optional().describe('Organisation UUID'),
     },
-    withErrorHandling('search_incidents', async ({ query }) => {
+    withErrorHandling('search_incidents', async ({ query, organisationId }) => {
       const incidents = await prisma.incident.findMany({
         where: {
+          ...(organisationId && { organisationId }),
           OR: [
             { referenceNumber: { contains: query, mode: 'insensitive' } },
             { title: { contains: query, mode: 'insensitive' } },

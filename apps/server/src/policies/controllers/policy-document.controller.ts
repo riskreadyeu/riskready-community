@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Request, NotFoundException } from '@nestjs/common';
 import { PolicyDocumentService } from '../services/policy-document.service';
 import {
   CreatePolicyDocumentDto,
@@ -14,16 +14,16 @@ export class PolicyDocumentController {
 
   @Get()
   async findAll(
+    @Request() req: AuthenticatedRequest,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
-    @Query('organisationId') organisationId?: string,
     @Query('documentType') documentType?: DocumentType,
     @Query('status') status?: DocumentStatus,
     @Query('search') search?: string,
     @Query('parentDocumentId') parentDocumentId?: string,
   ) {
     const where: Prisma.PolicyDocumentWhereInput = {};
-    
+
     if (documentType) where.documentType = documentType;
     if (status) where.status = status;
     if (parentDocumentId) where.parentDocumentId = parentDocumentId;
@@ -39,36 +39,36 @@ export class PolicyDocumentController {
       skip: skip ? parseInt(skip) : undefined,
       take: take ? parseInt(take) : undefined,
       where: Object.keys(where).length > 0 ? where : undefined,
-      organisationId,
+      organisationId: req.user.organisationId!,
     });
   }
 
   @Get('stats')
-  async getStats(@Query('organisationId') organisationId: string) {
-    return this.service.getStats(organisationId);
+  async getStats(@Request() req: AuthenticatedRequest) {
+    return this.service.getStats(req.user.organisationId!);
   }
 
   @Get('hierarchy')
-  async getHierarchy(@Query('organisationId') organisationId: string) {
-    return this.service.getHierarchy(organisationId);
+  async getHierarchy(@Request() req: AuthenticatedRequest) {
+    return this.service.getHierarchy(req.user.organisationId!);
   }
 
   @Get('upcoming-reviews')
   async getUpcomingReviews(
-    @Query('organisationId') organisationId: string,
+    @Request() req: AuthenticatedRequest,
     @Query('days') days?: string,
   ) {
-    return this.service.getUpcomingReviews(organisationId, days ? parseInt(days) : 30);
+    return this.service.getUpcomingReviews(req.user.organisationId!, days ? parseInt(days) : 30);
   }
 
   @Get('overdue-reviews')
-  async getOverdueReviews(@Query('organisationId') organisationId: string) {
-    return this.service.getOverdueReviews(organisationId);
+  async getOverdueReviews(@Request() req: AuthenticatedRequest) {
+    return this.service.getOverdueReviews(req.user.organisationId!);
   }
 
   @Get('search')
   async search(
-    @Query('organisationId') organisationId: string,
+    @Request() req: AuthenticatedRequest,
     @Query('query') query?: string,
     @Query('documentType') documentType?: DocumentType,
     @Query('status') status?: DocumentStatus,
@@ -79,7 +79,7 @@ export class PolicyDocumentController {
     @Query('take') take?: string,
   ) {
     return this.service.search({
-      organisationId,
+      organisationId: req.user.organisationId!,
       query,
       documentType,
       status,
@@ -93,17 +93,21 @@ export class PolicyDocumentController {
 
   @Get('generate-id')
   async generateDocumentId(
-    @Query('organisationId') organisationId: string,
+    @Request() req: AuthenticatedRequest,
     @Query('documentType') documentType: DocumentType,
     @Query('parentDocumentId') parentDocumentId?: string,
   ) {
-    const documentId = await this.service.generateDocumentId(documentType, organisationId, parentDocumentId);
+    const documentId = await this.service.generateDocumentId(documentType, req.user.organisationId!, parentDocumentId);
     return { documentId };
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    const record = await this.service.findOne(id);
+    if (!record || record.organisationId !== req.user.organisationId) {
+      throw new NotFoundException();
+    }
+    return record;
   }
 
   @Post()
