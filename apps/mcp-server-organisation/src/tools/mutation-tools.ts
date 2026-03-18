@@ -57,8 +57,8 @@ function registerProfileMutations(server: McpServer) {
       nis2AnnexType: z.string().max(200).optional().describe('NIS2 annex type'),
       // Risk
       riskTolerance: z.record(z.string(), z.unknown()).optional().describe('Risk tolerance (JSON object)'),
-      riskAcceptanceThreshold: z.string().max(200).optional().describe('Risk acceptance threshold'),
-      maxTolerableDowntime: z.string().max(200).optional().describe('Maximum tolerable downtime'),
+      riskAcceptanceThreshold: z.number().int().optional().describe('Risk acceptance threshold score (e.g. 6, 12, 16)'),
+      maxTolerableDowntime: z.number().int().optional().describe('Maximum tolerable downtime in hours'),
       reason: z.string().max(1000).optional().describe('Reason for update'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),
     },
