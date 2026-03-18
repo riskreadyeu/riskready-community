@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 
 export function registerIncidentTools(server: McpServer) {
   server.tool(
@@ -70,9 +70,9 @@ export function registerIncidentTools(server: McpServer) {
       const incident = await prisma.incident.findUnique({
         where: { id },
         include: {
-          handler: { select: { id: true, firstName: true, lastName: true, email: true } },
-          incidentManager: { select: { id: true, firstName: true, lastName: true, email: true } },
-          reporter: { select: { id: true, firstName: true, lastName: true, email: true } },
+          handler: { select: userSelectSafe },
+          incidentManager: { select: userSelectSafe },
+          reporter: { select: userSelectSafe },
           incidentType: { select: { id: true, name: true, category: true } },
           attackVector: { select: { id: true, name: true, mitreAttackId: true } },
           _count: {

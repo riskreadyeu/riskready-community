@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 
 export function registerProcessTools(server: McpServer) {
   server.tool(
@@ -66,7 +66,7 @@ export function registerProcessTools(server: McpServer) {
       const process = await prisma.businessProcess.findUnique({
         where: { id },
         include: {
-          processOwner: { select: { id: true, firstName: true, lastName: true, email: true } },
+          processOwner: { select: userSelectSafe },
           processManager: { select: { id: true, firstName: true, lastName: true } },
           department: { select: { id: true, name: true, departmentCode: true } },
           backupOwner: { select: { id: true, firstName: true, lastName: true } },

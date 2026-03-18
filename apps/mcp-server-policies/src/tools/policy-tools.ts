@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 
 export function registerPolicyTools(server: McpServer) {
   server.tool(
@@ -76,7 +76,7 @@ export function registerPolicyTools(server: McpServer) {
       const doc = await prisma.policyDocument.findUnique({
         where: { id },
         include: {
-          owner: { select: { id: true, firstName: true, lastName: true, email: true } },
+          owner: { select: userSelectSafe },
           authorUser: { select: { id: true, firstName: true, lastName: true } },
           approver: { select: { id: true, firstName: true, lastName: true } },
           parentDocument: { select: { id: true, documentId: true, title: true } },

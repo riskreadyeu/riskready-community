@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 
 export function registerEvidenceTools(server: McpServer) {
   server.tool(
@@ -77,7 +77,7 @@ export function registerEvidenceTools(server: McpServer) {
       const evidence = await prisma.evidence.findUnique({
         where: { id },
         include: {
-          collectedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+          collectedBy: { select: userSelectSafe },
           reviewedBy: { select: { id: true, firstName: true, lastName: true } },
           approvedBy: { select: { id: true, firstName: true, lastName: true } },
           rejectedBy: { select: { id: true, firstName: true, lastName: true } },

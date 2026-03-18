@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 
 export function registerGovernanceTools(server: McpServer) {
   server.tool(
@@ -52,14 +52,14 @@ export function registerGovernanceTools(server: McpServer) {
       const committee = await prisma.securityCommittee.findUnique({
         where: { id },
         include: {
-          chair: { select: { id: true, firstName: true, lastName: true, email: true } },
+          chair: { select: userSelectSafe },
           memberships: {
             where: { isActive: true },
             select: {
               id: true,
               role: true,
               votingRights: true,
-              user: { select: { id: true, firstName: true, lastName: true, email: true } },
+              user: { select: userSelectSafe },
             },
           },
           _count: { select: { meetings: true } },

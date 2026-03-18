@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 
 export function registerNonconformityTools(server: McpServer) {
   server.tool(
@@ -41,7 +41,7 @@ export function registerNonconformityTools(server: McpServer) {
             targetClosureDate: true,
             isoClause: true,
             control: { select: { id: true, controlId: true, name: true } },
-            responsibleUser: { select: { id: true, email: true, firstName: true, lastName: true } },
+            responsibleUser: { select: userSelectSafe },
           },
         }),
         prisma.nonconformity.count({ where }),
@@ -72,13 +72,13 @@ export function registerNonconformityTools(server: McpServer) {
         where: { id },
         include: {
           control: { select: { id: true, controlId: true, name: true, theme: true, implementationStatus: true } },
-          responsibleUser: { select: { id: true, email: true, firstName: true, lastName: true } },
-          raisedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
-          closedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
-          verifiedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
-          capDraftedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
-          capApprovedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
-          capRejectedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          responsibleUser: { select: userSelectSafe },
+          raisedBy: { select: userSelectSafe },
+          closedBy: { select: userSelectSafe },
+          verifiedBy: { select: userSelectSafe },
+          capDraftedBy: { select: userSelectSafe },
+          capApprovedBy: { select: userSelectSafe },
+          capRejectedBy: { select: userSelectSafe },
         },
       });
 
