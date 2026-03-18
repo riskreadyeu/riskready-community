@@ -6,7 +6,7 @@ import { userSelectSafe, withErrorHandling } from '#mcp-shared';
 export function registerTestTools(server: McpServer) {
   server.tool(
     'get_test',
-    'Get a full test definition (AssessmentTest) with procedure, evidence requirements, and execution history.',
+    'Get a full test definition (AssessmentTest) with procedure, evidence requirements, and execution history. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('AssessmentTest UUID'),
     },
@@ -57,7 +57,7 @@ export function registerTestTools(server: McpServer) {
 
   server.tool(
     'get_test_executions',
-    'Get execution history for an assessment test instance. Returns all past executions with results, findings, and evidence.',
+    'Get execution history for an assessment test instance. Returns all past executions with results, findings, and evidence. If not found, returns a not-found message. Do not invent or assume values.',
     {
       assessmentTestId: z.string().describe('AssessmentTest UUID'),
     },
@@ -96,7 +96,7 @@ export function registerTestTools(server: McpServer) {
 
   server.tool(
     'list_test_templates',
-    'Browse test templates. In the Community Edition, this returns assessment tests grouped by test code pattern as templates.',
+    'Browse test templates. In the Community Edition, this returns assessment tests grouped by test code pattern as templates. If not found, returns a not-found message. Do not invent or assume values.',
     {
       layer: z.enum(['GOVERNANCE', 'PLATFORM', 'CONSUMPTION', 'OVERSIGHT']).optional().describe('Filter by layer type prefix (GOV-, PLAT-, CON-, OVS-)'),
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),

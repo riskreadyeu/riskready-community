@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerEvidenceRequestTools(server: McpServer) {
   server.tool(
     'list_evidence_requests',
-    'List evidence requests with optional status filter. Returns request details with pagination.',
+    'List evidence requests with optional status filter. Returns request details with pagination. If not found, returns a not-found message. Do not invent or assume values.',
     {
       status: z.enum(['OPEN', 'IN_PROGRESS', 'SUBMITTED', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'OVERDUE']).optional().describe('Filter by request status'),
       priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional().describe('Filter by priority'),
@@ -54,7 +54,7 @@ export function registerEvidenceRequestTools(server: McpServer) {
 
   server.tool(
     'get_evidence_request',
-    'Get a single evidence request with full details including fulfillment records.',
+    'Get a single evidence request with full details including fulfillment records. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('EvidenceRequest UUID'),
     },
@@ -91,7 +91,7 @@ export function registerEvidenceRequestTools(server: McpServer) {
 
   server.tool(
     'get_my_requests',
-    'Get evidence requests assigned to a specific user.',
+    'Get evidence requests assigned to a specific user. If not found, returns a not-found message. Do not invent or assume values.',
     {
       userId: z.string().describe('User UUID of the assignee'),
       status: z.enum(['OPEN', 'IN_PROGRESS', 'SUBMITTED', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'OVERDUE']).optional().describe('Filter by status'),

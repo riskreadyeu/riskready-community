@@ -6,7 +6,7 @@ import { userSelectSafe, withErrorHandling } from '#mcp-shared';
 export function registerControlTools(server: McpServer) {
   server.tool(
     'list_controls',
-    'List controls from the library with optional filters. Returns control ID, name, theme, framework, implementation status, and applicability.',
+    'List controls from the library with optional filters. Returns control ID, name, theme, framework, implementation status, and applicability. If not found, returns a not-found message. Do not invent or assume values.',
     {
       framework: z.enum(['ISO', 'SOC2', 'NIS2', 'DORA']).optional().describe('Filter by control framework'),
       theme: z.enum(['ORGANISATIONAL', 'PEOPLE', 'PHYSICAL', 'TECHNOLOGICAL']).optional().describe('Filter by ISO 27001 control theme'),
@@ -65,7 +65,7 @@ export function registerControlTools(server: McpServer) {
 
   server.tool(
     'get_control',
-    'Get a single control with full details: metrics, evidence links, risk scenario links, and audit metadata.',
+    'Get a single control with full details: metrics, evidence links, risk scenario links, and audit metadata. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('Control UUID'),
     },
@@ -122,7 +122,7 @@ export function registerControlTools(server: McpServer) {
 
   server.tool(
     'get_control_stats',
-    'Get aggregate statistics for the control library: total count, by theme, by framework, by implementation status.',
+    'Get aggregate statistics for the control library: total count, by theme, by framework, by implementation status. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_control_stats', async () => {
       const [total, applicable, implemented, partial, notStarted, byTheme, byFramework] = await Promise.all([
@@ -152,7 +152,7 @@ export function registerControlTools(server: McpServer) {
 
   server.tool(
     'search_controls',
-    'Search controls by name or controlId pattern. Returns matching controls with basic info.',
+    'Search controls by name or controlId pattern. Returns matching controls with basic info. If not found, returns a not-found message. Do not invent or assume values.',
     {
       query: z.string().max(200).describe('Search term (matches against name and controlId)'),
       framework: z.enum(['ISO', 'SOC2', 'NIS2', 'DORA']).optional().describe('Limit search to a specific framework'),
@@ -200,7 +200,7 @@ export function registerControlTools(server: McpServer) {
 
   server.tool(
     'list_scope_items',
-    'List scope items (applications, asset classes, locations, etc.) used in assessment testing. Supports filtering by type, criticality, and active status.',
+    'List scope items (applications, asset classes, locations, etc.) used in assessment testing. Supports filtering by type, criticality, and active status. If not found, returns a not-found message. Do not invent or assume values.',
     {
       scopeType: z.enum(['APPLICATION', 'ASSET_CLASS', 'LOCATION', 'PERSONNEL_TYPE', 'BUSINESS_UNIT', 'PLATFORM', 'PROVIDER', 'NETWORK_ZONE', 'PROCESS']).optional().describe('Filter by scope type'),
       criticality: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Filter by criticality level'),
@@ -253,7 +253,7 @@ export function registerControlTools(server: McpServer) {
 
   server.tool(
     'get_effectiveness_report',
-    'Get a control implementation effectiveness report showing implementation rates across applicable, enabled controls.',
+    'Get a control implementation effectiveness report showing implementation rates across applicable, enabled controls. If not found, returns a not-found message. Do not invent or assume values.',
     {
       organisationId: z.string().optional().describe('Organisation UUID (uses first org if omitted)'),
     },
@@ -302,7 +302,7 @@ export function registerControlTools(server: McpServer) {
 
   server.tool(
     'find_controls_by_ids',
-    'Retrieve multiple controls by their UUIDs in a single query. Useful for bulk lookups.',
+    'Retrieve multiple controls by their UUIDs in a single query. Useful for bulk lookups. If not found, returns a not-found message. Do not invent or assume values.',
     {
       ids: z.array(z.string()).describe('Array of control UUIDs'),
     },
@@ -345,7 +345,7 @@ export function registerControlTools(server: McpServer) {
 
   server.tool(
     'get_scope_item',
-    'Get a single scope item with full details including usage counts across assessments and tests.',
+    'Get a single scope item with full details including usage counts across assessments and tests. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('Scope item UUID'),
     },

@@ -6,7 +6,7 @@ import { withErrorHandling } from '#mcp-shared';
 export function registerAssetRelationshipTools(server: McpServer) {
   server.tool(
     'get_asset_relationships',
-    'Get asset relationships with direction filter. Shows how assets are connected (dependencies, hosting, network, data flows, etc.).',
+    'Get asset relationships with direction filter. Shows how assets are connected (dependencies, hosting, network, data flows, etc.). If not found, returns a not-found message. Do not invent or assume values.',
     {
       assetId: z.string().describe('Asset UUID'),
       direction: z.enum(['outgoing', 'incoming', 'all']).default('all').describe('Relationship direction: outgoing (this asset depends on), incoming (depends on this asset), or all'),
@@ -60,7 +60,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
 
   server.tool(
     'get_asset_controls',
-    'List control linkages for an asset. Shows which security controls are applied and their implementation status.',
+    'List control linkages for an asset. Shows which security controls are applied and their implementation status. If not found, returns a not-found message. Do not invent or assume values.',
     {
       assetId: z.string().describe('Asset UUID'),
     },
@@ -109,7 +109,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
 
   server.tool(
     'get_asset_risks',
-    'List risk linkages for an asset. Shows which risks are associated and their impact levels.',
+    'List risk linkages for an asset. Shows which risks are associated and their impact levels. If not found, returns a not-found message. Do not invent or assume values.',
     {
       assetId: z.string().describe('Asset UUID'),
     },
@@ -156,7 +156,7 @@ export function registerAssetRelationshipTools(server: McpServer) {
 
   server.tool(
     'get_asset_business_processes',
-    'List business process linkages for an asset. Shows which business processes depend on this asset.',
+    'List business process linkages for an asset. Shows which business processes depend on this asset. If not found, returns a not-found message. Do not invent or assume values.',
     {
       assetId: z.string().describe('Asset UUID'),
     },

@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerNonconformityTools(server: McpServer) {
   server.tool(
     'list_nonconformities',
-    'List nonconformities with optional filters for status, severity, source, and CAP status. Returns paginated results with count.',
+    'List nonconformities with optional filters for status, severity, source, and CAP status. Returns paginated results with count. If not found, returns a not-found message. Do not invent or assume values.',
     {
       status: z.enum(['DRAFT', 'OPEN', 'IN_PROGRESS', 'AWAITING_VERIFICATION', 'VERIFIED_EFFECTIVE', 'VERIFIED_INEFFECTIVE', 'CLOSED', 'REJECTED']).optional().describe('Filter by NC status'),
       severity: z.enum(['MAJOR', 'MINOR', 'OBSERVATION']).optional().describe('Filter by severity'),
@@ -63,7 +63,7 @@ export function registerNonconformityTools(server: McpServer) {
 
   server.tool(
     'get_nonconformity',
-    'Get a single nonconformity with full details including CAP fields, verification fields, related control, responsible user, raised by, and closed by.',
+    'Get a single nonconformity with full details including CAP fields, verification fields, related control, responsible user, raised by, and closed by. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('Nonconformity UUID'),
     },
@@ -94,7 +94,7 @@ export function registerNonconformityTools(server: McpServer) {
 
   server.tool(
     'search_nonconformities',
-    'Search nonconformities by query matching against ncId, title, and description. Returns basic fields.',
+    'Search nonconformities by query matching against ncId, title, and description. Returns basic fields. If not found, returns a not-found message. Do not invent or assume values.',
     {
       query: z.string().max(200).describe('Search term (matches against ncId, title, description)'),
     },
@@ -137,7 +137,7 @@ export function registerNonconformityTools(server: McpServer) {
 
   server.tool(
     'get_nc_stats',
-    'Get aggregate nonconformity statistics: count by status, severity, CAP status, source. Total open and overdue counts.',
+    'Get aggregate nonconformity statistics: count by status, severity, CAP status, source. Total open and overdue counts. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_nc_stats', async () => {
       const now = new Date();

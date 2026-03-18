@@ -6,7 +6,7 @@ import { userSelectSafe, withErrorHandling } from '#mcp-shared';
 export function registerSOATools(server: McpServer) {
   server.tool(
     'list_soas',
-    'List Statement of Applicability (SOA) versions with status, approval info, and entry counts.',
+    'List Statement of Applicability (SOA) versions with status, approval info, and entry counts. If not found, returns a not-found message. Do not invent or assume values.',
     {
       status: z.enum(['DRAFT', 'PENDING_REVIEW', 'APPROVED', 'SUPERSEDED']).optional().describe('Filter by SOA status'),
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
@@ -45,7 +45,7 @@ export function registerSOATools(server: McpServer) {
 
   server.tool(
     'get_soa',
-    'Get a full Statement of Applicability with all entries showing control applicability decisions and implementation status.',
+    'Get a full Statement of Applicability with all entries showing control applicability decisions and implementation status. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('StatementOfApplicability UUID'),
     },
@@ -86,7 +86,7 @@ export function registerSOATools(server: McpServer) {
 
   server.tool(
     'get_soa_entry',
-    'Get a single SOA entry with applicability decision, implementation status, and linked control details.',
+    'Get a single SOA entry with applicability decision, implementation status, and linked control details. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('SOAEntry UUID'),
     },
@@ -127,7 +127,7 @@ export function registerSOATools(server: McpServer) {
 
   server.tool(
     'get_soa_stats',
-    'Get aggregate SOA statistics: total SOAs, by status, and latest SOA entry summary.',
+    'Get aggregate SOA statistics: total SOAs, by status, and latest SOA entry summary. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_soa_stats', async () => {
       const [total, byStatus, latest] = await Promise.all([
@@ -175,7 +175,7 @@ export function registerSOATools(server: McpServer) {
 
   server.tool(
     'get_latest_soa',
-    'Get the most recent Statement of Applicability with full entries and summary statistics.',
+    'Get the most recent Statement of Applicability with full entries and summary statistics. If not found, returns a not-found message. Do not invent or assume values.',
     {
       organisationId: z.string().optional().describe('Organisation UUID (uses most recent SOA if omitted)'),
     },

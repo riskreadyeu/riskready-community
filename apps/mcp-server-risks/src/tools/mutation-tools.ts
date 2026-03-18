@@ -10,7 +10,7 @@ import { createPendingAction, withErrorHandling } from '#mcp-shared';
 function registerRiskMutations(server: McpServer) {
   server.tool(
     'propose_create_risk',
-    'Propose creating a new risk. The proposal goes into an approval queue for human review.',
+    'Propose creating a new risk. The proposal goes into an approval queue for human review. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       riskId: z.string().describe('Risk identifier (e.g. "R-01")'),
       title: z.string().describe('Risk title'),
@@ -41,7 +41,7 @@ function registerRiskMutations(server: McpServer) {
 
   server.tool(
     'propose_update_risk',
-    'Propose updating an existing risk. Requires human approval.',
+    'Propose updating an existing risk. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       riskId: z.string().describe('Risk UUID'),
       title: z.string().optional().describe('Updated title'),
@@ -79,7 +79,7 @@ function registerRiskMutations(server: McpServer) {
 
   server.tool(
     'propose_create_kri',
-    'Propose creating a new Key Risk Indicator. Requires human approval.',
+    'Propose creating a new Key Risk Indicator. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       kriId: z.string().describe('KRI identifier (e.g. "KRI-001")'),
       name: z.string().describe('KRI name'),
@@ -119,7 +119,7 @@ function registerRiskMutations(server: McpServer) {
 
   server.tool(
     'propose_record_kri_value',
-    'Propose recording a new KRI measurement value. Requires human approval.',
+    'Propose recording a new KRI measurement value. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       kriId: z.string().describe('KeyRiskIndicator UUID'),
       value: z.string().describe('New measurement value (e.g. "95%", "3", "14 days")'),
@@ -151,7 +151,7 @@ function registerRiskMutations(server: McpServer) {
 
   server.tool(
     'propose_create_rts',
-    'Propose creating a new Risk Tolerance Statement. Requires human approval.',
+    'Propose creating a new Risk Tolerance Statement. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       rtsId: z.string().describe('RTS identifier (e.g. "RTS-001")'),
       title: z.string().describe('RTS title'),
@@ -179,7 +179,7 @@ function registerRiskMutations(server: McpServer) {
 
   server.tool(
     'propose_approve_rts',
-    'Propose approving a Risk Tolerance Statement. Requires human approval.',
+    'Propose approving a Risk Tolerance Statement. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       rtsId: z.string().describe('RiskToleranceStatement UUID'),
       approvalComments: z.string().optional().describe('Approval comments'),
@@ -214,7 +214,7 @@ function registerRiskMutations(server: McpServer) {
 function registerScenarioMutations(server: McpServer) {
   server.tool(
     'propose_create_scenario',
-    'Propose creating a new risk scenario. Requires human approval.',
+    'Propose creating a new risk scenario. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       scenarioId: z.string().describe('Scenario identifier (e.g. "R-01-S01")'),
       title: z.string().describe('Scenario title'),
@@ -251,7 +251,7 @@ function registerScenarioMutations(server: McpServer) {
 
   server.tool(
     'propose_transition_scenario',
-    'Propose a status transition for a risk scenario. Requires human approval.',
+    'Propose a status transition for a risk scenario. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       scenarioId: z.string().describe('RiskScenario UUID'),
       targetStatus: z.string().describe('Target status (e.g. ASSESSED, EVALUATED, TREATING)'),
@@ -282,7 +282,7 @@ function registerScenarioMutations(server: McpServer) {
 
   server.tool(
     'propose_link_scenario_control',
-    'Propose linking a control to a risk scenario as a mitigating control. Requires human approval.',
+    'Propose linking a control to a risk scenario as a mitigating control. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       scenarioId: z.string().describe('RiskScenario UUID'),
       controlId: z.string().describe('Control UUID'),
@@ -332,7 +332,7 @@ function registerScenarioMutations(server: McpServer) {
 
   server.tool(
     'propose_assess_scenario',
-    'Propose recording an inherent or residual assessment for a risk scenario. Requires human approval.',
+    'Propose recording an inherent or residual assessment for a risk scenario. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       scenarioId: z.string().describe('RiskScenario UUID'),
       assessmentType: z.enum(['inherent', 'residual']).describe('Assessment type'),
@@ -370,7 +370,7 @@ function registerScenarioMutations(server: McpServer) {
 function registerTreatmentMutations(server: McpServer) {
   server.tool(
     'propose_create_treatment_plan',
-    'Propose creating a new treatment plan. Requires human approval.',
+    'Propose creating a new treatment plan. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       treatmentId: z.string().describe('Treatment plan identifier (e.g. "TP-001")'),
       title: z.string().describe('Treatment plan title'),
@@ -411,7 +411,7 @@ function registerTreatmentMutations(server: McpServer) {
 
   server.tool(
     'propose_create_treatment_action',
-    'Propose creating a new treatment action. Requires human approval.',
+    'Propose creating a new treatment action. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       actionId: z.string().describe('Action identifier (e.g. "TP-001-A01")'),
       title: z.string().describe('Action title'),

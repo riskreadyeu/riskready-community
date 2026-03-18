@@ -5,7 +5,7 @@ import { withErrorHandling } from '#mcp-shared';
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
     'get_incident_trending',
-    'Get incident trending data: counts by month for the last 12 months, broken down by severity.',
+    'Get incident trending data: counts by month for the last 12 months, broken down by severity. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_incident_trending', async () => {
       const twelveMonthsAgo = new Date();
@@ -46,7 +46,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_mttr_report',
-    'Get Mean Time To Respond/Resolve report. Calculates average time from detection to containment and closure.',
+    'Get Mean Time To Respond/Resolve report. Calculates average time from detection to containment and closure. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_mttr_report', async () => {
       const closedIncidents = await prisma.incident.findMany({
@@ -104,7 +104,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_incident_control_gaps',
-    'Identify controls that were linked to incidents as failed or bypassed. Helps prioritize control improvements.',
+    'Identify controls that were linked to incidents as failed or bypassed. Helps prioritize control improvements. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_incident_control_gaps', async () => {
       const failedControls = await prisma.incidentControl.findMany({

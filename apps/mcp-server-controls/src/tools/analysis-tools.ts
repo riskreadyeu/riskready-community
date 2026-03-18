@@ -6,7 +6,7 @@ import { userSelectSafe, withErrorHandling } from '#mcp-shared';
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
     'get_gap_analysis',
-    'Get gap analysis from assessment results — identifies controls with FAIL or PARTIAL test results. Optionally scoped to a specific assessment.',
+    'Get gap analysis from assessment results — identifies controls with FAIL or PARTIAL test results. Optionally scoped to a specific assessment. If not found, returns a not-found message. Do not invent or assume values.',
     {
       assessmentId: z.string().optional().describe('Assessment UUID (if omitted, uses latest completed assessment)'),
     },
@@ -110,7 +110,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_overdue_tests',
-    'Get assessment tests that are past their due date. Helps identify testing gaps.',
+    'Get assessment tests that are past their due date. Helps identify testing gaps. If not found, returns a not-found message. Do not invent or assume values.',
     {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
@@ -175,7 +175,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_assessment_completion_summary',
-    'Get detailed completion summary for a specific assessment: test counts by status and result, completion percentage, and overdue count.',
+    'Get detailed completion summary for a specific assessment: test counts by status and result, completion percentage, and overdue count. If not found, returns a not-found message. Do not invent or assume values.',
     {
       assessmentId: z.string().describe('Assessment UUID'),
     },
@@ -234,7 +234,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_control_coverage_matrix',
-    'Get each applicable control with its latest assessment test result and metric RAG status. Useful for a holistic control health view.',
+    'Get each applicable control with its latest assessment test result and metric RAG status. Useful for a holistic control health view. If not found, returns a not-found message. Do not invent or assume values.',
     {
       organisationId: z.string().optional().describe('Organisation UUID (all orgs if omitted)'),
     },
@@ -311,7 +311,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_tester_workload',
-    'Get per-tester breakdown of assigned, pending, and completed tests across active assessments.',
+    'Get per-tester breakdown of assigned, pending, and completed tests across active assessments. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_tester_workload', async () => {
       const tests = await prisma.assessmentTest.findMany({

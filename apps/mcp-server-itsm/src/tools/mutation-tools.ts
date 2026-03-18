@@ -11,7 +11,7 @@ import { createPendingAction, getDefaultOrganisationId, withErrorHandling } from
 function registerAssetMutations(server: McpServer) {
   server.tool(
     'propose_asset',
-    'Propose creating a new asset in the CMDB. The proposal goes into an approval queue for human review before execution.',
+    'Propose creating a new asset in the CMDB. The proposal goes into an approval queue for human review before execution. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       name: z.string().describe('Asset name'),
       assetTag: z.string().describe('Unique asset tag (e.g. AST-SRV-001)'),
@@ -139,7 +139,7 @@ function registerAssetMutations(server: McpServer) {
 
   server.tool(
     'propose_asset_update',
-    'Propose updating an existing asset. Validates the asset exists before creating the proposal. Requires human approval.',
+    'Propose updating an existing asset. Validates the asset exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assetId: z.string().describe('Asset UUID to update'),
       name: z.string().optional().describe('New asset name'),
@@ -268,7 +268,7 @@ function registerAssetMutations(server: McpServer) {
 
   server.tool(
     'propose_asset_relationship',
-    'Propose creating a relationship between two assets (dependency, hosting, network, data flow, etc.). Requires human approval.',
+    'Propose creating a relationship between two assets (dependency, hosting, network, data flow, etc.). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       fromAssetId: z.string().describe('Source asset UUID'),
       toAssetId: z.string().describe('Target asset UUID'),
@@ -313,7 +313,7 @@ function registerAssetMutations(server: McpServer) {
 
   server.tool(
     'propose_link_asset_control',
-    'Propose linking an asset to a security control. Tracks which controls protect which assets. Requires human approval.',
+    'Propose linking an asset to a security control. Tracks which controls protect which assets. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assetId: z.string().describe('Asset UUID'),
       controlId: z.string().describe('Control UUID'),
@@ -351,7 +351,7 @@ function registerAssetMutations(server: McpServer) {
 
   server.tool(
     'propose_link_asset_risk',
-    'Propose linking an asset to a risk. Tracks which risks affect which assets. Requires human approval.',
+    'Propose linking an asset to a risk. Tracks which risks affect which assets. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assetId: z.string().describe('Asset UUID'),
       riskId: z.string().describe('Risk UUID'),
@@ -386,7 +386,7 @@ function registerAssetMutations(server: McpServer) {
 
   server.tool(
     'propose_delete_asset',
-    'Propose deleting/disposing an asset from the CMDB. Validates the asset exists before creating the proposal. Requires human approval.',
+    'Propose deleting/disposing an asset from the CMDB. Validates the asset exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assetId: z.string().describe('Asset UUID to delete/dispose'),
       disposalReason: z.string().describe('Reason for disposing the asset'),
@@ -424,7 +424,7 @@ function registerAssetMutations(server: McpServer) {
 function registerChangeMutations(server: McpServer) {
   server.tool(
     'propose_change',
-    'Propose creating a new change request. The proposal goes into an approval queue for human review before execution.',
+    'Propose creating a new change request. The proposal goes into an approval queue for human review before execution. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       title: z.string().describe('Change request title'),
       description: z.string().describe('Change request description'),
@@ -476,7 +476,7 @@ function registerChangeMutations(server: McpServer) {
 
   server.tool(
     'propose_update_change',
-    'Propose updating a change request. Validates the change exists before creating the proposal. Requires human approval.',
+    'Propose updating a change request. Validates the change exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       changeId: z.string().describe('Change UUID to update'),
       title: z.string().optional().describe('New change title'),
@@ -543,7 +543,7 @@ function registerChangeMutations(server: McpServer) {
 
   server.tool(
     'propose_approve_change',
-    'Propose approving a change request. Validates the change exists before creating the proposal. Requires human approval.',
+    'Propose approving a change request. Validates the change exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       changeId: z.string().describe('Change UUID to approve'),
       comments: z.string().optional().describe('Approval comments'),
@@ -575,7 +575,7 @@ function registerChangeMutations(server: McpServer) {
 
   server.tool(
     'propose_reject_change',
-    'Propose rejecting a change request. Validates the change exists before creating the proposal. Requires human approval.',
+    'Propose rejecting a change request. Validates the change exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       changeId: z.string().describe('Change UUID to reject'),
       rejectionReason: z.string().describe('Reason for rejecting the change'),
@@ -607,7 +607,7 @@ function registerChangeMutations(server: McpServer) {
 
   server.tool(
     'propose_implement_change',
-    'Propose marking a change request as implementing. Validates the change exists before creating the proposal. Requires human approval.',
+    'Propose marking a change request as implementing. Validates the change exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       changeId: z.string().describe('Change UUID to mark as implementing'),
       implementationNotes: z.string().optional().describe('Implementation notes'),
@@ -640,7 +640,7 @@ function registerChangeMutations(server: McpServer) {
 
   server.tool(
     'propose_complete_change',
-    'Propose completing a change request. Validates the change exists before creating the proposal. Requires human approval.',
+    'Propose completing a change request. Validates the change exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       changeId: z.string().describe('Change UUID to complete'),
       successful: z.boolean().describe('Whether the change was successful'),
@@ -677,7 +677,7 @@ function registerChangeMutations(server: McpServer) {
 
   server.tool(
     'propose_cancel_change',
-    'Propose cancelling a change request. Validates the change exists before creating the proposal. Requires human approval.',
+    'Propose cancelling a change request. Validates the change exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       changeId: z.string().describe('Change UUID to cancel'),
       cancellationReason: z.string().describe('Reason for cancelling the change'),
@@ -724,7 +724,7 @@ function registerIncidentItsmMutations(_server: McpServer) {
 function registerCapacityMutations(server: McpServer) {
   server.tool(
     'propose_capacity_plan',
-    'Propose creating a new capacity plan for an asset. Supports NIS2 capacity management requirements. Requires human approval.',
+    'Propose creating a new capacity plan for an asset. Supports NIS2 capacity management requirements. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       title: z.string().describe('Capacity plan title'),
       assetId: z.string().optional().describe('Asset UUID (optional if planning for a group)'),
@@ -770,7 +770,7 @@ function registerCapacityMutations(server: McpServer) {
 
   server.tool(
     'propose_update_capacity_plan',
-    'Propose updating a capacity plan. Validates the capacity plan exists before creating the proposal. Requires human approval.',
+    'Propose updating a capacity plan. Validates the capacity plan exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       capacityPlanId: z.string().describe('Capacity plan UUID to update'),
       title: z.string().optional().describe('New capacity plan title'),

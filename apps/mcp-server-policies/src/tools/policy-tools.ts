@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerPolicyTools(server: McpServer) {
   server.tool(
     'list_policy_documents',
-    'List policy documents with optional filters. Returns document details with pagination.',
+    'List policy documents with optional filters. Returns document details with pagination. If not found, returns a not-found message. Do not invent or assume values.',
     {
       status: z.enum(['DRAFT', 'PENDING_REVIEW', 'PENDING_APPROVAL', 'APPROVED', 'PUBLISHED', 'UNDER_REVISION', 'SUPERSEDED', 'RETIRED', 'ARCHIVED']).optional().describe('Filter by document status'),
       documentType: z.enum(['POLICY', 'STANDARD', 'PROCEDURE', 'WORK_INSTRUCTION', 'FORM', 'TEMPLATE', 'CHECKLIST', 'GUIDELINE', 'RECORD']).optional().describe('Filter by document type'),
@@ -68,7 +68,7 @@ export function registerPolicyTools(server: McpServer) {
 
   server.tool(
     'get_policy_document',
-    'Get a single policy document with full details.',
+    'Get a single policy document with full details. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('PolicyDocument UUID'),
     },
@@ -111,7 +111,7 @@ export function registerPolicyTools(server: McpServer) {
 
   server.tool(
     'search_policy_documents',
-    'Search policy documents by document ID, title, or purpose.',
+    'Search policy documents by document ID, title, or purpose. If not found, returns a not-found message. Do not invent or assume values.',
     {
       query: z.string().max(200).describe('Search term'),
       organisationId: z.string().optional().describe('Organisation UUID'),
@@ -149,7 +149,7 @@ export function registerPolicyTools(server: McpServer) {
 
   server.tool(
     'get_policy_stats',
-    'Get aggregate policy statistics: total count, by status, by type, review status, exception counts.',
+    'Get aggregate policy statistics: total count, by status, by type, review status, exception counts. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_policy_stats', async () => {
       const now = new Date();
@@ -186,7 +186,7 @@ export function registerPolicyTools(server: McpServer) {
 
   server.tool(
     'get_policy_hierarchy',
-    'Get the policy document hierarchy showing parent-child relationships.',
+    'Get the policy document hierarchy showing parent-child relationships. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_policy_hierarchy', async () => {
       const documents = await prisma.policyDocument.findMany({

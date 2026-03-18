@@ -5,7 +5,7 @@ import { withErrorHandling } from '#mcp-shared';
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
     'get_review_calendar',
-    'Get upcoming policy review calendar — documents due for review in the next 90 days plus overdue reviews.',
+    'Get upcoming policy review calendar — documents due for review in the next 90 days plus overdue reviews. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_review_calendar', async () => {
       const now = new Date();
@@ -66,7 +66,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_policy_compliance_matrix',
-    'Get a compliance matrix showing policy coverage across controls — identifies gaps where controls lack policy coverage.',
+    'Get a compliance matrix showing policy coverage across controls — identifies gaps where controls lack policy coverage. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_policy_compliance_matrix', async () => {
       const controls = await prisma.control.findMany({
@@ -138,7 +138,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_exception_report',
-    'Get a report on policy exceptions — active, expiring soon, and overdue for review.',
+    'Get a report on policy exceptions — active, expiring soon, and overdue for review. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_exception_report', async () => {
       const now = new Date();

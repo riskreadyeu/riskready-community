@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerTreatmentTools(server: McpServer) {
   server.tool(
     'list_treatment_plans',
-    'List treatment plans with optional filters. Returns plan ID, title, type, status, priority, and progress.',
+    'List treatment plans with optional filters. Returns plan ID, title, type, status, priority, and progress. If not found, returns a not-found message. Do not invent or assume values.',
     {
       status: z.enum(['DRAFT', 'PROPOSED', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD', 'CANCELLED']).optional().describe('Filter by treatment status'),
       type: z.enum(['MITIGATE', 'TRANSFER', 'ACCEPT', 'AVOID', 'SHARE']).optional().describe('Filter by treatment type'),
@@ -59,7 +59,7 @@ export function registerTreatmentTools(server: McpServer) {
 
   server.tool(
     'get_treatment_plan',
-    'Get a single treatment plan with full details: actions, dependencies, history, and financial info.',
+    'Get a single treatment plan with full details: actions, dependencies, history, and financial info. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('TreatmentPlan UUID'),
     },
@@ -112,7 +112,7 @@ export function registerTreatmentTools(server: McpServer) {
 
   server.tool(
     'get_treatment_stats',
-    'Get aggregate treatment plan statistics: total count, by status, by type, progress distribution.',
+    'Get aggregate treatment plan statistics: total count, by status, by type, progress distribution. If not found, returns a not-found message. Do not invent or assume values.',
     {
       organisationId: z.string().optional().describe('Organisation UUID'),
     },

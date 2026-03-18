@@ -7,7 +7,7 @@ import { createPendingAction, withErrorHandling } from '#mcp-shared';
 function registerEvidenceMutations(server: McpServer) {
   server.tool(
     'propose_create_evidence',
-    'Propose creating a new evidence record. The proposal goes into an approval queue for human review.',
+    'Propose creating a new evidence record. The proposal goes into an approval queue for human review. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       evidenceRef: z.string().describe('Evidence reference (e.g. "EVD-2025-0001")'),
       title: z.string().describe('Evidence title'),
@@ -46,7 +46,7 @@ function registerEvidenceMutations(server: McpServer) {
 
   server.tool(
     'propose_update_evidence',
-    'Propose updating an existing evidence record. Validates the evidence exists. Requires human approval.',
+    'Propose updating an existing evidence record. Validates the evidence exists. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       evidenceId: z.string().describe('Evidence UUID to update'),
       title: z.string().optional().describe('Updated title'),
@@ -84,7 +84,7 @@ function registerEvidenceMutations(server: McpServer) {
 
   server.tool(
     'propose_link_evidence',
-    'Propose linking evidence to another entity (control, risk, incident, asset, policy, or change). Requires human approval.',
+    'Propose linking evidence to another entity (control, risk, incident, asset, policy, or change). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       evidenceId: z.string().describe('Evidence UUID'),
       targetType: z.enum(['control', 'risk', 'incident', 'asset', 'policy', 'change', 'nonconformity', 'treatment']).describe('Type of entity to link to'),
@@ -118,7 +118,7 @@ function registerEvidenceMutations(server: McpServer) {
 function registerRequestMutations(server: McpServer) {
   server.tool(
     'propose_create_request',
-    'Propose creating a new evidence request. Requires human approval.',
+    'Propose creating a new evidence request. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       requestRef: z.string().describe('Request reference (e.g. "REQ-2025-0001")'),
       title: z.string().describe('Request title'),
@@ -152,7 +152,7 @@ function registerRequestMutations(server: McpServer) {
 
   server.tool(
     'propose_fulfill_request',
-    'Propose fulfilling an evidence request with an existing evidence record. Requires human approval.',
+    'Propose fulfilling an evidence request with an existing evidence record. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       requestId: z.string().describe('EvidenceRequest UUID'),
       evidenceId: z.string().describe('Evidence UUID to fulfill with'),
@@ -185,7 +185,7 @@ function registerRequestMutations(server: McpServer) {
 
   server.tool(
     'propose_close_request',
-    'Propose closing an evidence request (accepted, rejected, or cancelled). Requires human approval.',
+    'Propose closing an evidence request (accepted, rejected, or cancelled). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       requestId: z.string().describe('EvidenceRequest UUID'),
       action: z.enum(['accept', 'reject', 'cancel']).describe('Close action'),

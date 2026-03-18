@@ -6,7 +6,7 @@ import { getSingleOrganisation } from './single-org.js';
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
     'get_org_dashboard',
-    'Get an organisation dashboard summary — departments, locations, processes, committees, personnel, and key counts.',
+    'Get an organisation dashboard summary — departments, locations, processes, committees, personnel, and key counts. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_org_dashboard', async () => {
       const [
@@ -66,7 +66,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_bia_summary',
-    'Get Business Impact Analysis summary — process BIA completion rates, criticality distribution, recovery objectives.',
+    'Get Business Impact Analysis summary — process BIA completion rates, criticality distribution, recovery objectives. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_bia_summary', async () => {
       const [total, biaCompleted, bcpEnabled, byCriticality, byBiaStatus] = await Promise.all([
@@ -121,7 +121,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_governance_activity_report',
-    'Get governance activity report — recent committee meetings, open action items, upcoming meetings.',
+    'Get governance activity report — recent committee meetings, open action items, upcoming meetings. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_governance_activity_report', async () => {
       const now = new Date();

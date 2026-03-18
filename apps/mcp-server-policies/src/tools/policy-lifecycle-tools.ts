@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerPolicyLifecycleTools(server: McpServer) {
   server.tool(
     'list_document_versions',
-    'List version history for a policy document.',
+    'List version history for a policy document. If not found, returns a not-found message. Do not invent or assume values.',
     {
       documentId: z.string().describe('PolicyDocument UUID'),
     },
@@ -49,7 +49,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
 
   server.tool(
     'list_document_reviews',
-    'List review history for a policy document.',
+    'List review history for a policy document. If not found, returns a not-found message. Do not invent or assume values.',
     {
       documentId: z.string().describe('PolicyDocument UUID'),
     },
@@ -90,7 +90,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
 
   server.tool(
     'list_document_exceptions',
-    'List exceptions for a policy document.',
+    'List exceptions for a policy document. If not found, returns a not-found message. Do not invent or assume values.',
     {
       documentId: z.string().describe('PolicyDocument UUID'),
       status: z.enum(['REQUESTED', 'UNDER_REVIEW', 'APPROVED', 'ACTIVE', 'EXPIRED', 'REVOKED', 'CLOSED']).optional().describe('Filter by status'),
@@ -136,7 +136,7 @@ export function registerPolicyLifecycleTools(server: McpServer) {
 
   server.tool(
     'get_acknowledgment_status',
-    'Get acknowledgment status for a policy document — who has and hasn\'t acknowledged it.',
+    'Get acknowledgment status for a policy document — who has and hasn\'t acknowledged it. If not found, returns a not-found message. Do not invent or assume values.',
     {
       documentId: z.string().describe('PolicyDocument UUID'),
     },

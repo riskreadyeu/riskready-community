@@ -7,7 +7,7 @@ import { createPendingAction, withErrorHandling } from '#mcp-shared';
 function registerIncidentMutations(server: McpServer) {
   server.tool(
     'propose_create_incident',
-    'Propose creating a new security incident. The proposal goes into an approval queue for human review before execution.',
+    'Propose creating a new security incident. The proposal goes into an approval queue for human review before execution. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       referenceNumber: z.string().describe('Incident reference number (e.g. "INC-2025-001")'),
       title: z.string().describe('Incident title'),
@@ -40,7 +40,7 @@ function registerIncidentMutations(server: McpServer) {
 
   server.tool(
     'propose_update_incident',
-    'Propose updating an existing incident. Validates the incident exists before creating the proposal. Requires human approval.',
+    'Propose updating an existing incident. Validates the incident exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       incidentId: z.string().describe('Incident UUID to update'),
       title: z.string().optional().describe('Updated title'),
@@ -82,7 +82,7 @@ function registerIncidentMutations(server: McpServer) {
 
   server.tool(
     'propose_transition_incident',
-    'Propose a status transition for an incident. Validates the incident exists. Requires human approval.',
+    'Propose a status transition for an incident. Validates the incident exists. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       incidentId: z.string().describe('Incident UUID'),
       targetStatus: z.enum(['DETECTED', 'TRIAGED', 'INVESTIGATING', 'CONTAINING', 'ERADICATING', 'RECOVERING', 'POST_INCIDENT', 'CLOSED']).describe('Target status'),
@@ -113,7 +113,7 @@ function registerIncidentMutations(server: McpServer) {
 
   server.tool(
     'propose_add_incident_asset',
-    'Propose linking an affected asset to an incident. Requires human approval.',
+    'Propose linking an affected asset to an incident. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       incidentId: z.string().describe('Incident UUID'),
       assetId: z.string().describe('Asset UUID'),
@@ -148,7 +148,7 @@ function registerIncidentMutations(server: McpServer) {
 
   server.tool(
     'propose_link_incident_control',
-    'Propose linking a control to an incident (failed, bypassed, effective, or not applicable). Requires human approval.',
+    'Propose linking a control to an incident (failed, bypassed, effective, or not applicable). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       incidentId: z.string().describe('Incident UUID'),
       controlId: z.string().describe('Control UUID'),
@@ -183,7 +183,7 @@ function registerIncidentMutations(server: McpServer) {
 
   server.tool(
     'propose_close_incident',
-    'Propose closing an incident with resolution details. Requires human approval.',
+    'Propose closing an incident with resolution details. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       incidentId: z.string().describe('Incident UUID'),
       resolutionType: z.enum(['RESOLVED', 'FALSE_POSITIVE', 'ACCEPTED_RISK', 'DUPLICATE', 'TRANSFERRED']).describe('Resolution type'),
@@ -219,7 +219,7 @@ function registerIncidentMutations(server: McpServer) {
 function registerTimelineMutations(server: McpServer) {
   server.tool(
     'propose_add_timeline_entry',
-    'Propose adding a timeline entry to an incident. Requires human approval.',
+    'Propose adding a timeline entry to an incident. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       incidentId: z.string().describe('Incident UUID'),
       timestamp: z.string().datetime().describe('Event timestamp (ISO 8601)'),
@@ -256,7 +256,7 @@ function registerTimelineMutations(server: McpServer) {
 function registerLessonMutations(server: McpServer) {
   server.tool(
     'propose_create_lesson',
-    'Propose creating a lessons learned entry for an incident. Requires human approval.',
+    'Propose creating a lessons learned entry for an incident. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       incidentId: z.string().describe('Incident UUID'),
       category: z.enum(['DETECTION', 'RESPONSE', 'COMMUNICATION', 'TOOLING', 'TRAINING', 'PROCESS', 'THIRD_PARTY', 'DOCUMENTATION']).describe('Lesson category'),

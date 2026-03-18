@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerGovernanceTools(server: McpServer) {
   server.tool(
     'list_committees',
-    'List security committees with optional filters.',
+    'List security committees with optional filters. If not found, returns a not-found message. Do not invent or assume values.',
     {
       isActive: z.boolean().optional().describe('Filter by active status'),
       committeeType: z.string().optional().describe('Filter by committee type'),
@@ -44,7 +44,7 @@ export function registerGovernanceTools(server: McpServer) {
 
   server.tool(
     'get_committee',
-    'Get a single committee with full details including members.',
+    'Get a single committee with full details including members. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('SecurityCommittee UUID'),
     },
@@ -81,7 +81,7 @@ export function registerGovernanceTools(server: McpServer) {
 
   server.tool(
     'list_committee_meetings',
-    'List meetings for a committee with optional status filter.',
+    'List meetings for a committee with optional status filter. If not found, returns a not-found message. Do not invent or assume values.',
     {
       committeeId: z.string().describe('SecurityCommittee UUID'),
       status: z.string().optional().describe('Filter by meeting status'),
@@ -128,7 +128,7 @@ export function registerGovernanceTools(server: McpServer) {
 
   server.tool(
     'get_committee_meeting',
-    'Get a single committee meeting with full details including attendees, decisions, and action items.',
+    'Get a single committee meeting with full details including attendees, decisions, and action items. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('CommitteeMeeting UUID'),
     },
@@ -186,7 +186,7 @@ export function registerGovernanceTools(server: McpServer) {
 
   server.tool(
     'list_meeting_action_items',
-    'List action items across all committee meetings with optional status filter.',
+    'List action items across all committee meetings with optional status filter. If not found, returns a not-found message. Do not invent or assume values.',
     {
       status: z.string().optional().describe('Filter by action item status (e.g. "open", "completed", "overdue")'),
       assignedToId: z.string().optional().describe('Filter by assigned user UUID'),

@@ -6,7 +6,7 @@ import { userSelectSafe, withErrorHandling } from '#mcp-shared';
 export function registerMetricTools(server: McpServer) {
   server.tool(
     'list_metrics',
-    'List metrics for a control with RAG status, trend, and current value. In Community Edition, metrics are linked directly to controls.',
+    'List metrics for a control with RAG status, trend, and current value. In Community Edition, metrics are linked directly to controls. If not found, returns a not-found message. Do not invent or assume values.',
     {
       controlId: z.string().describe('Control UUID'),
     },
@@ -48,7 +48,7 @@ export function registerMetricTools(server: McpServer) {
 
   server.tool(
     'get_metric',
-    'Get a single control metric with full details and measurement history.',
+    'Get a single control metric with full details and measurement history. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('ControlMetric UUID'),
     },
@@ -78,7 +78,7 @@ export function registerMetricTools(server: McpServer) {
 
   server.tool(
     'get_metric_dashboard',
-    'Get an organisation-wide metric summary: total metrics, RAG distribution, trend breakdown, collection status.',
+    'Get an organisation-wide metric summary: total metrics, RAG distribution, trend breakdown, collection status. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_metric_dashboard', async () => {
       const [total, byStatus, byTrend, metrics] = await Promise.all([

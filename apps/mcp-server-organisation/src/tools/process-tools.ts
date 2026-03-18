@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerProcessTools(server: McpServer) {
   server.tool(
     'list_business_processes',
-    'List business processes with optional filters for criticality, BIA status, and BCP enablement.',
+    'List business processes with optional filters for criticality, BIA status, and BCP enablement. If not found, returns a not-found message. Do not invent or assume values.',
     {
       isActive: z.boolean().optional().describe('Filter by active status'),
       criticalityLevel: z.string().optional().describe('Filter by criticality level (e.g. "critical", "high", "medium", "low")'),
@@ -58,7 +58,7 @@ export function registerProcessTools(server: McpServer) {
 
   server.tool(
     'get_business_process',
-    'Get a single business process with full details including BIA, BCP, and dependency information.',
+    'Get a single business process with full details including BIA, BCP, and dependency information. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('BusinessProcess UUID'),
     },
@@ -96,7 +96,7 @@ export function registerProcessTools(server: McpServer) {
 
   server.tool(
     'list_external_dependencies',
-    'List external dependencies (vendors, suppliers, service providers).',
+    'List external dependencies (vendors, suppliers, service providers). If not found, returns a not-found message. Do not invent or assume values.',
     {
       dependencyType: z.string().optional().describe('Filter by dependency type'),
       criticalityLevel: z.string().optional().describe('Filter by criticality level'),
@@ -141,7 +141,7 @@ export function registerProcessTools(server: McpServer) {
 
   server.tool(
     'get_external_dependency',
-    'Get a single external dependency with full details.',
+    'Get a single external dependency with full details. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('ExternalDependency UUID'),
     },

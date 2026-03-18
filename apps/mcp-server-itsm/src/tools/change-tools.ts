@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerChangeTools(server: McpServer) {
   server.tool(
     'list_changes',
-    'List change requests with optional filters. Returns change ref, title, type, status, priority, and security impact.',
+    'List change requests with optional filters. Returns change ref, title, type, status, priority, and security impact. If not found, returns a not-found message. Do not invent or assume values.',
     {
       status: z.enum([
         'DRAFTED', 'SUBMITTED', 'PENDING_APPROVAL', 'NEEDS_INFO', 'APPROVED', 'REJECTED',
@@ -76,7 +76,7 @@ export function registerChangeTools(server: McpServer) {
 
   server.tool(
     'get_change',
-    'Get a single change request with full details including approvals, affected assets, history, and related changes.',
+    'Get a single change request with full details including approvals, affected assets, history, and related changes. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('Change UUID'),
     },
@@ -128,7 +128,7 @@ export function registerChangeTools(server: McpServer) {
 
   server.tool(
     'search_changes',
-    'Search change requests by title, change reference, or description.',
+    'Search change requests by title, change reference, or description. If not found, returns a not-found message. Do not invent or assume values.',
     {
       query: z.string().max(200).describe('Search term (matches against title, changeRef, and description)'),
     },

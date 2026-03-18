@@ -11,7 +11,7 @@ import { getSingleOrganisation } from './single-org.js';
 function registerProfileMutations(server: McpServer) {
   server.tool(
     'propose_update_org_profile',
-    'Propose updating the organisation profile. Requires human approval.',
+    'Propose updating the organisation profile. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       organisationId: z.string().optional().describe('Organisation UUID (uses first org if omitted)'),
       name: z.string().optional().describe('New organisation name'),
@@ -90,7 +90,7 @@ function registerProfileMutations(server: McpServer) {
 function registerStructureMutations(server: McpServer) {
   server.tool(
     'propose_create_department',
-    'Propose creating a new department. Requires human approval.',
+    'Propose creating a new department. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       name: z.string().describe('Department name'),
       departmentCode: z.string().describe('Unique department code'),
@@ -125,7 +125,7 @@ function registerStructureMutations(server: McpServer) {
 
   server.tool(
     'propose_update_department',
-    'Propose updating an existing department. Requires human approval.',
+    'Propose updating an existing department. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       departmentId: z.string().describe('Department UUID'),
       name: z.string().optional().describe('New name'),
@@ -166,7 +166,7 @@ function registerStructureMutations(server: McpServer) {
 
   server.tool(
     'propose_create_location',
-    'Propose creating a new location. Requires human approval.',
+    'Propose creating a new location. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       name: z.string().describe('Location name'),
       locationCode: z.string().optional().describe('Unique location code'),
@@ -205,7 +205,7 @@ function registerStructureMutations(server: McpServer) {
 
   server.tool(
     'propose_update_location',
-    'Propose updating an existing location. Requires human approval.',
+    'Propose updating an existing location. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       locationId: z.string().describe('Location UUID'),
       name: z.string().optional().describe('New name'),
@@ -253,7 +253,7 @@ function registerStructureMutations(server: McpServer) {
 function registerProcessMutations(server: McpServer) {
   server.tool(
     'propose_create_business_process',
-    'Propose creating a new business process. Requires human approval.',
+    'Propose creating a new business process. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       name: z.string().describe('Process name'),
       processCode: z.string().describe('Unique process code'),
@@ -290,7 +290,7 @@ function registerProcessMutations(server: McpServer) {
 
   server.tool(
     'propose_update_business_process',
-    'Propose updating an existing business process. Requires human approval.',
+    'Propose updating an existing business process. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       processId: z.string().describe('BusinessProcess UUID'),
       name: z.string().optional().describe('New name'),
@@ -331,7 +331,7 @@ function registerProcessMutations(server: McpServer) {
 
   server.tool(
     'propose_create_external_dependency',
-    'Propose creating a new external dependency (vendor/supplier). Requires human approval.',
+    'Propose creating a new external dependency (vendor/supplier). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       name: z.string().describe('Dependency name'),
       dependencyType: z.string().describe('Dependency type'),
@@ -366,7 +366,7 @@ function registerProcessMutations(server: McpServer) {
 
   server.tool(
     'propose_update_external_dependency',
-    'Propose updating an existing external dependency. Requires human approval.',
+    'Propose updating an existing external dependency. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       dependencyId: z.string().describe('ExternalDependency UUID'),
       name: z.string().optional().describe('New name'),
@@ -409,7 +409,7 @@ function registerProcessMutations(server: McpServer) {
 function registerGovernanceMutations(server: McpServer) {
   server.tool(
     'propose_create_committee',
-    'Propose creating a new security committee. Requires human approval.',
+    'Propose creating a new security committee. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       name: z.string().describe('Committee name'),
       committeeType: z.string().describe('Committee type'),
@@ -436,7 +436,7 @@ function registerGovernanceMutations(server: McpServer) {
 
   server.tool(
     'propose_update_committee',
-    'Propose updating an existing committee. Requires human approval.',
+    'Propose updating an existing committee. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       committeeId: z.string().describe('SecurityCommittee UUID'),
       name: z.string().optional().describe('New name'),
@@ -471,7 +471,7 @@ function registerGovernanceMutations(server: McpServer) {
 
   server.tool(
     'propose_create_meeting',
-    'Propose scheduling a new committee meeting. Requires human approval.',
+    'Propose scheduling a new committee meeting. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       committeeId: z.string().describe('SecurityCommittee UUID'),
       title: z.string().describe('Meeting title'),

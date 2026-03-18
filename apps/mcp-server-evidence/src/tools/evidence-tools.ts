@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerEvidenceTools(server: McpServer) {
   server.tool(
     'list_evidence',
-    'List evidence records with optional filters. Returns evidence details with pagination.',
+    'List evidence records with optional filters. Returns evidence details with pagination. If not found, returns a not-found message. Do not invent or assume values.',
     {
       status: z.enum(['PENDING', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'EXPIRED', 'ARCHIVED']).optional().describe('Filter by evidence status'),
       evidenceType: z.enum(['DOCUMENT', 'CERTIFICATE', 'REPORT', 'POLICY', 'PROCEDURE', 'SCREENSHOT', 'LOG', 'CONFIGURATION', 'NETWORK_CAPTURE', 'MEMORY_DUMP', 'DISK_IMAGE', 'MALWARE_SAMPLE', 'EMAIL', 'MEETING_NOTES', 'APPROVAL_RECORD', 'AUDIT_REPORT', 'ASSESSMENT_RESULT', 'TEST_RESULT', 'SCAN_RESULT', 'VIDEO', 'AUDIO', 'OTHER']).optional().describe('Filter by evidence type'),
@@ -69,7 +69,7 @@ export function registerEvidenceTools(server: McpServer) {
 
   server.tool(
     'get_evidence',
-    'Get a single evidence record with full details including all link counts and review/approval information.',
+    'Get a single evidence record with full details including all link counts and review/approval information. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('Evidence UUID'),
     },
@@ -112,7 +112,7 @@ export function registerEvidenceTools(server: McpServer) {
 
   server.tool(
     'search_evidence',
-    'Search evidence by reference, title, or description.',
+    'Search evidence by reference, title, or description. If not found, returns a not-found message. Do not invent or assume values.',
     {
       query: z.string().max(200).describe('Search term (matches against evidenceRef, title, description)'),
       organisationId: z.string().optional().describe('Organisation UUID'),
@@ -151,7 +151,7 @@ export function registerEvidenceTools(server: McpServer) {
 
   server.tool(
     'get_evidence_stats',
-    'Get aggregate evidence statistics: total count, by status, by type, by classification, expiring soon.',
+    'Get aggregate evidence statistics: total count, by status, by type, by classification, expiring soon. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_evidence_stats', async () => {
       const thirtyDaysFromNow = new Date();

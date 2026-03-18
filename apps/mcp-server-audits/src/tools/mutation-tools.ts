@@ -7,7 +7,7 @@ import { createPendingAction, withErrorHandling } from '#mcp-shared';
 function registerNonconformityMutations(server: McpServer) {
   server.tool(
     'propose_create_nc',
-    'Propose creating a new nonconformity. The proposal goes into an approval queue for human review before execution.',
+    'Propose creating a new nonconformity. The proposal goes into an approval queue for human review before execution. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       ncId: z.string().describe('Nonconformity identifier (e.g. "NC-2026-001")'),
       title: z.string().describe('Nonconformity title'),
@@ -48,7 +48,7 @@ function registerNonconformityMutations(server: McpServer) {
 
   server.tool(
     'propose_update_nc',
-    'Propose updating an existing nonconformity. Requires human approval.',
+    'Propose updating an existing nonconformity. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       ncId: z.string().describe('Nonconformity UUID to update'),
       title: z.string().optional().describe('New title'),
@@ -88,7 +88,7 @@ function registerNonconformityMutations(server: McpServer) {
 
   server.tool(
     'propose_transition_nc',
-    'Propose transitioning a nonconformity to a new status. Requires human approval.',
+    'Propose transitioning a nonconformity to a new status. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       ncId: z.string().describe('Nonconformity UUID'),
       targetStatus: z.enum(['DRAFT', 'OPEN', 'IN_PROGRESS', 'AWAITING_VERIFICATION', 'VERIFIED_EFFECTIVE', 'VERIFIED_INEFFECTIVE', 'CLOSED', 'REJECTED']).describe('Target NC status'),
@@ -119,7 +119,7 @@ function registerNonconformityMutations(server: McpServer) {
 
   server.tool(
     'propose_close_nc',
-    'Propose closing a nonconformity after verification. Requires human approval.',
+    'Propose closing a nonconformity after verification. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       ncId: z.string().describe('Nonconformity UUID'),
       verificationMethod: z.string().optional().describe('Verification method (e.g. "RE_TEST", "RE_AUDIT", "DOCUMENT_REVIEW", "WALKTHROUGH")'),
@@ -154,7 +154,7 @@ function registerNonconformityMutations(server: McpServer) {
 function registerCapMutations(server: McpServer) {
   server.tool(
     'propose_submit_cap',
-    'Propose submitting a corrective action plan (CAP) for approval. Requires human approval.',
+    'Propose submitting a corrective action plan (CAP) for approval. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       ncId: z.string().describe('Nonconformity UUID'),
       correctiveAction: z.string().describe('Corrective action plan text'),
@@ -186,7 +186,7 @@ function registerCapMutations(server: McpServer) {
 
   server.tool(
     'propose_approve_cap',
-    'Propose approving a corrective action plan (CAP). Requires human approval.',
+    'Propose approving a corrective action plan (CAP). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       ncId: z.string().describe('Nonconformity UUID'),
       approvalComments: z.string().optional().describe('Approval comments'),
@@ -216,7 +216,7 @@ function registerCapMutations(server: McpServer) {
 
   server.tool(
     'propose_reject_cap',
-    'Propose rejecting a corrective action plan (CAP). Requires human approval.',
+    'Propose rejecting a corrective action plan (CAP). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       ncId: z.string().describe('Nonconformity UUID'),
       rejectionReason: z.string().describe('Reason for rejecting the CAP'),

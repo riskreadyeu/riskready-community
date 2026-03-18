@@ -6,7 +6,7 @@ import { withErrorHandling } from '#mcp-shared';
 export function registerIncidentDetailTools(server: McpServer) {
   server.tool(
     'list_incident_timeline',
-    'List timeline entries for an incident, ordered chronologically.',
+    'List timeline entries for an incident, ordered chronologically. If not found, returns a not-found message. Do not invent or assume values.',
     {
       incidentId: z.string().describe('Incident UUID'),
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
@@ -53,7 +53,7 @@ export function registerIncidentDetailTools(server: McpServer) {
 
   server.tool(
     'list_incident_lessons',
-    'List lessons learned for an incident.',
+    'List lessons learned for an incident. If not found, returns a not-found message. Do not invent or assume values.',
     {
       incidentId: z.string().describe('Incident UUID'),
     },
@@ -95,7 +95,7 @@ export function registerIncidentDetailTools(server: McpServer) {
 
   server.tool(
     'get_incident_assets',
-    'Get affected assets for an incident.',
+    'Get affected assets for an incident. If not found, returns a not-found message. Do not invent or assume values.',
     {
       incidentId: z.string().describe('Incident UUID'),
     },
@@ -140,7 +140,7 @@ export function registerIncidentDetailTools(server: McpServer) {
 
   server.tool(
     'get_incident_controls',
-    'Get control links for an incident (failed, bypassed, effective controls).',
+    'Get control links for an incident (failed, bypassed, effective controls). If not found, returns a not-found message. Do not invent or assume values.',
     {
       incidentId: z.string().describe('Incident UUID'),
     },

@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerAssetTools(server: McpServer) {
   server.tool(
     'list_assets',
-    'List assets from the CMDB with optional filters. Returns asset tag, name, type, status, criticality, classification, and ownership.',
+    'List assets from the CMDB with optional filters. Returns asset tag, name, type, status, criticality, classification, and ownership. If not found, returns a not-found message. Do not invent or assume values.',
     {
       assetType: z.enum([
         'SERVER', 'WORKSTATION', 'LAPTOP', 'MOBILE_DEVICE', 'NETWORK_DEVICE', 'STORAGE_DEVICE',
@@ -83,7 +83,7 @@ export function registerAssetTools(server: McpServer) {
 
   server.tool(
     'get_asset',
-    'Get a single asset with full details including relationships, controls, risks, installed software, and capacity records.',
+    'Get a single asset with full details including relationships, controls, risks, installed software, and capacity records. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('Asset UUID'),
     },
@@ -144,7 +144,7 @@ export function registerAssetTools(server: McpServer) {
 
   server.tool(
     'search_assets',
-    'Search assets by name, asset tag, or FQDN. Returns matching assets with basic info.',
+    'Search assets by name, asset tag, or FQDN. Returns matching assets with basic info. If not found, returns a not-found message. Do not invent or assume values.',
     {
       query: z.string().max(200).describe('Search term (matches against name, assetTag, and fqdn)'),
       assetType: z.enum([
@@ -202,7 +202,7 @@ export function registerAssetTools(server: McpServer) {
 
   server.tool(
     'get_asset_security_posture',
-    'Get asset security posture including encryption, backup, monitoring, vulnerability counts, SCA score, and risk score.',
+    'Get asset security posture including encryption, backup, monitoring, vulnerability counts, SCA score, and risk score. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('Asset UUID'),
     },

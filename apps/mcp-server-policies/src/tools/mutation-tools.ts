@@ -7,7 +7,7 @@ import { createPendingAction, withErrorHandling } from '#mcp-shared';
 function registerDocumentMutations(server: McpServer) {
   server.tool(
     'propose_create_policy',
-    'Propose creating a new policy document. Requires human approval.',
+    'Propose creating a new policy document. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       documentId: z.string().describe('Document ID (e.g. "POL-001")'),
       title: z.string().describe('Document title'),
@@ -71,7 +71,7 @@ function registerDocumentMutations(server: McpServer) {
 
   server.tool(
     'propose_update_policy',
-    'Propose updating an existing policy document. Requires human approval.',
+    'Propose updating an existing policy document. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       documentId: z.string().describe('PolicyDocument UUID'),
       title: z.string().optional().describe('New title'),
@@ -132,7 +132,7 @@ function registerDocumentMutations(server: McpServer) {
 
   server.tool(
     'propose_submit_review',
-    'Propose submitting a policy document for review. Requires human approval.',
+    'Propose submitting a policy document for review. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       documentId: z.string().describe('PolicyDocument UUID'),
       reviewType: z.enum(['SCHEDULED', 'TRIGGERED', 'AUDIT_FINDING', 'INCIDENT_RESPONSE', 'REGULATORY_CHANGE', 'REQUEST']).describe('Type of review'),
@@ -171,7 +171,7 @@ function registerDocumentMutations(server: McpServer) {
 
   server.tool(
     'propose_approve_policy',
-    'Propose approving a policy document. Requires human approval.',
+    'Propose approving a policy document. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       documentId: z.string().describe('PolicyDocument UUID'),
       approvalComments: z.string().optional().describe('Approval comments'),
@@ -205,7 +205,7 @@ function registerDocumentMutations(server: McpServer) {
 
   server.tool(
     'propose_publish_policy',
-    'Propose publishing an approved policy document. Requires human approval.',
+    'Propose publishing an approved policy document. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       documentId: z.string().describe('PolicyDocument UUID'),
       effectiveDate: z.string().datetime().optional().describe('Effective date (ISO 8601)'),
@@ -239,7 +239,7 @@ function registerDocumentMutations(server: McpServer) {
 
   server.tool(
     'propose_retire_policy',
-    'Propose retiring a policy document. Requires human approval.',
+    'Propose retiring a policy document. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       documentId: z.string().describe('PolicyDocument UUID'),
       retirementReason: z.string().describe('Reason for retirement'),
@@ -277,7 +277,7 @@ function registerDocumentMutations(server: McpServer) {
 function registerExceptionMutations(server: McpServer) {
   server.tool(
     'propose_create_exception',
-    'Propose creating a policy exception. Requires human approval.',
+    'Propose creating a policy exception. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       documentId: z.string().describe('PolicyDocument UUID'),
       exceptionId: z.string().describe('Exception ID (e.g. "EXC-001")'),
@@ -333,7 +333,7 @@ function registerExceptionMutations(server: McpServer) {
 
   server.tool(
     'propose_approve_exception',
-    'Propose approving a policy exception. Requires human approval.',
+    'Propose approving a policy exception. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       exceptionId: z.string().describe('DocumentException UUID'),
       approvalComments: z.string().optional().describe('Approval comments'),
@@ -376,7 +376,7 @@ function registerExceptionMutations(server: McpServer) {
 function registerChangeRequestMutations(server: McpServer) {
   server.tool(
     'propose_create_change_request',
-    'Propose creating a policy change request. Requires human approval.',
+    'Propose creating a policy change request. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       documentId: z.string().describe('PolicyDocument UUID'),
       changeRequestId: z.string().describe('Change request ID (e.g. "CR-001")'),

@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerCapacityTools(server: McpServer) {
   server.tool(
     'get_capacity_records',
-    'List capacity utilization records for an asset with optional date range filter. Sorted by recorded date descending.',
+    'List capacity utilization records for an asset with optional date range filter. Sorted by recorded date descending. If not found, returns a not-found message. Do not invent or assume values.',
     {
       assetId: z.string().describe('Asset UUID'),
       fromDate: z.string().datetime().optional().describe('Start date filter (ISO 8601)'),
@@ -70,7 +70,7 @@ export function registerCapacityTools(server: McpServer) {
 
   server.tool(
     'list_capacity_plans',
-    'List capacity plans with optional filters. Returns plan title, status, asset, and projection details.',
+    'List capacity plans with optional filters. Returns plan title, status, asset, and projection details. If not found, returns a not-found message. Do not invent or assume values.',
     {
       status: z.enum(['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).optional().describe('Filter by capacity plan status'),
       assetId: z.string().optional().describe('Filter by asset UUID'),
@@ -124,7 +124,7 @@ export function registerCapacityTools(server: McpServer) {
 
   server.tool(
     'get_capacity_plan',
-    'Get a single capacity plan with full details including associated asset.',
+    'Get a single capacity plan with full details including associated asset. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('Capacity plan UUID'),
     },
@@ -165,7 +165,7 @@ export function registerCapacityTools(server: McpServer) {
 
   server.tool(
     'get_capacity_alerts',
-    'Find assets where resource utilization exceeds configured thresholds. Returns assets with usage vs threshold details for CPU, memory, and storage.',
+    'Find assets where resource utilization exceeds configured thresholds. Returns assets with usage vs threshold details for CPU, memory, and storage. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_capacity_alerts', async () => {
       // Find assets where any usage exceeds its threshold

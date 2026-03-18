@@ -5,7 +5,7 @@ import { withErrorHandling } from '#mcp-shared';
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
     'get_itsm_stats',
-    'Get aggregate ITSM statistics: asset counts by type, status, and criticality; change counts by status and type; capacity plan counts by status.',
+    'Get aggregate ITSM statistics: asset counts by type, status, and criticality; change counts by status and type; capacity plan counts by status. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_itsm_stats', async () => {
       const [
@@ -56,7 +56,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_itsm_dashboard',
-    'Comprehensive ITSM dashboard: asset counts, change counts, capacity alerts, and security posture summary (avg risk score, assets with critical vulns, encryption rates).',
+    'Comprehensive ITSM dashboard: asset counts, change counts, capacity alerts, and security posture summary (avg risk score, assets with critical vulns, encryption rates). If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_itsm_dashboard', async () => {
       const [
@@ -143,7 +143,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_asset_risk_summary',
-    'For each business criticality level, count assets and calculate average risk score. Useful for risk-based prioritization.',
+    'For each business criticality level, count assets and calculate average risk score. Useful for risk-based prioritization. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_asset_risk_summary', async () => {
       const criticalities = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const;

@@ -6,7 +6,7 @@ import { withErrorHandling } from '#mcp-shared';
 export function registerSoftwareTools(server: McpServer) {
   server.tool(
     'list_asset_software',
-    'List software installed on a specific asset. Includes license information and approval status.',
+    'List software installed on a specific asset. Includes license information and approval status. If not found, returns a not-found message. Do not invent or assume values.',
     {
       assetId: z.string().describe('Asset UUID (the hardware asset)'),
     },
@@ -55,7 +55,7 @@ export function registerSoftwareTools(server: McpServer) {
 
   server.tool(
     'search_software',
-    'Search for software by name across all assets. Returns matching software with the asset it is installed on.',
+    'Search for software by name across all assets. Returns matching software with the asset it is installed on. If not found, returns a not-found message. Do not invent or assume values.',
     {
       query: z.string().max(200).describe('Search term (matches against software name)'),
     },

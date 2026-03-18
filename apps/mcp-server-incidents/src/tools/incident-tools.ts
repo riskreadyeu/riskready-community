@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerIncidentTools(server: McpServer) {
   server.tool(
     'list_incidents',
-    'List incidents with optional filters. Returns incident details with pagination.',
+    'List incidents with optional filters. Returns incident details with pagination. If not found, returns a not-found message. Do not invent or assume values.',
     {
       status: z.enum(['DETECTED', 'TRIAGED', 'INVESTIGATING', 'CONTAINING', 'ERADICATING', 'RECOVERING', 'POST_INCIDENT', 'CLOSED']).optional().describe('Filter by incident status'),
       severity: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Filter by severity'),
@@ -62,7 +62,7 @@ export function registerIncidentTools(server: McpServer) {
 
   server.tool(
     'get_incident',
-    'Get a single incident with full details including timeline count, affected assets count, lessons learned count, and control links.',
+    'Get a single incident with full details including timeline count, affected assets count, lessons learned count, and control links. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('Incident UUID'),
     },
@@ -103,7 +103,7 @@ export function registerIncidentTools(server: McpServer) {
 
   server.tool(
     'search_incidents',
-    'Search incidents by reference number, title, or description.',
+    'Search incidents by reference number, title, or description. If not found, returns a not-found message. Do not invent or assume values.',
     {
       query: z.string().max(200).describe('Search term (matches against referenceNumber, title, description)'),
       organisationId: z.string().optional().describe('Organisation UUID'),
@@ -142,7 +142,7 @@ export function registerIncidentTools(server: McpServer) {
 
   server.tool(
     'get_incident_stats',
-    'Get aggregate incident statistics: total count, by status, by severity, by category, open incidents, and CIA breach counts.',
+    'Get aggregate incident statistics: total count, by status, by severity, by category, open incidents, and CIA breach counts. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_incident_stats', async () => {
       const [

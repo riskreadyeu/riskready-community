@@ -6,7 +6,7 @@ import { withErrorHandling } from '#mcp-shared';
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
     'get_risk_heatmap',
-    'Get risk heatmap data: likelihood x impact matrix for all scenarios with scores.',
+    'Get risk heatmap data: likelihood x impact matrix for all scenarios with scores. If not found, returns a not-found message. Do not invent or assume values.',
     {
       organisationId: z.string().optional().describe('Organisation UUID'),
     },
@@ -45,7 +45,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_tolerance_breaches',
-    'Get scenarios exceeding their Risk Tolerance Statement thresholds.',
+    'Get scenarios exceeding their Risk Tolerance Statement thresholds. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_tolerance_breaches', async () => {
       const breaches = await prisma.riskScenario.findMany({
@@ -81,7 +81,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_treatment_progress',
-    'Get overall treatment completion rates and overdue treatments.',
+    'Get overall treatment completion rates and overdue treatments. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_treatment_progress', async () => {
       const [active, overdue] = await Promise.all([
@@ -137,7 +137,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_kri_alerts',
-    'Get KRIs in RED status or with DECLINING trend that need attention.',
+    'Get KRIs in RED status or with DECLINING trend that need attention. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_kri_alerts', async () => {
       const alerts = await prisma.keyRiskIndicator.findMany({
@@ -176,7 +176,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_risk_dashboard',
-    'Get aggregate risk posture summary: risk counts, scenario distribution, tolerance status, treatment progress.',
+    'Get aggregate risk posture summary: risk counts, scenario distribution, tolerance status, treatment progress. If not found, returns a not-found message. Do not invent or assume values.',
     {
       organisationId: z.string().optional().describe('Organisation UUID'),
     },
@@ -235,7 +235,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_overdue_treatments',
-    'Get treatment plans past their target end date.',
+    'Get treatment plans past their target end date. If not found, returns a not-found message. Do not invent or assume values.',
     {
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),

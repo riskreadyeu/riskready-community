@@ -5,7 +5,7 @@ import { withErrorHandling } from '#mcp-shared';
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
     'get_nc_aging_report',
-    'Get an aging report for open nonconformities. Calculates days open from dateRaised and groups by severity into aging buckets (0-30, 31-60, 61-90, 90+ days).',
+    'Get an aging report for open nonconformities. Calculates days open from dateRaised and groups by severity into aging buckets (0-30, 31-60, 61-90, 90+ days). If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_nc_aging_report', async () => {
       const now = new Date();
@@ -92,7 +92,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_cap_status_report',
-    'Get a CAP pipeline breakdown for nonconformities that require corrective action. Shows counts by CAP status: NOT_DEFINED, DRAFT, PENDING_APPROVAL, APPROVED, REJECTED.',
+    'Get a CAP pipeline breakdown for nonconformities that require corrective action. Shows counts by CAP status: NOT_DEFINED, DRAFT, PENDING_APPROVAL, APPROVED, REJECTED. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_cap_status_report', async () => {
       const ncs = await prisma.nonconformity.findMany({
@@ -159,7 +159,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_nc_by_control',
-    'Group nonconformities by control, showing count per control. Includes control name and ID.',
+    'Group nonconformities by control, showing count per control. Includes control name and ID. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_nc_by_control', async () => {
       const ncs = await prisma.nonconformity.findMany({

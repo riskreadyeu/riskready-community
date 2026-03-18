@@ -6,7 +6,7 @@ import { withErrorHandling } from '#mcp-shared';
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
     'get_expiring_evidence',
-    'Get evidence records that are expiring within a specified number of days. Helps plan evidence renewal.',
+    'Get evidence records that are expiring within a specified number of days. Helps plan evidence renewal. If not found, returns a not-found message. Do not invent or assume values.',
     {
       days: z.number().int().min(1).max(365).default(30).optional().describe('Number of days to look ahead (default 30)'),
     },
@@ -69,7 +69,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_evidence_coverage',
-    'Get evidence coverage analysis: which controls have linked evidence and which do not.',
+    'Get evidence coverage analysis: which controls have linked evidence and which do not. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_evidence_coverage', async () => {
       const controlsWithEvidence = await prisma.evidenceControl.findMany({
@@ -116,7 +116,7 @@ export function registerAnalysisTools(server: McpServer) {
 
   server.tool(
     'get_request_aging',
-    'Get aging report for open evidence requests. Shows overdue and approaching-due requests.',
+    'Get aging report for open evidence requests. Shows overdue and approaching-due requests. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_request_aging', async () => {
       const openStatuses = ['OPEN', 'IN_PROGRESS'] as const;

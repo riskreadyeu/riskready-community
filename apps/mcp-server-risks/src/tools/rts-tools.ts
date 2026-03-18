@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerRTSTools(server: McpServer) {
   server.tool(
     'list_rts',
-    'List Risk Tolerance Statements with optional status filter.',
+    'List Risk Tolerance Statements with optional status filter. If not found, returns a not-found message. Do not invent or assume values.',
     {
       status: z.enum(['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'ACTIVE', 'SUPERSEDED', 'RETIRED']).optional().describe('Filter by RTS status'),
       organisationId: z.string().optional().describe('Filter by organisation UUID'),
@@ -56,7 +56,7 @@ export function registerRTSTools(server: McpServer) {
 
   server.tool(
     'get_rts',
-    'Get a single Risk Tolerance Statement with full details: linked risks, evaluations, and approval info.',
+    'Get a single Risk Tolerance Statement with full details: linked risks, evaluations, and approval info. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('RiskToleranceStatement UUID'),
     },
@@ -95,7 +95,7 @@ export function registerRTSTools(server: McpServer) {
 
   server.tool(
     'get_rts_stats',
-    'Get aggregate RTS statistics: total count, by status, by tolerance level.',
+    'Get aggregate RTS statistics: total count, by status, by tolerance level. If not found, returns a not-found message. Do not invent or assume values.',
     {
       organisationId: z.string().optional().describe('Organisation UUID'),
     },

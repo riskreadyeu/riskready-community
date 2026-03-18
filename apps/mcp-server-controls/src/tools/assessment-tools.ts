@@ -6,7 +6,7 @@ import { userSelectSafe, withErrorHandling } from '#mcp-shared';
 export function registerAssessmentTools(server: McpServer) {
   server.tool(
     'list_assessments',
-    'List control assessments with optional status filter. Returns assessment ref, title, status, dates, and test statistics.',
+    'List control assessments with optional status filter. Returns assessment ref, title, status, dates, and test statistics. If not found, returns a not-found message. Do not invent or assume values.',
     {
       status: z.enum(['DRAFT', 'IN_PROGRESS', 'UNDER_REVIEW', 'COMPLETED', 'CANCELLED']).optional().describe('Filter by assessment status'),
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
@@ -55,7 +55,7 @@ export function registerAssessmentTools(server: McpServer) {
 
   server.tool(
     'get_assessment',
-    'Get a single assessment with full details: controls in scope, scope items, test statistics, team, and dates.',
+    'Get a single assessment with full details: controls in scope, scope items, test statistics, team, and dates. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('Assessment UUID'),
     },
@@ -91,7 +91,7 @@ export function registerAssessmentTools(server: McpServer) {
 
   server.tool(
     'get_assessment_tests',
-    'Get tests within an assessment with optional status/result filters. Returns test details with latest execution results.',
+    'Get tests within an assessment with optional status/result filters. Returns test details with latest execution results. If not found, returns a not-found message. Do not invent or assume values.',
     {
       assessmentId: z.string().describe('Assessment UUID'),
       status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'SKIPPED']).optional().describe('Filter by test status'),
@@ -144,7 +144,7 @@ export function registerAssessmentTools(server: McpServer) {
 
   server.tool(
     'get_assessment_stats',
-    'Get aggregate assessment statistics: total assessments, by status, completion rates, and test result distribution.',
+    'Get aggregate assessment statistics: total assessments, by status, completion rates, and test result distribution. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_assessment_stats', async () => {
       const [total, byStatus, assessments] = await Promise.all([
@@ -182,7 +182,7 @@ export function registerAssessmentTools(server: McpServer) {
 
   server.tool(
     'get_my_tests',
-    'Get tests assigned to a specific tester. Useful for workload view and personal test queue.',
+    'Get tests assigned to a specific tester. Useful for workload view and personal test queue. If not found, returns a not-found message. Do not invent or assume values.',
     {
       testerId: z.string().describe('User UUID of the tester'),
       status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'SKIPPED']).optional().describe('Filter by test status'),
@@ -224,7 +224,7 @@ export function registerAssessmentTools(server: McpServer) {
 
   server.tool(
     'get_my_tests_count',
-    'Get per-status test counts for a specific tester across active assessments. Lightweight alternative to get_my_tests.',
+    'Get per-status test counts for a specific tester across active assessments. Lightweight alternative to get_my_tests. If not found, returns a not-found message. Do not invent or assume values.',
     {
       testerId: z.string().describe('User UUID of the tester'),
     },

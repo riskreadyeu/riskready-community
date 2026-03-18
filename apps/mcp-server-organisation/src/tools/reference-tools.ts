@@ -6,7 +6,7 @@ import { withErrorHandling } from '#mcp-shared';
 export function registerReferenceTools(server: McpServer) {
   server.tool(
     'list_regulators',
-    'List regulators with optional filters.',
+    'List regulators with optional filters. If not found, returns a not-found message. Do not invent or assume values.',
     {
       isActive: z.boolean().optional().describe('Filter by active status'),
       regulatorType: z.string().optional().describe('Filter by regulator type'),
@@ -47,7 +47,7 @@ export function registerReferenceTools(server: McpServer) {
 
   server.tool(
     'list_applicable_frameworks',
-    'List applicable regulatory and compliance frameworks.',
+    'List applicable regulatory and compliance frameworks. If not found, returns a not-found message. Do not invent or assume values.',
     {
       isApplicable: z.boolean().optional().describe('Filter by applicability'),
       frameworkType: z.string().optional().describe('Filter by framework type'),
@@ -89,7 +89,7 @@ export function registerReferenceTools(server: McpServer) {
 
   server.tool(
     'list_context_issues',
-    'List context issues (ISO 27001 Clause 4.1) — internal and external issues affecting the ISMS.',
+    'List context issues (ISO 27001 Clause 4.1) — internal and external issues affecting the ISMS. If not found, returns a not-found message. Do not invent or assume values.',
     {
       issueType: z.string().optional().describe('Filter by issue type (e.g. "internal", "external")'),
       category: z.string().optional().describe('Filter by category'),
@@ -134,7 +134,7 @@ export function registerReferenceTools(server: McpServer) {
 
   server.tool(
     'list_interested_parties',
-    'List interested parties (ISO 27001 Clause 4.2) — stakeholders and their requirements.',
+    'List interested parties (ISO 27001 Clause 4.2) — stakeholders and their requirements. If not found, returns a not-found message. Do not invent or assume values.',
     {
       partyType: z.string().optional().describe('Filter by party type'),
       isActive: z.boolean().optional().describe('Filter by active status'),

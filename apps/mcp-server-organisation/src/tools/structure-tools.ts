@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerStructureTools(server: McpServer) {
   server.tool(
     'list_departments',
-    'List departments with optional filters for active status.',
+    'List departments with optional filters for active status. If not found, returns a not-found message. Do not invent or assume values.',
     {
       isActive: z.boolean().optional().describe('Filter by active status'),
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
@@ -49,7 +49,7 @@ export function registerStructureTools(server: McpServer) {
 
   server.tool(
     'get_department',
-    'Get a single department with full details including members and hierarchy.',
+    'Get a single department with full details including members and hierarchy. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('Department UUID'),
     },
@@ -88,7 +88,7 @@ export function registerStructureTools(server: McpServer) {
 
   server.tool(
     'list_locations',
-    'List organisation locations with optional filters.',
+    'List organisation locations with optional filters. If not found, returns a not-found message. Do not invent or assume values.',
     {
       isActive: z.boolean().optional().describe('Filter by active status'),
       country: z.string().optional().describe('Filter by country'),
@@ -133,7 +133,7 @@ export function registerStructureTools(server: McpServer) {
 
   server.tool(
     'get_location',
-    'Get a single location with full details.',
+    'Get a single location with full details. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('Location UUID'),
     },
@@ -160,7 +160,7 @@ export function registerStructureTools(server: McpServer) {
 
   server.tool(
     'list_key_personnel',
-    'List key ISMS personnel and their roles.',
+    'List key ISMS personnel and their roles. If not found, returns a not-found message. Do not invent or assume values.',
     {
       isActive: z.boolean().optional().describe('Filter by active status'),
       ismsRole: z.string().optional().describe('Filter by ISMS role'),

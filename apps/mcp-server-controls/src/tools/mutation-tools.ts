@@ -11,7 +11,7 @@ import { createPendingAction, getDefaultOrganisationId, withErrorHandling } from
 function registerAssessmentMutations(server: McpServer) {
   server.tool(
     'propose_assessment',
-    'Propose creating a new control assessment. The proposal goes into an approval queue for human review before execution.',
+    'Propose creating a new control assessment. The proposal goes into an approval queue for human review before execution. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
       assessmentRef: z.string().describe('Assessment reference ID (e.g. "ASM-2026-001")'),
@@ -47,7 +47,7 @@ function registerAssessmentMutations(server: McpServer) {
 
   server.tool(
     'propose_update_assessment',
-    'Propose updating assessment details (title, dates, team). Requires human approval.',
+    'Propose updating assessment details (title, dates, team). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentId: z.string().describe('Assessment UUID'),
       title: z.string().optional().describe('New title'),
@@ -88,7 +88,7 @@ function registerAssessmentMutations(server: McpServer) {
 
   server.tool(
     'propose_delete_assessment',
-    'Propose deleting a draft assessment. Only DRAFT assessments can be deleted. Requires human approval.',
+    'Propose deleting a draft assessment. Only DRAFT assessments can be deleted. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentId: z.string().describe('Assessment UUID'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
@@ -120,7 +120,7 @@ function registerAssessmentMutations(server: McpServer) {
 
   server.tool(
     'propose_start_assessment',
-    'Propose starting a draft assessment (DRAFT → IN_PROGRESS). Requires human approval.',
+    'Propose starting a draft assessment (DRAFT → IN_PROGRESS). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentId: z.string().describe('Assessment UUID'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
@@ -152,7 +152,7 @@ function registerAssessmentMutations(server: McpServer) {
 
   server.tool(
     'propose_submit_assessment_review',
-    'Propose submitting an assessment for review (IN_PROGRESS → UNDER_REVIEW). Requires human approval.',
+    'Propose submitting an assessment for review (IN_PROGRESS → UNDER_REVIEW). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentId: z.string().describe('Assessment UUID'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
@@ -184,7 +184,7 @@ function registerAssessmentMutations(server: McpServer) {
 
   server.tool(
     'propose_complete_assessment',
-    'Propose completing an assessment under review (UNDER_REVIEW → COMPLETED). Requires human approval.',
+    'Propose completing an assessment under review (UNDER_REVIEW → COMPLETED). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentId: z.string().describe('Assessment UUID'),
       reviewNotes: z.string().optional().describe('Review notes'),
@@ -217,7 +217,7 @@ function registerAssessmentMutations(server: McpServer) {
 
   server.tool(
     'propose_cancel_assessment',
-    'Propose cancelling an assessment. Cannot cancel already COMPLETED or CANCELLED assessments. Requires human approval.',
+    'Propose cancelling an assessment. Cannot cancel already COMPLETED or CANCELLED assessments. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentId: z.string().describe('Assessment UUID'),
       cancelReason: z.string().optional().describe('Reason for cancellation'),
@@ -250,7 +250,7 @@ function registerAssessmentMutations(server: McpServer) {
 
   server.tool(
     'propose_add_assessment_controls',
-    'Propose adding controls to an assessment scope. Requires human approval.',
+    'Propose adding controls to an assessment scope. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentId: z.string().describe('Assessment UUID'),
       controlIds: z.array(z.string()).describe('Control UUIDs to add'),
@@ -280,7 +280,7 @@ function registerAssessmentMutations(server: McpServer) {
 
   server.tool(
     'propose_remove_assessment_control',
-    'Propose removing a control from an assessment scope. Requires human approval.',
+    'Propose removing a control from an assessment scope. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentId: z.string().describe('Assessment UUID'),
       controlId: z.string().describe('Control UUID to remove'),
@@ -310,7 +310,7 @@ function registerAssessmentMutations(server: McpServer) {
 
   server.tool(
     'propose_add_assessment_scope_items',
-    'Propose adding scope items to an assessment. Requires human approval.',
+    'Propose adding scope items to an assessment. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentId: z.string().describe('Assessment UUID'),
       scopeItemIds: z.array(z.string()).describe('Scope item UUIDs to add'),
@@ -340,7 +340,7 @@ function registerAssessmentMutations(server: McpServer) {
 
   server.tool(
     'propose_remove_assessment_scope_item',
-    'Propose removing a scope item from an assessment. Requires human approval.',
+    'Propose removing a scope item from an assessment. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentId: z.string().describe('Assessment UUID'),
       scopeItemId: z.string().describe('Scope item UUID to remove'),
@@ -370,7 +370,7 @@ function registerAssessmentMutations(server: McpServer) {
 
   server.tool(
     'propose_populate_tests',
-    'Propose auto-generating tests for an assessment based on its controls in scope. Requires human approval.',
+    'Propose auto-generating tests for an assessment based on its controls in scope. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentId: z.string().describe('Assessment UUID'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
@@ -402,7 +402,7 @@ function registerAssessmentMutations(server: McpServer) {
 
   server.tool(
     'propose_bulk_assign_tests',
-    'Propose bulk-assigning tests to testers, owners, or assessors. Requires human approval.',
+    'Propose bulk-assigning tests to testers, owners, or assessors. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       testIds: z.array(z.string()).describe('Assessment test UUIDs to update'),
       assignedTesterId: z.string().optional().describe('Tester user ID to assign'),
@@ -442,7 +442,7 @@ function registerAssessmentMutations(server: McpServer) {
 function registerSoaMutations(server: McpServer) {
   server.tool(
     'propose_soa_entry_update',
-    'Propose updating an SOA entry — change applicability or implementation status. Requires human approval.',
+    'Propose updating an SOA entry — change applicability or implementation status. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       soaEntryId: z.string().describe('SOAEntry UUID'),
       applicable: z.boolean().optional().describe('Change applicability'),
@@ -482,7 +482,7 @@ function registerSoaMutations(server: McpServer) {
 
   server.tool(
     'propose_create_soa',
-    'Propose creating a new empty Statement of Applicability. Requires human approval.',
+    'Propose creating a new empty Statement of Applicability. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       version: z.string().describe('SOA version identifier (e.g. "1.0", "2024-Q1")'),
       name: z.string().optional().describe('SOA name'),
@@ -506,7 +506,7 @@ function registerSoaMutations(server: McpServer) {
 
   server.tool(
     'propose_create_soa_from_controls',
-    'Propose creating a new SOA pre-populated with entries from all applicable controls. Requires human approval.',
+    'Propose creating a new SOA pre-populated with entries from all applicable controls. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       version: z.string().describe('SOA version identifier'),
       name: z.string().optional().describe('SOA name'),
@@ -529,7 +529,7 @@ function registerSoaMutations(server: McpServer) {
 
   server.tool(
     'propose_create_soa_version',
-    'Propose creating a new SOA version by copying entries from an existing SOA. Requires human approval.',
+    'Propose creating a new SOA version by copying entries from an existing SOA. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       sourceSoaId: z.string().describe('Source SOA UUID to copy from'),
       newVersion: z.string().describe('New version identifier'),
@@ -561,7 +561,7 @@ function registerSoaMutations(server: McpServer) {
 
   server.tool(
     'propose_update_soa',
-    'Propose updating SOA metadata (name, notes). Only DRAFT SOAs can be updated. Requires human approval.',
+    'Propose updating SOA metadata (name, notes). Only DRAFT SOAs can be updated. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       soaId: z.string().describe('SOA UUID'),
       name: z.string().optional().describe('New SOA name'),
@@ -595,7 +595,7 @@ function registerSoaMutations(server: McpServer) {
 
   server.tool(
     'propose_submit_soa_review',
-    'Propose submitting an SOA for review (DRAFT → PENDING_REVIEW). Requires human approval.',
+    'Propose submitting an SOA for review (DRAFT → PENDING_REVIEW). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       soaId: z.string().describe('SOA UUID'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
@@ -627,7 +627,7 @@ function registerSoaMutations(server: McpServer) {
 
   server.tool(
     'propose_approve_soa',
-    'Propose approving an SOA under review (PENDING_REVIEW → APPROVED). Requires human approval.',
+    'Propose approving an SOA under review (PENDING_REVIEW → APPROVED). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       soaId: z.string().describe('SOA UUID'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
@@ -659,7 +659,7 @@ function registerSoaMutations(server: McpServer) {
 
   server.tool(
     'propose_delete_soa',
-    'Propose deleting a draft SOA. Only DRAFT SOAs can be deleted. Requires human approval.',
+    'Propose deleting a draft SOA. Only DRAFT SOAs can be deleted. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       soaId: z.string().describe('SOA UUID'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
@@ -697,7 +697,7 @@ function registerSoaMutations(server: McpServer) {
 function registerScopeMutations(server: McpServer) {
   server.tool(
     'propose_scope_item',
-    'Propose adding a new scope item (application, asset class, location, etc.) for assessment testing. Requires human approval.',
+    'Propose adding a new scope item (application, asset class, location, etc.) for assessment testing. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
       scopeType: z.enum(['APPLICATION', 'ASSET_CLASS', 'LOCATION', 'PERSONNEL_TYPE', 'BUSINESS_UNIT', 'PLATFORM', 'PROVIDER', 'NETWORK_ZONE', 'PROCESS']).describe('Scope type'),
@@ -724,7 +724,7 @@ function registerScopeMutations(server: McpServer) {
 
   server.tool(
     'propose_update_scope_item',
-    'Propose updating a scope item\'s details. Requires human approval.',
+    'Propose updating a scope item\'s details. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       scopeItemId: z.string().describe('Scope item UUID'),
       name: z.string().optional().describe('New name'),
@@ -757,7 +757,7 @@ function registerScopeMutations(server: McpServer) {
 
   server.tool(
     'propose_delete_scope_item',
-    'Propose deleting a scope item. Requires human approval.',
+    'Propose deleting a scope item. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       scopeItemId: z.string().describe('Scope item UUID'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
@@ -792,7 +792,7 @@ function registerScopeMutations(server: McpServer) {
 function registerTestMutations(server: McpServer) {
   server.tool(
     'propose_test_result',
-    'Propose recording a test result for an assessment test. Requires human approval.',
+    'Propose recording a test result for an assessment test. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentTestId: z.string().describe('AssessmentTest UUID'),
       result: z.enum(['PASS', 'PARTIAL', 'FAIL', 'NOT_APPLICABLE']).describe('Test result'),
@@ -831,7 +831,7 @@ function registerTestMutations(server: McpServer) {
 
   server.tool(
     'propose_remediation',
-    'Propose a remediation action for a failed assessment test. Creates a treatment action linked to the test. Requires human approval.',
+    'Propose a remediation action for a failed assessment test. Creates a treatment action linked to the test. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentTestId: z.string().describe('AssessmentTest UUID (the failed/partial test)'),
       title: z.string().describe('Remediation action title'),
@@ -864,7 +864,7 @@ function registerTestMutations(server: McpServer) {
 
   server.tool(
     'propose_update_test',
-    'Propose updating test assignment or method details. Requires human approval.',
+    'Propose updating test assignment or method details. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentTestId: z.string().describe('AssessmentTest UUID'),
       testMethod: z.string().optional().describe('New test method'),
@@ -899,7 +899,7 @@ function registerTestMutations(server: McpServer) {
 
   server.tool(
     'propose_assign_tester',
-    'Propose assigning a specific tester to a test. Requires human approval.',
+    'Propose assigning a specific tester to a test. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentTestId: z.string().describe('AssessmentTest UUID'),
       testerId: z.string().describe('User UUID of the tester to assign'),
@@ -929,7 +929,7 @@ function registerTestMutations(server: McpServer) {
 
   server.tool(
     'propose_update_root_cause',
-    'Propose updating root cause analysis for a failed or partial test. Requires human approval.',
+    'Propose updating root cause analysis for a failed or partial test. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentTestId: z.string().describe('AssessmentTest UUID'),
       rootCause: z.enum(['PEOPLE', 'PROCESS', 'TECHNOLOGY', 'BUDGET', 'THIRD_PARTY', 'DESIGN', 'UNKNOWN']).optional().describe('Root cause category'),
@@ -966,7 +966,7 @@ function registerTestMutations(server: McpServer) {
 
   server.tool(
     'propose_skip_test',
-    'Propose skipping a test with justification. Requires human approval.',
+    'Propose skipping a test with justification. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       assessmentTestId: z.string().describe('AssessmentTest UUID'),
       justification: z.string().describe('Justification for skipping the test'),
@@ -1005,7 +1005,7 @@ function registerTestMutations(server: McpServer) {
 function registerControlMutations(server: McpServer) {
   server.tool(
     'propose_control_status',
-    'Propose changing a control\'s implementation status or applicability. Requires human approval.',
+    'Propose changing a control\'s implementation status or applicability. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       controlId: z.string().describe('Control UUID'),
       implementationStatus: z.enum(['NOT_STARTED', 'PARTIAL', 'IMPLEMENTED']).describe('New implementation status'),
@@ -1043,7 +1043,7 @@ function registerControlMutations(server: McpServer) {
 
   server.tool(
     'propose_create_control',
-    'Propose creating a new control in the library. Requires human approval.',
+    'Propose creating a new control in the library. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       controlId: z.string().describe('Control identifier (e.g. "A.5.1")'),
       name: z.string().describe('Control name'),
@@ -1085,7 +1085,7 @@ function registerControlMutations(server: McpServer) {
 
   server.tool(
     'propose_update_control',
-    'Propose updating an existing control\'s details. Requires human approval.',
+    'Propose updating an existing control\'s details. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       controlId: z.string().describe('Control UUID'),
       name: z.string().optional().describe('New control name'),
@@ -1125,7 +1125,7 @@ function registerControlMutations(server: McpServer) {
 
   server.tool(
     'propose_disable_control',
-    'Propose disabling a control (soft-delete). Requires human approval.',
+    'Propose disabling a control (soft-delete). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       controlId: z.string().describe('Control UUID'),
       disableReason: z.string().describe('Reason for disabling the control'),
@@ -1158,7 +1158,7 @@ function registerControlMutations(server: McpServer) {
 
   server.tool(
     'propose_enable_control',
-    'Propose re-enabling a disabled control. Requires human approval.',
+    'Propose re-enabling a disabled control. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       controlId: z.string().describe('Control UUID'),
       reason: z.string().optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
@@ -1199,7 +1199,7 @@ function registerControlMutations(server: McpServer) {
 function registerMetricMutations(server: McpServer) {
   server.tool(
     'propose_metric_value',
-    'Propose recording a new metric measurement value. Requires human approval.',
+    'Propose recording a new metric measurement value. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       metricId: z.string().describe('ControlMetric UUID'),
       value: z.string().describe('New measurement value (e.g. "95%", "3", "14 days")'),

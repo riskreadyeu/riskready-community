@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerChangeSupportTools(server: McpServer) {
   server.tool(
     'get_change_approvals',
-    'List approvals for a specific change request. Shows approver, status, decision, and comments.',
+    'List approvals for a specific change request. Shows approver, status, decision, and comments. If not found, returns a not-found message. Do not invent or assume values.',
     {
       changeId: z.string().describe('Change UUID'),
     },
@@ -45,7 +45,7 @@ export function registerChangeSupportTools(server: McpServer) {
 
   server.tool(
     'get_pending_change_approvals',
-    'Find all pending approvals across all change requests. Useful for approval queue management.',
+    'Find all pending approvals across all change requests. Useful for approval queue management. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_pending_change_approvals', async () => {
       const approvals = await prisma.changeApproval.findMany({
@@ -81,7 +81,7 @@ export function registerChangeSupportTools(server: McpServer) {
 
   server.tool(
     'get_change_history',
-    'List audit history for a specific change request. Shows field changes, actions, and who made them.',
+    'List audit history for a specific change request. Shows field changes, actions, and who made them. If not found, returns a not-found message. Do not invent or assume values.',
     {
       changeId: z.string().describe('Change UUID'),
     },
@@ -120,7 +120,7 @@ export function registerChangeSupportTools(server: McpServer) {
 
   server.tool(
     'list_change_templates',
-    'List change templates for standard/pre-approved changes. Filter by active status and category.',
+    'List change templates for standard/pre-approved changes. Filter by active status and category. If not found, returns a not-found message. Do not invent or assume values.',
     {
       isActive: z.boolean().optional().describe('Filter by active status'),
       category: z.enum([
@@ -173,7 +173,7 @@ export function registerChangeSupportTools(server: McpServer) {
 
   server.tool(
     'get_change_template',
-    'Get a single change template with full details including instructions, backout plan, and test plan.',
+    'Get a single change template with full details including instructions, backout plan, and test plan. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('Change template UUID'),
     },

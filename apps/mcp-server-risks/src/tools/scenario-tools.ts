@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerScenarioTools(server: McpServer) {
   server.tool(
     'list_scenarios',
-    'List risk scenarios with optional filters. Returns scenario ID, title, status, likelihood, impact, scores, and tolerance status.',
+    'List risk scenarios with optional filters. Returns scenario ID, title, status, likelihood, impact, scores, and tolerance status. If not found, returns a not-found message. Do not invent or assume values.',
     {
       riskId: z.string().optional().describe('Filter by parent risk UUID'),
       status: z.enum(['DRAFT', 'ASSESSED', 'EVALUATED', 'TREATING', 'TREATED', 'ACCEPTED', 'MONITORING', 'ESCALATED', 'REVIEW', 'CLOSED', 'ARCHIVED']).optional().describe('Filter by scenario status'),
@@ -61,7 +61,7 @@ export function registerScenarioTools(server: McpServer) {
 
   server.tool(
     'get_scenario',
-    'Get a single risk scenario with full details: scores, controls, state history, and calculation metadata.',
+    'Get a single risk scenario with full details: scores, controls, state history, and calculation metadata. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('RiskScenario UUID'),
     },
@@ -130,7 +130,7 @@ export function registerScenarioTools(server: McpServer) {
 
   server.tool(
     'get_scenario_scores',
-    'Get likelihood, impact, inherent/residual scores, and override status for a scenario.',
+    'Get likelihood, impact, inherent/residual scores, and override status for a scenario. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('RiskScenario UUID'),
     },

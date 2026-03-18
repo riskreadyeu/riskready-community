@@ -7,7 +7,7 @@ import { getSingleOrganisation } from './single-org.js';
 export function registerOrgProfileTools(server: McpServer) {
   server.tool(
     'get_organisation_profile',
-    'Get the organisation profile with full details including ISMS scope and regulatory profile.',
+    'Get the organisation profile with full details including ISMS scope and regulatory profile. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().optional().describe('Organisation UUID (uses first org if omitted)'),
     },
@@ -31,7 +31,7 @@ export function registerOrgProfileTools(server: McpServer) {
 
   server.tool(
     'get_regulatory_profile',
-    'Get the regulatory profile for an organisation — DORA and NIS2 applicability, supervisory authority.',
+    'Get the regulatory profile for an organisation — DORA and NIS2 applicability, supervisory authority. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().optional().describe('Organisation UUID (uses first org if omitted)'),
     },

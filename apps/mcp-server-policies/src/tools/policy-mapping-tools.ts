@@ -6,7 +6,7 @@ import { withErrorHandling } from '#mcp-shared';
 export function registerPolicyMappingTools(server: McpServer) {
   server.tool(
     'get_policy_control_mappings',
-    'Get control mappings for a policy document — shows which ISO 27001 controls the policy implements or supports.',
+    'Get control mappings for a policy document — shows which ISO 27001 controls the policy implements or supports. If not found, returns a not-found message. Do not invent or assume values.',
     {
       documentId: z.string().describe('PolicyDocument UUID'),
     },
@@ -53,7 +53,7 @@ export function registerPolicyMappingTools(server: McpServer) {
 
   server.tool(
     'get_policy_risk_mappings',
-    'Get risk mappings for a policy document — shows which risks the policy mitigates or addresses.',
+    'Get risk mappings for a policy document — shows which risks the policy mitigates or addresses. If not found, returns a not-found message. Do not invent or assume values.',
     {
       documentId: z.string().describe('PolicyDocument UUID'),
     },

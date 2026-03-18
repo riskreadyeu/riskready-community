@@ -6,7 +6,7 @@ import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 export function registerKRITools(server: McpServer) {
   server.tool(
     'list_kris',
-    'List Key Risk Indicators with optional filters. Returns KRI ID, name, current value, RAG status, and trend.',
+    'List Key Risk Indicators with optional filters. Returns KRI ID, name, current value, RAG status, and trend. If not found, returns a not-found message. Do not invent or assume values.',
     {
       riskId: z.string().optional().describe('Filter by parent risk UUID'),
       status: z.enum(['GREEN', 'AMBER', 'RED']).optional().describe('Filter by RAG status'),
@@ -64,7 +64,7 @@ export function registerKRITools(server: McpServer) {
 
   server.tool(
     'get_kri',
-    'Get a single Key Risk Indicator with full details and measurement history.',
+    'Get a single Key Risk Indicator with full details and measurement history. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('KeyRiskIndicator UUID'),
     },
@@ -94,7 +94,7 @@ export function registerKRITools(server: McpServer) {
 
   server.tool(
     'get_kri_dashboard',
-    'Get an organisation-wide KRI summary: total KRIs, RAG distribution, trend breakdown, collection status.',
+    'Get an organisation-wide KRI summary: total KRIs, RAG distribution, trend breakdown, collection status. If not found, returns a not-found message. Do not invent or assume values.',
     {},
     withErrorHandling('get_kri_dashboard', async () => {
       const [total, byStatus, byTrend, kris] = await Promise.all([
