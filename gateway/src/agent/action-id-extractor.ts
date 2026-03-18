@@ -1,4 +1,4 @@
-import { isValidUUID } from '@riskready/mcp-shared';
+import { isValidUUID } from '../shared/prompt-helpers.js';
 
 interface ToolResultContent {
   type?: string;

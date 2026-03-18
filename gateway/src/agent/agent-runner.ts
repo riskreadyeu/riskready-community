@@ -12,7 +12,7 @@ import { extractBlock } from './block-extractor.js';
 import { extractActionIdsFromToolResults } from './action-id-extractor.js';
 import { resolveConversationModel } from '../model-resolution.js';
 import { applyGroundingGuard, type GuardToolResult, withFallbackGroundingToolResults } from '../grounding-guard.js';
-import { wrapMemoryContext, wrapTaskContext, isValidUUID } from '@riskready/mcp-shared';
+import { wrapMemoryContext, wrapTaskContext, isValidUUID } from '../shared/prompt-helpers.js';
 import { runMessageLoop } from './message-loop.js';
 import { detectInjectionPatterns } from './injection-detector.js';
 import { McpToolExecutor } from './mcp-tool-executor.js';

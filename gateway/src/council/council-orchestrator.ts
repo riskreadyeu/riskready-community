@@ -1,7 +1,7 @@
 // gateway/src/council/council-orchestrator.ts
 
 import Anthropic from '@anthropic-ai/sdk';
-import { wrapCouncilQuestion, wrapCouncilFindings } from '@riskready/mcp-shared';
+import { wrapCouncilQuestion, wrapCouncilFindings } from '../shared/prompt-helpers.js';
 import { prisma } from '../prisma.js';
 import { logger } from '../logger.js';
 import type { ChatEvent } from '../channels/types.js';

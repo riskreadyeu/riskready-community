@@ -90,10 +90,6 @@ RUN for srv in controls risks evidence policies organisation itsm audits inciden
       ln -sf /app/packages/mcp-shared /app/mcp-servers/mcp-server-${srv}/_mcp-shared; \
     done
 
-# Symlink @riskready/mcp-shared for gateway imports
-RUN mkdir -p /app/node_modules/@riskready \
-    && ln -sf /app/packages/mcp-shared /app/node_modules/@riskready/mcp-shared
-
 # --- Production stage ---
 FROM node:20-alpine
 
