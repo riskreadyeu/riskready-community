@@ -74,7 +74,7 @@ export async function runMessageLoop(opts: MessageLoopOptions): Promise<MessageL
     const response = await client.messages.create({
       model,
       max_tokens: 16384,
-      system: systemPrompt,
+      system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
       messages: accumulatedMessages,
       tools: tools as Anthropic.Tool[],
       stream: true,
@@ -84,9 +84,11 @@ export async function runMessageLoop(opts: MessageLoopOptions): Promise<MessageL
       const eventType = event.type as string;
 
       if (eventType === 'message_start') {
-        const msg = event.message as { usage?: { input_tokens?: number; output_tokens?: number } };
+        const msg = event.message as { usage?: { input_tokens?: number; output_tokens?: number; cache_creation_input_tokens?: number; cache_read_input_tokens?: number } };
         if (msg?.usage) {
-          usage.inputTokens += msg.usage.input_tokens ?? 0;
+          usage.inputTokens += (msg.usage.input_tokens ?? 0)
+            + (msg.usage.cache_creation_input_tokens ?? 0)
+            + (msg.usage.cache_read_input_tokens ?? 0);
           usage.outputTokens += msg.usage.output_tokens ?? 0;
         }
       } else if (eventType === 'content_block_start') {
