@@ -22,6 +22,7 @@ describe('Gateway Integration', () => {
       logLevel: 'warn',
       queue: { maxDepthPerUser: 5, jobTimeoutMs: 30000 },
       skills: { configPath: '/tmp/test-skills.yaml' },
+      maxTokenBudget: 500_000,
       council: {
         enabled: false,
         classifierMode: 'heuristic',

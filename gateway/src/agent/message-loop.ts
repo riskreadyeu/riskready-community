@@ -19,6 +19,7 @@ export interface MessageLoopOptions {
   signal: AbortSignal;
   onEvent: (event: ChatEvent) => void;
   executeTool: (name: string, input: Record<string, unknown>) => Promise<ToolResult>;
+  maxTokenBudget?: number;
 }
 
 export interface MessageLoopResult {
@@ -56,6 +57,12 @@ export async function runMessageLoop(opts: MessageLoopOptions): Promise<MessageL
   for (let turn = 0; turn < maxTurns; turn++) {
     if (signal.aborted) {
       logger.debug('Message loop aborted before turn %d', turn);
+      break;
+    }
+
+    const maxTokenBudget = opts.maxTokenBudget ?? 500_000;
+    if (usage.inputTokens + usage.outputTokens > maxTokenBudget) {
+      accumulatedText += '\n\n[Token budget exceeded. Ending conversation turn.]';
       break;
     }
 

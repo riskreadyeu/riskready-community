@@ -15,6 +15,7 @@ export interface GatewayConfig {
     configPath: string;
   };
   gatewaySecret?: string;
+  maxTokenBudget: number;
   council: {
     enabled: boolean;
     classifierMode: 'heuristic' | 'llm';
@@ -46,6 +47,7 @@ export function loadConfig(): GatewayConfig {
       configPath: process.env.SKILLS_CONFIG ?? './skills.yaml',
     },
     gatewaySecret,
+    maxTokenBudget: Number(process.env.MAX_TOKEN_BUDGET ?? 500_000),
     council: {
       enabled: process.env.COUNCIL_ENABLED !== 'false',
       classifierMode: (process.env.COUNCIL_CLASSIFIER_MODE as 'heuristic' | 'llm') ?? 'heuristic',

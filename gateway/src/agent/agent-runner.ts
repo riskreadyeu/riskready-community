@@ -35,6 +35,7 @@ export interface AgentRunnerDeps {
   toolSchemas?: FullToolSchema[];
   skillRegistry?: SkillRegistry;
   basePath?: string;
+  maxTokenBudget?: number;
 }
 
 export interface CouncilHook {
@@ -301,6 +302,7 @@ export class AgentRunner {
           signal,
           onEvent: emit,
           executeTool: (name, input) => executor.execute(name, input),
+          maxTokenBudget: this.deps.maxTokenBudget,
         });
 
         // Apply grounding guard

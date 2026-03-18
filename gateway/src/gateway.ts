@@ -105,6 +105,7 @@ export class Gateway {
       toolSchemas: this.toolSchemas,
       skillRegistry: this.skillRegistry,
       basePath: join(this.projectRoot, 'apps'),
+      maxTokenBudget: config.maxTokenBudget,
     });
 
     // Council orchestrator for multi-agent deliberation
