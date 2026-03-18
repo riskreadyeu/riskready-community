@@ -680,6 +680,7 @@ git commit -m "feat(security): add per-message length cap to conversation histor
 **Files:**
 - Modify: `gateway/src/config.ts`
 - Modify: `gateway/src/agent/message-loop.ts`
+- Modify: `gateway/src/agent/agent-runner.ts`
 
 - [ ] **Step 1: Add maxTokenBudget to GatewayConfig**
 
@@ -695,15 +696,34 @@ In `loadConfig()`, add to the return object:
 maxTokenBudget: Number(process.env.MAX_TOKEN_BUDGET ?? 500_000),
 ```
 
-- [ ] **Step 2: Add budget enforcement to message loop**
+- [ ] **Step 2: Add maxTokenBudget to MessageLoopOptions**
 
-In `gateway/src/agent/message-loop.ts`, the function receives config. Add budget tracking. The `usage` accumulator already exists (line ~50-54).
+In `gateway/src/agent/message-loop.ts`, find the options/params type for `runMessageLoop`. Add:
+
+```typescript
+maxTokenBudget?: number;
+```
+
+- [ ] **Step 3: Thread config through from agent-runner**
+
+In `gateway/src/agent/agent-runner.ts`, where `runMessageLoop()` is called (line ~291), pass the budget:
+
+```typescript
+const result = await runMessageLoop({
+  // ...existing params...
+  maxTokenBudget: this.config.maxTokenBudget,
+});
+```
+
+- [ ] **Step 4: Add budget enforcement to message loop**
+
+In `gateway/src/agent/message-loop.ts`, the `usage` accumulator already exists (line ~50-54).
 
 At the **top** of the main while loop (before the API call), add the budget check:
 
 ```typescript
 // Check token budget BEFORE making the next API call
-const maxTokenBudget = config?.maxTokenBudget ?? 500_000;
+const maxTokenBudget = options.maxTokenBudget ?? 500_000;
 if (usage.inputTokens + usage.outputTokens > maxTokenBudget) {
   accumulatedText += '\n\n[Token budget exceeded. Ending conversation turn.]';
   break;
@@ -873,7 +893,18 @@ export function decrementConcurrent(): void {
 }
 ```
 
-- [ ] **Step 3: Register middleware in internal adapter**
+- [ ] **Step 3: Update InternalAdapter to accept rate limit config**
+
+In `gateway/src/channels/internal.adapter.ts`, update the constructor options type to include the rate limit config:
+
+```typescript
+// Add to the options interface/type:
+rateLimit?: { perUserHour: number; perOrgHour: number; maxConcurrent: number };
+```
+
+Store it as a property and use it in `setupRoutes()`.
+
+- [ ] **Step 4: Register middleware in internal adapter**
 
 In `gateway/src/channels/internal.adapter.ts`, import and register:
 
@@ -884,14 +915,37 @@ import { registerRateLimit } from '../middleware/rate-limit.js';
 At the start of `setupRoutes()`, before the secret hook, add:
 
 ```typescript
-registerRateLimit(this.server, this.config.rateLimit);
+if (this.rateLimit) {
+  registerRateLimit(this.server, this.rateLimit);
+}
 ```
 
-Note: The constructor already receives config — ensure `this.config` includes the new `rateLimit` field.
+- [ ] **Step 5: Update InternalAdapter instantiation in gateway.ts**
 
-- [ ] **Step 4: Wire concurrent tracking**
+In `gateway/src/gateway.ts` (or wherever `InternalAdapter` is instantiated), pass the rate limit config:
 
-Where the agent run starts (in `gateway.ts` or the dispatch handler), import and call `incrementConcurrent()` at run start and `decrementConcurrent()` at run end (in a finally block).
+```typescript
+const adapter = new InternalAdapter({
+  // ...existing options...
+  rateLimit: config.rateLimit,
+});
+```
+
+- [ ] **Step 6: Wire concurrent tracking in gateway.ts**
+
+In `gateway/src/gateway.ts`, find where agent runs are dispatched (likely in the message handler). Import and wrap:
+
+```typescript
+import { incrementConcurrent, decrementConcurrent } from './middleware/rate-limit.js';
+
+// In the handler:
+incrementConcurrent();
+try {
+  await agentRunner.run(msg);
+} finally {
+  decrementConcurrent();
+}
+```
 
 - [ ] **Step 5: Verify compilation**
 
@@ -1369,11 +1423,16 @@ git commit -m "fix(security): remove email PII from organisation, incidents, aud
 ### Task 18: Add Zod .max() bounds to all mutation tool schemas
 
 **Files:**
-- Modify: All `mutation-tools.ts` files across 8 domain MCP servers
+- Modify: All files containing `propose_*` tools across 8 domain MCP servers (not just `mutation-tools.ts`)
 
-- [ ] **Step 1: Find all unbounded z.string() in mutation tools**
+- [ ] **Step 1: Find ALL files with propose tools and unbounded z.string()**
 
-Run: `grep -rn "z.string()" apps/mcp-server-*/src/tools/mutation-tools.ts | grep -v ".max(" | grep -v ".enum("`
+Run: `grep -rl "propose_" apps/mcp-server-*/src/tools/ | xargs grep -l "z.string()"`
+
+Then for each file found, check for unbounded strings:
+Run: `grep -rn "z.string()" apps/mcp-server-*/src/tools/ | grep "propose_\|mutation" | grep -v ".max(" | grep -v ".enum("`
+
+This catches propose tools in `mutation-tools.ts`, `policy-lifecycle-tools.ts`, `assessment-tools.ts`, `test-tools.ts`, and any other file containing propose operations.
 
 - [ ] **Step 2: Apply bounds per field pattern**
 
@@ -1407,7 +1466,7 @@ Run a compilation check for each server.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add apps/mcp-server-*/src/tools/mutation-tools.ts
+git add apps/mcp-server-*/src/tools/
 git commit -m "feat(security): add Zod .max() bounds to all mutation tool string fields"
 ```
 
@@ -1616,12 +1675,15 @@ Replace the direct Prisma update (lines ~57-93) with:
 
 ```typescript
 withErrorHandling('update_agent_task', async (params) => {
+  // Fetch existing task to get organisationId (not in update schema)
+  const existing = await prisma.agentTask.findUniqueOrThrow({ where: { id: params.taskId } });
   return createPendingAction({
     actionType: 'UPDATE_AGENT_TASK',
     summary: `Update agent task ${params.taskId}: status=${params.status ?? 'unchanged'}`,
     reason: params.result ? `Result: ${params.result.slice(0, 200)}` : undefined,
     payload: params,
     mcpToolName: 'update_agent_task',
+    organisationId: existing.organisationId,
   });
 }),
 ```
