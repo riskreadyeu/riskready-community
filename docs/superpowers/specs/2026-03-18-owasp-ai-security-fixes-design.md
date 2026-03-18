@@ -423,7 +423,7 @@ Prevents a single poisoned or oversized history message from dominating the cont
 | `gateway/src/agent/pii-redactor.ts` | PII redaction for chat storage |
 | `gateway/src/agent/injection-detector.ts` | Injection pattern telemetry |
 
-### Modified files (~25)
+### Modified files (~35)
 
 | File | Changes |
 |------|---------|
