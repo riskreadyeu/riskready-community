@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 
 export function registerScenarioTools(server: McpServer) {
   server.tool(
@@ -113,8 +113,8 @@ export function registerScenarioTools(server: McpServer) {
               calculatedAt: true,
             },
           },
-          createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
-          updatedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          createdBy: { select: userSelectSafe },
+          updatedBy: { select: userSelectSafe },
         },
       });
 

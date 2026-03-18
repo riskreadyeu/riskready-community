@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 
 export function registerTreatmentTools(server: McpServer) {
   server.tool(
@@ -72,14 +72,14 @@ export function registerTreatmentTools(server: McpServer) {
           actions: {
             orderBy: { actionId: 'asc' },
             include: {
-              assignedTo: { select: { id: true, email: true, firstName: true, lastName: true } },
+              assignedTo: { select: userSelectSafe },
             },
           },
           history: {
             orderBy: { createdAt: 'desc' },
             take: 20,
             include: {
-              user: { select: { id: true, email: true, firstName: true, lastName: true } },
+              user: { select: userSelectSafe },
             },
           },
           sourceDependencies: {
@@ -92,11 +92,11 @@ export function registerTreatmentTools(server: McpServer) {
               sourceTreatment: { select: { id: true, treatmentId: true, title: true, status: true } },
             },
           },
-          riskOwner: { select: { id: true, email: true, firstName: true, lastName: true } },
-          implementer: { select: { id: true, email: true, firstName: true, lastName: true } },
-          approvedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
-          createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
-          updatedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          riskOwner: { select: userSelectSafe },
+          implementer: { select: userSelectSafe },
+          approvedBy: { select: userSelectSafe },
+          createdBy: { select: userSelectSafe },
+          updatedBy: { select: userSelectSafe },
         },
       });
 

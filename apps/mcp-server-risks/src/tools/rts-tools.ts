@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 
 export function registerRTSTools(server: McpServer) {
   server.tool(
@@ -77,9 +77,9 @@ export function registerRTSTools(server: McpServer) {
             orderBy: { evaluatedAt: 'desc' },
             take: 5,
           },
-          createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
-          updatedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
-          approvedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          createdBy: { select: userSelectSafe },
+          updatedBy: { select: userSelectSafe },
+          approvedBy: { select: userSelectSafe },
         },
       });
 
