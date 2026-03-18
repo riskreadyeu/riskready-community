@@ -14,6 +14,7 @@ import { resolveConversationModel } from '../model-resolution.js';
 import { applyGroundingGuard, type GuardToolResult, withFallbackGroundingToolResults } from '../grounding-guard.js';
 import { wrapMemoryContext, wrapTaskContext, isValidUUID } from '@riskready/mcp-shared';
 import { runMessageLoop } from './message-loop.js';
+import { detectInjectionPatterns } from './injection-detector.js';
 import { McpToolExecutor } from './mcp-tool-executor.js';
 import { redactPII } from './pii-redactor.js';
 import { buildToolDefinitions } from './tool-builder.js';
@@ -242,6 +243,12 @@ export class AgentRunner {
     let fullText = '';
 
     try {
+      // Prompt injection telemetry
+      const injectionCheck = detectInjectionPatterns(msg.text);
+      if (injectionCheck.suspicious) {
+        logger.warn({ patterns: injectionCheck.patterns, userId: msg.userId }, 'Potential prompt injection detected');
+      }
+
       // Council decision: check if multi-agent deliberation is needed
       const mcpServers = this.deps.getMcpServers(msg.text);
       if (this.councilHook && this.councilHook.shouldConvene(msg.text)) {
