@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 
 export function registerChangeTools(server: McpServer) {
   server.tool(
@@ -52,7 +52,7 @@ export function registerChangeTools(server: McpServer) {
             actualStart: true,
             actualEnd: true,
             createdAt: true,
-            requester: { select: { id: true, email: true, firstName: true, lastName: true } },
+            requester: { select: userSelectSafe },
             department: { select: { id: true, name: true } },
             _count: { select: { approvals: true, assetLinks: true } },
           },
@@ -84,12 +84,12 @@ export function registerChangeTools(server: McpServer) {
       const change = await prisma.change.findUnique({
         where: { id },
         include: {
-          requester: { select: { id: true, email: true, firstName: true, lastName: true } },
-          implementer: { select: { id: true, email: true, firstName: true, lastName: true } },
+          requester: { select: userSelectSafe },
+          implementer: { select: userSelectSafe },
           department: { select: { id: true, name: true } },
           approvals: {
             include: {
-              approver: { select: { id: true, email: true, firstName: true, lastName: true } },
+              approver: { select: userSelectSafe },
             },
             orderBy: { createdAt: 'asc' },
           },
@@ -100,7 +100,7 @@ export function registerChangeTools(server: McpServer) {
           },
           history: {
             include: {
-              changedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+              changedBy: { select: userSelectSafe },
             },
             orderBy: { createdAt: 'desc' },
             take: 50,
@@ -111,8 +111,8 @@ export function registerChangeTools(server: McpServer) {
           childChanges: {
             select: { id: true, changeRef: true, title: true, status: true },
           },
-          createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
-          updatedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          createdBy: { select: userSelectSafe },
+          updatedBy: { select: userSelectSafe },
         },
       });
 
@@ -156,7 +156,7 @@ export function registerChangeTools(server: McpServer) {
           plannedStart: true,
           plannedEnd: true,
           createdAt: true,
-          requester: { select: { id: true, email: true, firstName: true, lastName: true } },
+          requester: { select: userSelectSafe },
         },
       });
 

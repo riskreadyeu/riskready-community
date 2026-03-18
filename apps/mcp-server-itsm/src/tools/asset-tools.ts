@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 
 export function registerAssetTools(server: McpServer) {
   server.tool(
@@ -59,7 +59,7 @@ export function registerAssetTools(server: McpServer) {
             cloudProvider: true,
             createdAt: true,
             updatedAt: true,
-            owner: { select: { id: true, email: true, firstName: true, lastName: true } },
+            owner: { select: userSelectSafe },
             department: { select: { id: true, name: true } },
             location: { select: { id: true, name: true, city: true, country: true } },
           },
@@ -91,8 +91,8 @@ export function registerAssetTools(server: McpServer) {
       const asset = await prisma.asset.findUnique({
         where: { id },
         include: {
-          owner: { select: { id: true, email: true, firstName: true, lastName: true } },
-          custodian: { select: { id: true, email: true, firstName: true, lastName: true } },
+          owner: { select: userSelectSafe },
+          custodian: { select: userSelectSafe },
           department: { select: { id: true, name: true } },
           location: { select: { id: true, name: true, city: true, country: true } },
           vendor: { select: { id: true, name: true, dependencyType: true } },
@@ -183,7 +183,7 @@ export function registerAssetTools(server: McpServer) {
           dataClassification: true,
           fqdn: true,
           cloudProvider: true,
-          owner: { select: { id: true, email: true, firstName: true, lastName: true } },
+          owner: { select: userSelectSafe },
           department: { select: { id: true, name: true } },
           location: { select: { id: true, name: true } },
         },

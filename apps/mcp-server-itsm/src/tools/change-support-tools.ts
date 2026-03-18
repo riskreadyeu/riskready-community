@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { withErrorHandling, userSelectSafe } from '#mcp-shared';
 
 export function registerChangeSupportTools(server: McpServer) {
   server.tool(
@@ -23,7 +23,7 @@ export function registerChangeSupportTools(server: McpServer) {
         where: { changeId },
         take: 1000,
         include: {
-          approver: { select: { id: true, email: true, firstName: true, lastName: true } },
+          approver: { select: userSelectSafe },
         },
         orderBy: { createdAt: 'asc' },
       });
@@ -63,7 +63,7 @@ export function registerChangeSupportTools(server: McpServer) {
               status: true,
             },
           },
-          approver: { select: { id: true, email: true, firstName: true, lastName: true } },
+          approver: { select: userSelectSafe },
         },
         orderBy: { createdAt: 'asc' },
       });
@@ -98,7 +98,7 @@ export function registerChangeSupportTools(server: McpServer) {
         where: { changeId },
         take: 1000,
         include: {
-          changedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          changedBy: { select: userSelectSafe },
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -181,7 +181,7 @@ export function registerChangeSupportTools(server: McpServer) {
       const template = await prisma.changeTemplate.findUnique({
         where: { id },
         include: {
-          createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          createdBy: { select: userSelectSafe },
         },
       });
 
