@@ -421,7 +421,7 @@ export function RiskScenarioDetailV2Page() {
                 <span className="font-medium">{c.control.name}</span>
               )},
               { key: "effectiveness", header: "Weight", width: "100px", render: (c) => (
-                <span>{(c.effectivenessWeight * 100).toFixed(0)}%</span>
+                <span>{c.effectivenessWeight}%</span>
               )},
               { key: "primary", header: "Primary", width: "80px", render: (c) => (
                 c.isPrimaryControl ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : null
