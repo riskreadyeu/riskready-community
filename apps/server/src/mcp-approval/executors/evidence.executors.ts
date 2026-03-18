@@ -51,7 +51,14 @@ export function registerEvidenceExecutors(executors: ExecutorMap, services: Evid
     evidenceRequestService.submitEvidence(p['requestId'], p['evidenceId'], userId, p['notes']),
   );
 
-  executors.set('CLOSE_EVIDENCE_REQUEST', (p) =>
-    evidenceRequestService.acceptSubmission(p['requestId']),
-  );
+  executors.set('CLOSE_EVIDENCE_REQUEST', (p) => {
+    const action = p['action'] || 'accept';
+    if (action === 'reject') {
+      return evidenceRequestService.rejectSubmission(p['requestId'], p['reason'] || '');
+    }
+    if (action === 'cancel') {
+      return evidenceRequestService.cancel(p['requestId']);
+    }
+    return evidenceRequestService.acceptSubmission(p['requestId']);
+  });
 }
