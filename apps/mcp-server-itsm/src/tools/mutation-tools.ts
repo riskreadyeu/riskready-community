@@ -61,7 +61,7 @@ function registerAssetMutations(server: McpServer) {
       // Physical location
       datacenter: z.string().max(200).optional().describe('Datacenter name'),
       rack: z.string().max(200).optional().describe('Rack identifier'),
-      rackPosition: z.string().max(200).optional().describe('Rack position (e.g. U1-U4)'),
+      rackPosition: z.number().int().optional().describe('Rack position (e.g. 1-48)'),
       // Lifecycle
       purchaseDate: z.string().datetime().optional().describe('Purchase date (ISO 8601)'),
       deploymentDate: z.string().datetime().optional().describe('Deployment date (ISO 8601)'),
@@ -100,7 +100,7 @@ function registerAssetMutations(server: McpServer) {
       monitoringEnabled: z.boolean().optional().describe('Whether monitoring is enabled'),
       loggingEnabled: z.boolean().optional().describe('Whether logging is enabled'),
       // Capacity
-      cpuCapacity: z.string().max(200).optional().describe('CPU capacity'),
+      cpuCapacity: z.number().int().optional().describe('CPU capacity (cores)'),
       memoryCapacityGB: z.number().optional().describe('Memory capacity in GB'),
       storageCapacityGB: z.number().optional().describe('Storage capacity in GB'),
       networkBandwidthMbps: z.number().optional().describe('Network bandwidth in Mbps'),
@@ -181,7 +181,7 @@ function registerAssetMutations(server: McpServer) {
       // Physical location
       datacenter: z.string().max(200).optional().describe('Datacenter name'),
       rack: z.string().max(200).optional().describe('Rack identifier'),
-      rackPosition: z.string().max(200).optional().describe('Rack position'),
+      rackPosition: z.number().int().optional().describe('Rack position'),
       // Lifecycle
       purchaseDate: z.string().datetime().optional().describe('Purchase date (ISO 8601)'),
       deploymentDate: z.string().datetime().optional().describe('Deployment date (ISO 8601)'),
@@ -220,7 +220,7 @@ function registerAssetMutations(server: McpServer) {
       monitoringEnabled: z.boolean().optional().describe('Whether monitoring is enabled'),
       loggingEnabled: z.boolean().optional().describe('Whether logging is enabled'),
       // Capacity
-      cpuCapacity: z.string().max(200).optional().describe('CPU capacity'),
+      cpuCapacity: z.number().int().optional().describe('CPU capacity (cores)'),
       memoryCapacityGB: z.number().optional().describe('Memory capacity in GB'),
       storageCapacityGB: z.number().optional().describe('Storage capacity in GB'),
       networkBandwidthMbps: z.number().optional().describe('Network bandwidth in Mbps'),
@@ -440,15 +440,15 @@ function registerChangeMutations(server: McpServer) {
       plannedEnd: z.string().datetime().optional().describe('Planned end date (ISO 8601)'),
       backoutPlan: z.string().max(5000).optional().describe('Backout/rollback plan'),
       impactAssessment: z.string().max(5000).optional().describe('Impact assessment'),
-      affectedServices: z.string().max(5000).optional().describe('Affected services'),
+      affectedServices: z.array(z.string().max(200)).optional().describe('List of affected service names'),
       userImpact: z.string().max(5000).optional().describe('User impact description'),
       riskLevel: z.string().max(200).optional().describe('Risk level'),
       riskAssessment: z.string().max(5000).optional().describe('Risk assessment'),
-      rollbackTime: z.string().max(200).optional().describe('Estimated rollback time'),
+      rollbackTime: z.number().int().optional().describe('Estimated rollback time in minutes'),
       testPlan: z.string().max(5000).optional().describe('Test plan'),
-      maintenanceWindow: z.string().max(200).optional().describe('Maintenance window'),
+      maintenanceWindow: z.boolean().optional().describe('Whether change requires a maintenance window'),
       outageRequired: z.boolean().optional().describe('Whether an outage is required'),
-      estimatedDowntime: z.string().max(200).optional().describe('Estimated downtime'),
+      estimatedDowntime: z.number().int().optional().describe('Estimated downtime in minutes'),
       cabRequired: z.boolean().optional().describe('Whether CAB review is required'),
       cabMeetingDate: z.string().datetime().optional().describe('CAB meeting date (ISO 8601)'),
       successCriteria: z.string().max(5000).optional().describe('Success criteria'),
@@ -462,11 +462,14 @@ function registerChangeMutations(server: McpServer) {
       mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
     },
     withErrorHandling('propose_change', async (params) => {
+      const year = new Date().getFullYear();
+      const count = await prisma.change.count();
+      const changeRef = `CHG-${year}-${String(count + 1).padStart(3, '0')}`;
       return createPendingAction({
         actionType: McpActionType.CREATE_CHANGE,
         summary: `Create ${params.changeType} change "${params.title}" (${params.category}, ${params.securityImpact || 'LOW'} security impact)`,
         reason: params.reason,
-        payload: params,
+        payload: { ...params, changeRef },
         mcpSessionId: params.mcpSessionId,
         mcpToolName: 'propose_change',
         organisationId: params.organisationId,
