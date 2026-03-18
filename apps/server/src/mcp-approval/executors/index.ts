@@ -15,3 +15,5 @@ export type { ItsmExecutorServices } from './itsm.executors';
 export { registerItsmExecutors } from './itsm.executors';
 export type { OrganisationExecutorServices } from './organisation.executors';
 export { registerOrganisationExecutors } from './organisation.executors';
+export type { AgentOpsExecutorServices } from './agent-ops.executors';
+export { registerAgentOpsExecutors } from './agent-ops.executors';

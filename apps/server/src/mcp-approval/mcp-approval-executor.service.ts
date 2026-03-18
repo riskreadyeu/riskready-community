@@ -57,6 +57,7 @@ import { registerEvidenceExecutors } from './executors/evidence.executors';
 import { registerAuditExecutors } from './executors/audit.executors';
 import { registerItsmExecutors } from './executors/itsm.executors';
 import { registerOrganisationExecutors } from './executors/organisation.executors';
+import { registerAgentOpsExecutors } from './executors/agent-ops.executors';
 
 @Injectable()
 export class McpApprovalExecutorService {
@@ -159,6 +160,10 @@ export class McpApprovalExecutorService {
       committeeMeetingService: this.committeeMeetingService,
       externalDependencyService: this.externalDependencyService,
     });
+
+    registerAgentOpsExecutors(this.executors, {
+      prismaService: this.prismaService,
+    });
   }
 
   canExecute(actionType: McpActionType): boolean {
@@ -174,8 +179,9 @@ export class McpApprovalExecutorService {
 
     this.logger.log(`Executing action type: ${actionType}`);
     // Strip MCP metadata fields (organisationId, reason) at the choke point
-    // so individual executors never need to worry about them leaking into Prisma
-    const { organisationId: _org, reason: _reason, ...cleanPayload } = payload;
-    return executor(cleanPayload, reviewedById);
+    // so individual executors never need to worry about them leaking into Prisma.
+    // organisationId is passed separately for executors that need it (e.g. agent-ops).
+    const { organisationId, reason: _reason, ...cleanPayload } = payload;
+    return executor(cleanPayload, reviewedById, organisationId);
   }
 }
