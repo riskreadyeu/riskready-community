@@ -12,6 +12,7 @@ import { extractBlock } from './block-extractor.js';
 import { extractActionIdsFromToolResults } from './action-id-extractor.js';
 import { resolveConversationModel } from '../model-resolution.js';
 import { applyGroundingGuard, type GuardToolResult, withFallbackGroundingToolResults } from '../grounding-guard.js';
+import { wrapMemoryContext, wrapTaskContext, isValidUUID } from '@riskready/mcp-shared';
 import { runMessageLoop } from './message-loop.js';
 import { McpToolExecutor } from './mcp-tool-executor.js';
 import { buildToolDefinitions } from './tool-builder.js';
@@ -153,8 +154,7 @@ export class AgentRunner {
           limit: 10,
         });
         if (memories.length > 0) {
-          memoryContext = '\n\nRelevant memories from previous conversations:\n' +
-            memories.map((m) => `- [${m.type}] ${m.content}`).join('\n');
+          memoryContext = '\n\n' + wrapMemoryContext(memories);
         }
       } catch (err) {
         logger.error({ err }, 'Memory recall failed');
@@ -175,18 +175,17 @@ export class AgentRunner {
           },
         });
         if (task) {
-          taskContext = `\n\nCurrent Task (ID: ${task.id}):
-Title: ${task.title}
-Instruction: ${task.instruction}
-Status: ${task.status}
-Trigger: ${task.trigger}`;
-          if (task.result) taskContext += `\nPrevious result: ${task.result}`;
-          if (task.actionIds.length > 0) taskContext += `\nLinked action IDs: ${task.actionIds.join(', ')}`;
+          taskContext = '\n\n' + wrapTaskContext({
+            id: task.id,
+            title: task.title,
+            instruction: task.instruction,
+            status: task.status,
+            trigger: task.trigger,
+          });
+          if (task.result) taskContext = taskContext.replace('</TASK_CONTEXT>', `Previous result: ${task.result}\n</TASK_CONTEXT>`);
           if (task.childTasks.length > 0) {
-            taskContext += '\nSub-tasks:';
-            for (const ct of task.childTasks) {
-              taskContext += `\n  - [${ct.status}] ${ct.title}`;
-            }
+            const subtasks = task.childTasks.map((ct: any) => `  - [${ct.status}] ${ct.title}`).join('\n');
+            taskContext = taskContext.replace('</TASK_CONTEXT>', `Sub-tasks:\n${subtasks}\n</TASK_CONTEXT>`);
           }
         }
       } catch (err) {
@@ -275,6 +274,10 @@ Trigger: ${task.trigger}`;
       if (!fullText) {
         // Build conversation messages from history
         const pastMessages = (history as HistoryMessage[]).slice(0, -1); // exclude current user message
+        if (!isValidUUID(msg.organisationId)) {
+          throw new Error(`Invalid organisationId: ${msg.organisationId}`);
+        }
+
         const systemPromptWithContext = SYSTEM_PROMPT +
           (memoryContext ? `\n${memoryContext}` : '') +
           (taskContext ? `\n${taskContext}` : '') +
@@ -322,7 +325,9 @@ Trigger: ${task.trigger}`;
       const regexPattern = /"actionId"\s*:\s*"([^"]+)"/g;
       let regexMatch;
       while ((regexMatch = regexPattern.exec(fullText)) !== null) {
-        regexIds.push(regexMatch[1]);
+        if (isValidUUID(regexMatch[1])) {
+          regexIds.push(regexMatch[1]);
+        }
       }
       const actionIds = [...new Set([...structuredIds, ...regexIds])];
 
