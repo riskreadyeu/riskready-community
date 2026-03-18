@@ -1,3 +1,5 @@
+import { fetchWithAuth } from './fetch-with-auth';
+
 type User = { id: string; email: string };
 
 type MeResponse = { user: User };
@@ -37,14 +39,7 @@ export function getApiErrorMessage(text: string, fallback: string): string {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    ...init,
-    headers: {
-      'content-type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-    credentials: 'include',
-  });
+  const res = await fetchWithAuth(path, init);
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -70,6 +65,13 @@ async function requestFormData<T>(path: string, init?: RequestInit): Promise<T> 
     ...init,
     credentials: 'include',
   });
+
+  if (res.status === 401) {
+    if (!window.location.pathname.startsWith('/login')) {
+      window.location.href = '/login';
+    }
+    throw new Error('Unauthorized');
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');

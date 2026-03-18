@@ -1,14 +1,9 @@
 // Incidents Module API Service
 
+import { fetchWithAuth } from './fetch-with-auth';
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    ...init,
-    headers: {
-      'content-type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-    credentials: 'include',
-  });
+  const res = await fetchWithAuth(path, init);
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
