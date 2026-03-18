@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { withErrorHandling, createPendingAction } from '#mcp-shared';
 
 export function registerTaskTools(server: McpServer) {
   server.tool(
@@ -15,31 +15,15 @@ export function registerTaskTools(server: McpServer) {
       workflowId: z.string().optional().describe('Workflow ID if part of a workflow'),
       stepIndex: z.number().int().optional().describe('Step index within a workflow'),
     },
-    withErrorHandling('create_agent_task', async ({ organisationId, title, instruction, parentTaskId, workflowId, stepIndex }) => {
-      const task = await prisma.agentTask.create({
-        data: {
-          organisationId,
-          title,
-          instruction,
-          parentTaskId,
-          workflowId,
-          stepIndex,
-          status: 'PENDING',
-          trigger: parentTaskId ? 'WORKFLOW_STEP' : 'USER_REQUEST',
-        },
+    withErrorHandling('create_agent_task', async (params) => {
+      return createPendingAction({
+        actionType: 'CREATE_AGENT_TASK',
+        summary: `Create agent task: "${params.title}"`,
+        reason: `Task instruction: ${params.instruction.slice(0, 200)}`,
+        payload: params,
+        mcpToolName: 'create_agent_task',
+        organisationId: params.organisationId,
       });
-
-      return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify({
-            message: 'Task created successfully.',
-            taskId: task.id,
-            title: task.title,
-            status: task.status,
-          }, null, 2),
-        }],
-      };
     }),
   );
 
@@ -53,43 +37,16 @@ export function registerTaskTools(server: McpServer) {
       errorMessage: z.string().optional().describe('Error message if task failed'),
       actionIds: z.array(z.string()).optional().describe('Action IDs to append to the task'),
     },
-    withErrorHandling('update_agent_task', async ({ taskId, status, result, errorMessage, actionIds }) => {
-      const existing = await prisma.agentTask.findUnique({ where: { id: taskId } });
-      if (!existing) {
-        return {
-          content: [{ type: 'text' as const, text: `Task with ID ${taskId} not found` }],
-          isError: true,
-        };
-      }
-
-      const data: Record<string, unknown> = {};
-      if (status) data.status = status;
-      if (result) data.result = result;
-      if (errorMessage) data.errorMessage = errorMessage;
-      if (status === 'COMPLETED' || status === 'FAILED') {
-        data.completedAt = new Date();
-      }
-      if (actionIds && actionIds.length > 0) {
-        data.actionIds = [...existing.actionIds, ...actionIds];
-      }
-
-      const task = await prisma.agentTask.update({
-        where: { id: taskId },
-        data,
+    withErrorHandling('update_agent_task', async (params) => {
+      const existing = await prisma.agentTask.findUniqueOrThrow({ where: { id: params.taskId } });
+      return createPendingAction({
+        actionType: 'UPDATE_AGENT_TASK',
+        summary: `Update agent task ${params.taskId}: status=${params.status ?? 'unchanged'}`,
+        reason: params.result ? `Result: ${params.result.slice(0, 200)}` : undefined,
+        payload: params,
+        mcpToolName: 'update_agent_task',
+        organisationId: existing.organisationId,
       });
-
-      return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify({
-            message: 'Task updated successfully.',
-            taskId: task.id,
-            title: task.title,
-            status: task.status,
-            completedAt: task.completedAt,
-          }, null, 2),
-        }],
-      };
     }),
   );
 
