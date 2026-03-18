@@ -1,3 +1,5 @@
+import { isValidUUID } from '@riskready/mcp-shared';
+
 interface ToolResultContent {
   type?: string;
   text?: string;
@@ -24,7 +26,7 @@ export function extractActionIdsFromToolResults(toolResults: ToolResult[]): stri
     for (const text of texts) {
       try {
         const parsed = JSON.parse(text);
-        if (parsed?.actionId) {
+        if (parsed?.actionId && typeof parsed.actionId === 'string' && isValidUUID(parsed.actionId)) {
           actionIds.push(parsed.actionId);
         }
       } catch {
