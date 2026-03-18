@@ -173,6 +173,9 @@ export class McpApprovalExecutorService {
     }
 
     this.logger.log(`Executing action type: ${actionType}`);
-    return executor(payload, reviewedById);
+    // Strip MCP metadata fields (organisationId, reason) at the choke point
+    // so individual executors never need to worry about them leaking into Prisma
+    const { organisationId: _org, reason: _reason, ...cleanPayload } = payload;
+    return executor(cleanPayload, reviewedById);
   }
 }
