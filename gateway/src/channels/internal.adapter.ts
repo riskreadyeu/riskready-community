@@ -4,10 +4,12 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import type { ChannelAdapter, MessageHandler } from './channel.interface.js';
 import type { UnifiedMessage, AgentResponse, ChatEvent } from './types.js';
+import { registerRateLimit, type RateLimitConfig } from '../middleware/rate-limit.js';
 
 interface InternalAdapterOptions {
   port: number;
   secret?: string;
+  rateLimit?: RateLimitConfig;
 }
 
 function readHeader(value: string | string[] | undefined): string | undefined {
@@ -27,10 +29,14 @@ export class InternalAdapter implements ChannelAdapter {
     this.port = opts.port;
     this.secret = opts.secret;
     this.server = Fastify({ logger: false });
-    this.setupRoutes();
+    this.setupRoutes(opts.rateLimit);
   }
 
-  private setupRoutes() {
+  private setupRoutes(rateLimit?: RateLimitConfig) {
+    if (rateLimit) {
+      registerRateLimit(this.server, rateLimit);
+    }
+
     if (this.secret) {
       this.server.addHook('onRequest', async (request, reply) => {
         if (request.url === '/health') return;

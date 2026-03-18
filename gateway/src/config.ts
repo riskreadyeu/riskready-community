@@ -24,6 +24,11 @@ export interface GatewayConfig {
     defaultPattern: DeliberationPattern;
     memberModel?: string;
   };
+  rateLimit: {
+    perUserHour: number;
+    perOrgHour: number;
+    maxConcurrent: number;
+  };
 }
 
 export function loadConfig(): GatewayConfig {
@@ -55,6 +60,11 @@ export function loadConfig(): GatewayConfig {
       maxTurnsPerMember: Number(process.env.COUNCIL_MAX_TURNS_PER_MEMBER ?? 15),
       defaultPattern: (process.env.COUNCIL_DEFAULT_PATTERN as DeliberationPattern) ?? 'parallel_then_synthesis',
       memberModel: process.env.COUNCIL_MEMBER_MODEL || undefined,
+    },
+    rateLimit: {
+      perUserHour: Number(process.env.RATE_LIMIT_PER_USER_HOUR ?? 30),
+      perOrgHour: Number(process.env.RATE_LIMIT_PER_ORG_HOUR ?? 100),
+      maxConcurrent: Number(process.env.RATE_LIMIT_CONCURRENT ?? 20),
     },
   };
 }

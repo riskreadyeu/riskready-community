@@ -7,6 +7,7 @@ import { InternalAdapter } from './channels/internal.adapter.js';
 import type { ChannelAdapter } from './channels/channel.interface.js';
 import type { UnifiedMessage, ChatEvent } from './channels/types.js';
 import type { Job, JobResult } from './queue/types.js';
+import { incrementConcurrent, decrementConcurrent } from './middleware/rate-limit.js';
 import { AgentRunner } from './agent/agent-runner.js';
 import { SkillRegistry } from './agent/skill-registry.js';
 import { Router } from './router/router.js';
@@ -48,7 +49,7 @@ export class Gateway {
       maxDepthPerUser: config.queue.maxDepthPerUser,
       jobTimeoutMs: config.queue.jobTimeoutMs,
     });
-    this.internalAdapter = new InternalAdapter({ port: config.port, secret: config.gatewaySecret });
+    this.internalAdapter = new InternalAdapter({ port: config.port, secret: config.gatewaySecret, rateLimit: config.rateLimit });
     this.adapters.push(this.internalAdapter);
 
     // Load skill registry
@@ -233,7 +234,12 @@ export class Gateway {
   }
 
   private async executeJob(msg: UnifiedMessage, signal: AbortSignal): Promise<JobResult> {
-    const result = await this.agentRunner.execute(msg, signal, (event) => this.emit(msg.id, event));
-    return { success: true, data: result };
+    incrementConcurrent();
+    try {
+      const result = await this.agentRunner.execute(msg, signal, (event) => this.emit(msg.id, event));
+      return { success: true, data: result };
+    } finally {
+      decrementConcurrent();
+    }
   }
 }

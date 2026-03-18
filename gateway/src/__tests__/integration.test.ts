@@ -30,6 +30,11 @@ describe('Gateway Integration', () => {
         maxTurnsPerMember: 15,
         defaultPattern: 'parallel_then_synthesis',
       },
+      rateLimit: {
+        perUserHour: 30,
+        perOrgHour: 100,
+        maxConcurrent: 20,
+      },
     };
 
     gateway = new Gateway(testConfig);
