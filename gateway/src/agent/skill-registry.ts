@@ -91,6 +91,9 @@ export class SkillRegistry {
   }
 
   startWatching(configPath: string): void {
+    if (process.env.NODE_ENV === 'production') {
+      return; // Defence-in-depth: never file-watch in production
+    }
     watchFile(configPath, { interval: 5000 }, () => {
       logger.info('Skill config changed, reloading...');
       try {
