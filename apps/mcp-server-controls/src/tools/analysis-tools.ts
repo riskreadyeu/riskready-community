@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { userSelectSafe, withErrorHandling } from '#mcp-shared';
 
 export function registerAnalysisTools(server: McpServer) {
   server.tool(
@@ -134,7 +134,7 @@ export function registerAnalysisTools(server: McpServer) {
             select: { id: true, assessmentRef: true, title: true, dueDate: true, status: true },
           },
           scopeItem: { select: { id: true, code: true, name: true } },
-          assignedTester: { select: { id: true, email: true, firstName: true, lastName: true } },
+          assignedTester: { select: userSelectSafe },
         },
         orderBy: { assessment: { dueDate: 'asc' } },
       });
@@ -322,7 +322,7 @@ export function registerAnalysisTools(server: McpServer) {
         take: 1000,
         select: {
           status: true,
-          assignedTester: { select: { id: true, email: true, firstName: true, lastName: true } },
+          assignedTester: { select: userSelectSafe },
         },
       });
 

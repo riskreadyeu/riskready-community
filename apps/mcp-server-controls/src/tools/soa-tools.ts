@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { userSelectSafe, withErrorHandling } from '#mcp-shared';
 
 export function registerSOATools(server: McpServer) {
   server.tool(
@@ -23,9 +23,9 @@ export function registerSOATools(server: McpServer) {
           take,
           orderBy: { createdAt: 'desc' },
           include: {
-            createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
-            updatedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
-            approvedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+            createdBy: { select: userSelectSafe },
+            updatedBy: { select: userSelectSafe },
+            approvedBy: { select: userSelectSafe },
             _count: { select: { entries: true } },
           },
         }),
@@ -53,9 +53,9 @@ export function registerSOATools(server: McpServer) {
       const soa = await prisma.statementOfApplicability.findUnique({
         where: { id },
         include: {
-          createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
-          updatedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
-          approvedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+          createdBy: { select: userSelectSafe },
+          updatedBy: { select: userSelectSafe },
+          approvedBy: { select: userSelectSafe },
           entries: {
             orderBy: { controlId: 'asc' },
           },
@@ -187,9 +187,9 @@ export function registerSOATools(server: McpServer) {
         where,
         orderBy: { createdAt: 'desc' },
         include: {
-          createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
-          updatedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
-          approvedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+          createdBy: { select: userSelectSafe },
+          updatedBy: { select: userSelectSafe },
+          approvedBy: { select: userSelectSafe },
           entries: {
             orderBy: { controlId: 'asc' },
           },

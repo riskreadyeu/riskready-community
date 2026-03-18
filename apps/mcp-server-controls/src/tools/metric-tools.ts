@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { userSelectSafe, withErrorHandling } from '#mcp-shared';
 
 export function registerMetricTools(server: McpServer) {
   server.tool(
@@ -61,8 +61,8 @@ export function registerMetricTools(server: McpServer) {
             orderBy: { measuredAt: 'desc' },
             take: 20,
           },
-          createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
-          updatedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          createdBy: { select: userSelectSafe },
+          updatedBy: { select: userSelectSafe },
         },
       });
 

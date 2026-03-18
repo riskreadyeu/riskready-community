@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { userSelectSafe, withErrorHandling } from '#mcp-shared';
 
 export function registerAssessmentTools(server: McpServer) {
   server.tool(
@@ -23,8 +23,8 @@ export function registerAssessmentTools(server: McpServer) {
           take,
           orderBy: { createdAt: 'desc' },
           include: {
-            leadTester: { select: { id: true, email: true, firstName: true, lastName: true } },
-            reviewer: { select: { id: true, email: true, firstName: true, lastName: true } },
+            leadTester: { select: userSelectSafe },
+            reviewer: { select: userSelectSafe },
             _count: { select: { controls: true, tests: true, scopeItems: true } },
           },
         }),
@@ -73,9 +73,9 @@ export function registerAssessmentTools(server: McpServer) {
             select: { id: true, testCode: true, testName: true, status: true, result: true },
             orderBy: { testCode: 'asc' },
           },
-          leadTester: { select: { id: true, email: true, firstName: true, lastName: true } },
-          reviewer: { select: { id: true, email: true, firstName: true, lastName: true } },
-          createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          leadTester: { select: userSelectSafe },
+          reviewer: { select: userSelectSafe },
+          createdBy: { select: userSelectSafe },
         },
       });
 
@@ -123,9 +123,9 @@ export function registerAssessmentTools(server: McpServer) {
           createdAt: true,
           updatedAt: true,
           scopeItem: { select: { id: true, code: true, name: true, scopeType: true, criticality: true } },
-          assignedTester: { select: { id: true, email: true, firstName: true, lastName: true } },
-          owner: { select: { id: true, email: true, firstName: true, lastName: true } },
-          assessor: { select: { id: true, email: true, firstName: true, lastName: true } },
+          assignedTester: { select: userSelectSafe },
+          owner: { select: userSelectSafe },
+          assessor: { select: userSelectSafe },
           _count: { select: { executions: true } },
         },
         orderBy: [{ testCode: 'asc' }],
@@ -204,8 +204,8 @@ export function registerAssessmentTools(server: McpServer) {
         include: {
           assessment: { select: { id: true, assessmentRef: true, title: true, status: true } },
           scopeItem: { select: { id: true, code: true, name: true, criticality: true } },
-          assignedTester: { select: { id: true, email: true, firstName: true, lastName: true } },
-          owner: { select: { id: true, email: true, firstName: true, lastName: true } },
+          assignedTester: { select: userSelectSafe },
+          owner: { select: userSelectSafe },
           _count: { select: { executions: true } },
         },
         orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],

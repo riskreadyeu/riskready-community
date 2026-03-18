@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { userSelectSafe, withErrorHandling } from '#mcp-shared';
 
 export function registerControlTools(server: McpServer) {
   server.tool(
@@ -104,8 +104,8 @@ export function registerControlTools(server: McpServer) {
           nonconformities: {
             select: { id: true, ncId: true, title: true, severity: true, status: true },
           },
-          createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
-          updatedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          createdBy: { select: userSelectSafe },
+          updatedBy: { select: userSelectSafe },
           organisation: { select: { id: true, name: true } },
         },
       });
@@ -230,7 +230,7 @@ export function registerControlTools(server: McpServer) {
             isActive: true,
             createdAt: true,
             updatedAt: true,
-            createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+            createdBy: { select: userSelectSafe },
             _count: { select: { assessmentScopes: true, assessmentTests: true } },
           },
         }),
@@ -353,7 +353,7 @@ export function registerControlTools(server: McpServer) {
       const item = await prisma.scopeItem.findUnique({
         where: { id },
         include: {
-          createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          createdBy: { select: userSelectSafe },
           _count: { select: { assessmentScopes: true, assessmentTests: true } },
         },
       });

@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { userSelectSafe, withErrorHandling } from '#mcp-shared';
 
 export function registerTestTools(server: McpServer) {
   server.tool(
@@ -16,9 +16,9 @@ export function registerTestTools(server: McpServer) {
         include: {
           assessment: { select: { id: true, assessmentRef: true, title: true, status: true } },
           scopeItem: { select: { id: true, code: true, name: true, description: true, scopeType: true, criticality: true } },
-          assignedTester: { select: { id: true, email: true, firstName: true, lastName: true } },
-          owner: { select: { id: true, email: true, firstName: true, lastName: true } },
-          assessor: { select: { id: true, email: true, firstName: true, lastName: true } },
+          assignedTester: { select: userSelectSafe },
+          owner: { select: userSelectSafe },
+          assessor: { select: userSelectSafe },
           executions: {
             orderBy: { executionDate: 'desc' },
             take: 10,
@@ -36,7 +36,7 @@ export function registerTestTools(server: McpServer) {
               periodStart: true,
               periodEnd: true,
               createdAt: true,
-              tester: { select: { id: true, email: true, firstName: true, lastName: true } },
+              tester: { select: userSelectSafe },
             },
           },
         },
@@ -79,7 +79,7 @@ export function registerTestTools(server: McpServer) {
           periodStart: true,
           periodEnd: true,
           createdAt: true,
-          tester: { select: { id: true, email: true, firstName: true, lastName: true } },
+          tester: { select: userSelectSafe },
         },
       });
 
