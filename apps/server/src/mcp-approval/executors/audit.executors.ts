@@ -11,7 +11,7 @@ export function registerAuditExecutors(executors: ExecutorMap, services: AuditEx
   // --- Nonconformity CRUD ---
 
   executors.set('CREATE_NONCONFORMITY', (p, userId) =>
-    nonconformityService.create({ ...stripMcpMeta(p), raisedById: userId } as any),
+    nonconformityService.create({ ...p, raisedById: userId } as any),
   );
 
   executors.set('UPDATE_NONCONFORMITY', (p) => {

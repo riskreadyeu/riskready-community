@@ -82,7 +82,7 @@ export function registerItsmExecutors(executors: ExecutorMap, services: ItsmExec
   // --- Asset management ---
 
   executors.set('CREATE_ASSET', (p) =>
-    assetService.create(stripMcpMeta(p) as any),
+    assetService.create(p as any),
   );
 
   executors.set('UPDATE_ASSET', (p) => {
@@ -136,12 +136,12 @@ export function registerItsmExecutors(executors: ExecutorMap, services: ItsmExec
   // --- Change management (create) ---
 
   executors.set('CREATE_CHANGE', (p, userId) =>
-    changeService.create(stripMcpMeta(p) as any, userId),
+    changeService.create(p as any, userId),
   );
 
   // --- Capacity planning (create) ---
 
   executors.set('CREATE_CAPACITY_PLAN', (p) =>
-    capacityService.createCapacityPlan(stripMcpMeta(p) as any),
+    capacityService.createCapacityPlan(p as any),
   );
 }

@@ -19,7 +19,7 @@ export function registerRiskExecutors(executors: ExecutorMap, services: RiskExec
   // --- Risk executors ---
 
   executors.set('CREATE_RISK', (p, userId) =>
-    riskService.create({ ...stripMcpMeta(p), createdById: userId } as any),
+    riskService.create({ ...p, createdById: userId } as any),
   );
 
   executors.set('UPDATE_RISK', (p) => {
@@ -30,7 +30,7 @@ export function registerRiskExecutors(executors: ExecutorMap, services: RiskExec
   // --- Scenario executors ---
 
   executors.set('CREATE_SCENARIO', (p, userId) =>
-    scenarioService.create({ ...stripMcpMeta(p), createdById: userId } as any),
+    scenarioService.create({ ...p, createdById: userId } as any),
   );
 
   executors.set('TRANSITION_SCENARIO', (p) => {
@@ -71,7 +71,7 @@ export function registerRiskExecutors(executors: ExecutorMap, services: RiskExec
   // --- KRI executors ---
 
   executors.set('CREATE_KRI', (p, userId) =>
-    kriService.create({ ...stripMcpMeta(p), createdById: userId } as any),
+    kriService.create({ ...p, createdById: userId } as any),
   );
 
   executors.set('RECORD_KRI_VALUE', (p, userId) =>
@@ -85,7 +85,7 @@ export function registerRiskExecutors(executors: ExecutorMap, services: RiskExec
   // --- RTS executors ---
 
   executors.set('CREATE_RTS', (p, userId) =>
-    rtsService.create({ ...stripMcpMeta(p), createdById: userId } as any),
+    rtsService.create({ ...p, createdById: userId } as any),
   );
 
   executors.set('APPROVE_RTS', (p, userId) =>
@@ -95,10 +95,10 @@ export function registerRiskExecutors(executors: ExecutorMap, services: RiskExec
   // --- Treatment executors ---
 
   executors.set('CREATE_TREATMENT_PLAN', (p, userId) =>
-    treatmentPlanService.create({ ...stripMcpMeta(p), createdById: userId } as any),
+    treatmentPlanService.create({ ...p, createdById: userId } as any),
   );
 
   executors.set('CREATE_TREATMENT_ACTION', (p, userId) =>
-    treatmentPlanService.createAction({ ...stripMcpMeta(p), createdById: userId } as any),
+    treatmentPlanService.createAction({ ...p, createdById: userId } as any),
   );
 }

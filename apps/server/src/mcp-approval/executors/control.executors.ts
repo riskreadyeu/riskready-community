@@ -36,7 +36,7 @@ export function registerControlExecutors(executors: ExecutorMap, services: Contr
   // Service methods have strict signatures, so we cast where needed.
 
   executors.set('CREATE_CONTROL', (p, userId) =>
-    controlService.create({ ...stripMcpMeta(p), createdById: userId } as any),
+    controlService.create({ ...p, createdById: userId } as any),
   );
 
   executors.set('UPDATE_CONTROL', (p) => {
@@ -245,7 +245,7 @@ export function registerControlExecutors(executors: ExecutorMap, services: Contr
   // --- Scope executors ---
 
   executors.set('CREATE_SCOPE_ITEM', (p, userId) =>
-    scopeItemService.create(stripMcpMeta(p) as any, userId),
+    scopeItemService.create(p as any, userId),
   );
 
   executors.set('UPDATE_SCOPE_ITEM', (p) => {

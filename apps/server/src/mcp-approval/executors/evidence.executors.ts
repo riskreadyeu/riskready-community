@@ -15,7 +15,7 @@ export function registerEvidenceExecutors(executors: ExecutorMap, services: Evid
   // --- Evidence CRUD ---
 
   executors.set('CREATE_EVIDENCE', (p, userId) =>
-    evidenceService.create({ ...stripMcpMeta(p), createdById: userId } as any),
+    evidenceService.create({ ...p, createdById: userId } as any),
   );
 
   executors.set('UPDATE_EVIDENCE', (p, userId) => {
