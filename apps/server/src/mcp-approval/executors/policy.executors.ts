@@ -1,7 +1,7 @@
 import { PolicyDocumentService } from '../../policies/services/policy-document.service';
 import { DocumentExceptionService } from '../../policies/services/document-exception.service';
 import { ChangeRequestService } from '../../policies/services/change-request.service';
-import { ExecutorMap } from './types';
+import { ExecutorMap, stripMcpMeta } from './types';
 
 export interface PolicyExecutorServices {
   policyDocumentService: PolicyDocumentService;
@@ -19,8 +19,8 @@ export function registerPolicyExecutors(executors: ExecutorMap, services: Policy
   );
 
   executors.set('UPDATE_POLICY', (p, userId) => {
-    const { documentId, ...data } = p as { documentId: string; [k: string]: any };
-    return policyDocumentService.update(documentId, data as any, userId);
+    const { documentId, ...rest } = p as { documentId: string; [k: string]: any };
+    return policyDocumentService.update(documentId, stripMcpMeta(rest) as any, userId);
   });
 
   // --- Policy lifecycle (all via updateStatus) ---

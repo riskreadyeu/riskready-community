@@ -1,7 +1,7 @@
 import { EvidenceService } from '../../evidence/services/evidence.service';
 import { EvidenceLinkService } from '../../evidence/services/evidence-link.service';
 import { EvidenceRequestService } from '../../evidence/services/evidence-request.service';
-import { ExecutorMap } from './types';
+import { ExecutorMap, stripMcpMeta } from './types';
 
 export interface EvidenceExecutorServices {
   evidenceService: EvidenceService;
@@ -15,12 +15,12 @@ export function registerEvidenceExecutors(executors: ExecutorMap, services: Evid
   // --- Evidence CRUD ---
 
   executors.set('CREATE_EVIDENCE', (p, userId) =>
-    evidenceService.create({ ...p, createdById: userId } as any),
+    evidenceService.create({ ...stripMcpMeta(p), createdById: userId } as any),
   );
 
   executors.set('UPDATE_EVIDENCE', (p, userId) => {
     const { evidenceId, ...data } = p as { evidenceId: string; [k: string]: any };
-    return evidenceService.update(evidenceId, { ...data, updatedById: userId } as any);
+    return evidenceService.update(evidenceId, { ...stripMcpMeta(data), updatedById: userId } as any);
   });
 
   // --- Evidence Links ---

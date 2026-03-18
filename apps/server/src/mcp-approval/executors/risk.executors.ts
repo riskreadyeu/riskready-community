@@ -3,7 +3,7 @@ import { RiskScenarioService } from '../../risks/services/risk-scenario.service'
 import { KRIService } from '../../risks/services/kri.service';
 import { RiskToleranceStatementService } from '../../risks/services/rts.service';
 import { TreatmentPlanService } from '../../risks/services/treatment-plan.service';
-import { ExecutorMap } from './types';
+import { ExecutorMap, stripMcpMeta } from './types';
 
 export interface RiskExecutorServices {
   riskService: RiskService;
@@ -19,18 +19,18 @@ export function registerRiskExecutors(executors: ExecutorMap, services: RiskExec
   // --- Risk executors ---
 
   executors.set('CREATE_RISK', (p, userId) =>
-    riskService.create({ ...p, createdById: userId } as any),
+    riskService.create({ ...stripMcpMeta(p), createdById: userId } as any),
   );
 
   executors.set('UPDATE_RISK', (p) => {
     const { riskId, ...data } = p as { riskId: string; [k: string]: any };
-    return riskService.update(riskId, data as any);
+    return riskService.update(riskId, stripMcpMeta(data) as any);
   });
 
   // --- Scenario executors ---
 
   executors.set('CREATE_SCENARIO', (p, userId) =>
-    scenarioService.create({ ...p, createdById: userId } as any),
+    scenarioService.create({ ...stripMcpMeta(p), createdById: userId } as any),
   );
 
   executors.set('TRANSITION_SCENARIO', (p) => {
@@ -71,7 +71,7 @@ export function registerRiskExecutors(executors: ExecutorMap, services: RiskExec
   // --- KRI executors ---
 
   executors.set('CREATE_KRI', (p, userId) =>
-    kriService.create({ ...p, createdById: userId } as any),
+    kriService.create({ ...stripMcpMeta(p), createdById: userId } as any),
   );
 
   executors.set('RECORD_KRI_VALUE', (p, userId) =>
@@ -85,7 +85,7 @@ export function registerRiskExecutors(executors: ExecutorMap, services: RiskExec
   // --- RTS executors ---
 
   executors.set('CREATE_RTS', (p, userId) =>
-    rtsService.create({ ...p, createdById: userId } as any),
+    rtsService.create({ ...stripMcpMeta(p), createdById: userId } as any),
   );
 
   executors.set('APPROVE_RTS', (p, userId) =>
@@ -95,10 +95,10 @@ export function registerRiskExecutors(executors: ExecutorMap, services: RiskExec
   // --- Treatment executors ---
 
   executors.set('CREATE_TREATMENT_PLAN', (p, userId) =>
-    treatmentPlanService.create({ ...p, createdById: userId } as any),
+    treatmentPlanService.create({ ...stripMcpMeta(p), createdById: userId } as any),
   );
 
   executors.set('CREATE_TREATMENT_ACTION', (p, userId) =>
-    treatmentPlanService.createAction({ ...p, createdById: userId } as any),
+    treatmentPlanService.createAction({ ...stripMcpMeta(p), createdById: userId } as any),
   );
 }

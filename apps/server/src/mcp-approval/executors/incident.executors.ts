@@ -1,6 +1,6 @@
 import { IncidentService } from '../../incidents/services/incident.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ExecutorMap } from './types';
+import { ExecutorMap, stripMcpMeta } from './types';
 
 export interface IncidentExecutorServices {
   incidentService: IncidentService;
@@ -18,7 +18,7 @@ export function registerIncidentExecutors(executors: ExecutorMap, services: Inci
 
   executors.set('UPDATE_INCIDENT', (p, userId) => {
     const { incidentId, ...data } = p as { incidentId: string; [k: string]: any };
-    return incidentService.update(incidentId, data as any, userId);
+    return incidentService.update(incidentId, stripMcpMeta(data) as any, userId);
   });
 
   // --- Status transitions ---

@@ -1,5 +1,5 @@
 import { NonconformityService } from '../../audits/services/nonconformity.service';
-import { ExecutorMap } from './types';
+import { ExecutorMap, stripMcpMeta } from './types';
 
 export interface AuditExecutorServices {
   nonconformityService: NonconformityService;
@@ -11,12 +11,12 @@ export function registerAuditExecutors(executors: ExecutorMap, services: AuditEx
   // --- Nonconformity CRUD ---
 
   executors.set('CREATE_NONCONFORMITY', (p, userId) =>
-    nonconformityService.create({ ...p, raisedById: userId } as any),
+    nonconformityService.create({ ...stripMcpMeta(p), raisedById: userId } as any),
   );
 
   executors.set('UPDATE_NONCONFORMITY', (p) => {
     const { ncId, ...data } = p as { ncId: string; [k: string]: any };
-    return nonconformityService.update(ncId, data as any);
+    return nonconformityService.update(ncId, stripMcpMeta(data) as any);
   });
 
   // --- Nonconformity transitions ---

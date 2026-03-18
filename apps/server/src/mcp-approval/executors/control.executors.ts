@@ -6,7 +6,7 @@ import { SOAEntryService } from '../../controls/services/soa-entry.service';
 import { ScopeItemService } from '../../controls/services/scope-item.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TreatmentPlanService } from '../../risks/services/treatment-plan.service';
-import { ExecutorMap } from './types';
+import { ExecutorMap, stripMcpMeta } from './types';
 
 export interface ControlExecutorServices {
   controlService: ControlService;
@@ -36,17 +36,17 @@ export function registerControlExecutors(executors: ExecutorMap, services: Contr
   // Service methods have strict signatures, so we cast where needed.
 
   executors.set('CREATE_CONTROL', (p, userId) =>
-    controlService.create({ ...p, createdById: userId } as any),
+    controlService.create({ ...stripMcpMeta(p), createdById: userId } as any),
   );
 
   executors.set('UPDATE_CONTROL', (p) => {
     const { controlId, ...data } = p as { controlId: string; [k: string]: any };
-    return controlService.update(controlId, data);
+    return controlService.update(controlId, stripMcpMeta(data));
   });
 
   executors.set('UPDATE_CONTROL_STATUS', (p) => {
     const { controlId, ...data } = p as { controlId: string; [k: string]: any };
-    return controlService.update(controlId, data);
+    return controlService.update(controlId, stripMcpMeta(data));
   });
 
   executors.set('DISABLE_CONTROL', (p, userId) =>
@@ -79,8 +79,9 @@ export function registerControlExecutors(executors: ExecutorMap, services: Contr
 
   executors.set('UPDATE_ASSESSMENT', (p) => {
     const { assessmentId, ...data } = p as { assessmentId: string; [k: string]: any };
+    const cleanData = stripMcpMeta(data);
     return assessmentService.update(assessmentId, {
-      ...data,
+      ...cleanData,
       plannedStartDate: data['plannedStartDate'] ? new Date(data['plannedStartDate']) : undefined,
       plannedEndDate: data['plannedEndDate'] ? new Date(data['plannedEndDate']) : undefined,
       dueDate: data['dueDate'] ? new Date(data['dueDate']) : undefined,
@@ -244,12 +245,12 @@ export function registerControlExecutors(executors: ExecutorMap, services: Contr
   // --- Scope executors ---
 
   executors.set('CREATE_SCOPE_ITEM', (p, userId) =>
-    scopeItemService.create(p as any, userId),
+    scopeItemService.create(stripMcpMeta(p) as any, userId),
   );
 
   executors.set('UPDATE_SCOPE_ITEM', (p) => {
     const { scopeItemId, ...data } = p as { scopeItemId: string; [k: string]: any };
-    return scopeItemService.update(scopeItemId, data);
+    return scopeItemService.update(scopeItemId, stripMcpMeta(data));
   });
 
   executors.set('DELETE_SCOPE_ITEM', (p) =>

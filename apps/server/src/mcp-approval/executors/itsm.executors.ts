@@ -2,7 +2,7 @@ import { ChangeService } from '../../itsm/services/change.service';
 import { AssetService } from '../../itsm/services/asset.service';
 import { CapacityService } from '../../itsm/services/capacity.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ExecutorMap } from './types';
+import { ExecutorMap, stripMcpMeta } from './types';
 
 export interface ItsmExecutorServices {
   changeService: ChangeService;
@@ -18,7 +18,7 @@ export function registerItsmExecutors(executors: ExecutorMap, services: ItsmExec
 
   executors.set('UPDATE_CHANGE', (p, userId) => {
     const { changeId, ...data } = p as { changeId: string; [k: string]: any };
-    return changeService.update(changeId, data as any, userId);
+    return changeService.update(changeId, stripMcpMeta(data) as any, userId);
   });
 
   executors.set('APPROVE_CHANGE', (p, userId) => {
@@ -76,18 +76,18 @@ export function registerItsmExecutors(executors: ExecutorMap, services: ItsmExec
 
   executors.set('UPDATE_CAPACITY_PLAN', (p) => {
     const { capacityPlanId, ...data } = p as { capacityPlanId: string; [k: string]: any };
-    return capacityService.updateCapacityPlan(capacityPlanId, data as any);
+    return capacityService.updateCapacityPlan(capacityPlanId, stripMcpMeta(data) as any);
   });
 
   // --- Asset management ---
 
   executors.set('CREATE_ASSET', (p) =>
-    assetService.create(p as any),
+    assetService.create(stripMcpMeta(p) as any),
   );
 
   executors.set('UPDATE_ASSET', (p) => {
     const { assetId, ...data } = p as { assetId: string; [k: string]: any };
-    return assetService.update(assetId, data as any);
+    return assetService.update(assetId, stripMcpMeta(data) as any);
   });
 
   executors.set('DELETE_ASSET', (p) =>
@@ -136,12 +136,12 @@ export function registerItsmExecutors(executors: ExecutorMap, services: ItsmExec
   // --- Change management (create) ---
 
   executors.set('CREATE_CHANGE', (p, userId) =>
-    changeService.create(p as any, userId),
+    changeService.create(stripMcpMeta(p) as any, userId),
   );
 
   // --- Capacity planning (create) ---
 
   executors.set('CREATE_CAPACITY_PLAN', (p) =>
-    capacityService.createCapacityPlan(p as any),
+    capacityService.createCapacityPlan(stripMcpMeta(p) as any),
   );
 }

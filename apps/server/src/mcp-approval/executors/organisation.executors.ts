@@ -5,7 +5,7 @@ import { BusinessProcessService } from '../../organisation/services/business-pro
 import { SecurityCommitteeService } from '../../organisation/services/security-committee.service';
 import { CommitteeMeetingService } from '../../organisation/services/committee-meeting.service';
 import { ExternalDependencyService } from '../../organisation/services/external-dependency.service';
-import { ExecutorMap } from './types';
+import { ExecutorMap, stripMcpMeta } from './types';
 
 export interface OrganisationExecutorServices {
   organisationProfileService: OrganisationProfileService;
@@ -32,7 +32,7 @@ export function registerOrganisationExecutors(executors: ExecutorMap, services: 
 
   executors.set('UPDATE_ORG_PROFILE', (p, userId) => {
     const { organisationId, ...data } = p as { organisationId: string; [k: string]: any };
-    return organisationProfileService.updateWithAppetite(organisationId, data, userId);
+    return organisationProfileService.updateWithAppetite(organisationId, stripMcpMeta(data), userId);
   });
 
   // --- Departments ---
@@ -43,7 +43,7 @@ export function registerOrganisationExecutors(executors: ExecutorMap, services: 
 
   executors.set('UPDATE_DEPARTMENT', (p) => {
     const { departmentId, ...data } = p as { departmentId: string; [k: string]: any };
-    return departmentService.update(departmentId, data as any);
+    return departmentService.update(departmentId, stripMcpMeta(data) as any);
   });
 
   // --- Locations ---
@@ -54,7 +54,7 @@ export function registerOrganisationExecutors(executors: ExecutorMap, services: 
 
   executors.set('UPDATE_LOCATION', (p) => {
     const { locationId, ...data } = p as { locationId: string; [k: string]: any };
-    return locationService.update(locationId, data as any);
+    return locationService.update(locationId, stripMcpMeta(data) as any);
   });
 
   // --- Business Processes ---
@@ -65,7 +65,7 @@ export function registerOrganisationExecutors(executors: ExecutorMap, services: 
 
   executors.set('UPDATE_BUSINESS_PROCESS', (p) => {
     const { processId, ...data } = p as { processId: string; [k: string]: any };
-    return businessProcessService.update(processId, data as any);
+    return businessProcessService.update(processId, stripMcpMeta(data) as any);
   });
 
   // --- Security Committees ---
@@ -76,7 +76,7 @@ export function registerOrganisationExecutors(executors: ExecutorMap, services: 
 
   executors.set('UPDATE_COMMITTEE', (p) => {
     const { committeeId, ...data } = p as { committeeId: string; [k: string]: any };
-    return securityCommitteeService.update(committeeId, data as any);
+    return securityCommitteeService.update(committeeId, stripMcpMeta(data) as any);
   });
 
   executors.set('CREATE_COMMITTEE_MEETING', (p) =>
@@ -91,6 +91,6 @@ export function registerOrganisationExecutors(executors: ExecutorMap, services: 
 
   executors.set('UPDATE_EXTERNAL_DEPENDENCY', (p) => {
     const { dependencyId, ...data } = p as { dependencyId: string; [k: string]: any };
-    return externalDependencyService.update(dependencyId, data as any);
+    return externalDependencyService.update(dependencyId, stripMcpMeta(data) as any);
   });
 }
