@@ -15,6 +15,7 @@ import { applyGroundingGuard, type GuardToolResult, withFallbackGroundingToolRes
 import { wrapMemoryContext, wrapTaskContext, isValidUUID } from '@riskready/mcp-shared';
 import { runMessageLoop } from './message-loop.js';
 import { McpToolExecutor } from './mcp-tool-executor.js';
+import { redactPII } from './pii-redactor.js';
 import { buildToolDefinitions } from './tool-builder.js';
 import { buildConversationMessages } from './conversation-builder.js';
 import type { FullToolSchema } from './tool-schema-loader.js';
@@ -374,7 +375,7 @@ export class AgentRunner {
         data: {
           conversationId,
           role: 'ASSISTANT',
-          content: fullText || 'I was unable to generate a response.',
+          content: redactPII(fullText || 'I was unable to generate a response.'),
           toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
           actionIds: actionIds.length > 0 ? actionIds : [],
           blocks: blocks.length > 0 ? (blocks as any) : undefined,
@@ -442,7 +443,7 @@ export class AgentRunner {
           data: {
             conversationId,
             role: 'ASSISTANT',
-            content: fullText,
+            content: redactPII(fullText),
             actionIds: [],
           },
         });
