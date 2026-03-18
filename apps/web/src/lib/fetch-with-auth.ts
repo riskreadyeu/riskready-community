@@ -13,8 +13,11 @@ export async function fetchWithAuth(path: string, init?: RequestInit): Promise<R
   });
 
   if (res.status === 401) {
-    // Only redirect if we're not already on the login page
-    if (!window.location.pathname.startsWith('/login')) {
+    // Don't redirect for auth check endpoints (expected to return 401 when not logged in)
+    // Don't redirect if already on login page
+    const isAuthCheck = path.includes('/auth/me');
+    const isLoginPage = window.location.pathname.startsWith('/login');
+    if (!isAuthCheck && !isLoginPage) {
       window.location.href = '/login';
     }
     throw new Error('Unauthorized');
