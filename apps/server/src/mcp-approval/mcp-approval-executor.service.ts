@@ -178,10 +178,10 @@ export class McpApprovalExecutorService {
     }
 
     this.logger.log(`Executing action type: ${actionType}`);
-    // Strip MCP metadata fields (organisationId, reason) at the choke point
-    // so individual executors never need to worry about them leaking into Prisma.
-    // organisationId is passed separately for executors that need it (e.g. agent-ops).
-    const { organisationId, reason: _reason, ...cleanPayload } = payload;
-    return executor(cleanPayload, reviewedById, organisationId);
+    // Strip only `reason` at the choke point — it's an MCP-only field never in Prisma.
+    // organisationId stays in the payload because create operations need it.
+    // Update operations strip it via stripMcpMeta() in individual executors.
+    const { reason: _reason, ...cleanPayload } = payload;
+    return executor(cleanPayload, reviewedById);
   }
 }
