@@ -178,10 +178,15 @@ export class McpApprovalExecutorService {
     }
 
     this.logger.log(`Executing action type: ${actionType}`);
-    // Strip only `reason` at the choke point — it's an MCP-only field never in Prisma.
-    // organisationId stays in the payload because create operations need it.
-    // Update operations strip it via stripMcpMeta() in individual executors.
-    const { reason: _reason, ...cleanPayload } = payload;
+
+    // Strip MCP-only metadata from the payload.
+    // - `reason` is never a Prisma field — always strip it.
+    // - `organisationId` is needed by CREATE operations (Prisma relation) but
+    //   rejected by UPDATE operations (not a scalar update field).
+    //   Determine which case by checking the action type prefix.
+    const isCreate = actionType.startsWith('CREATE_') || actionType.startsWith('LINK_') || actionType.startsWith('ADD_') || actionType.startsWith('RECORD_');
+    const { reason: _reason, ...rest } = payload;
+    const cleanPayload = isCreate ? rest : (() => { const { organisationId: _org, ...data } = rest; return data; })();
     return executor(cleanPayload, reviewedById);
   }
 }
