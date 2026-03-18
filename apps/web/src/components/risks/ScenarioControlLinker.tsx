@@ -45,6 +45,7 @@ import {
   Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { getControls, type Control } from "@/lib/controls-api";
 import {
   getScenarioLinkedControls,
@@ -312,15 +313,18 @@ export function ScenarioControlLinker({
                       </div>
                     ) : (
                       filteredControls.map((control) => (
-                        <div
+                        <button
+                          type="button"
                           key={control.id}
-                          className="flex items-center justify-between p-2 rounded border bg-card hover:bg-accent/50 transition-colors"
+                          className="w-full flex items-center justify-between p-3 rounded border bg-card hover:bg-primary/5 hover:border-primary/40 transition-colors cursor-pointer text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => handleLink(control)}
+                          disabled={linkingControlId === control.id}
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <Shield className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono text-xs">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-mono text-xs font-medium">
                                   {control.controlId}
                                 </span>
                                 <Badge
@@ -347,23 +351,14 @@ export function ScenarioControlLinker({
                               </p>
                             </div>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-shrink-0 h-7 px-2"
-                            onClick={() => handleLink(control)}
-                            disabled={linkingControlId === control.id}
-                          >
+                          <div className="flex-shrink-0 ml-2">
                             {linkingControlId === control.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <Loader2 className="w-4 h-4 animate-spin text-primary" />
                             ) : (
-                              <>
-                                <Check className="w-3.5 h-3.5 mr-1" />
-                                Link
-                              </>
+                              <ShieldPlus className="w-4 h-4 text-muted-foreground" />
                             )}
-                          </Button>
-                        </div>
+                          </div>
+                        </button>
                       ))
                     )}
                   </div>
