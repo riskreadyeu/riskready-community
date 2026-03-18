@@ -10,6 +10,7 @@ interface MessageParam {
 }
 
 const MAX_HISTORY = 20;
+const MAX_MESSAGE_LENGTH = 10_000;
 
 export function buildConversationMessages(
   history: HistoryMessage[],
@@ -24,12 +25,15 @@ export function buildConversationMessages(
   const messages: MessageParam[] = [];
   for (const msg of recent) {
     const role = msg.role === 'USER' ? 'user' : 'assistant';
+    const content = msg.content.length > MAX_MESSAGE_LENGTH
+      ? msg.content.slice(0, MAX_MESSAGE_LENGTH) + '\n[TRUNCATED]'
+      : msg.content;
 
     // Merge consecutive same-role messages (Anthropic API requires alternation)
     if (messages.length > 0 && messages[messages.length - 1].role === role) {
-      messages[messages.length - 1].content += '\n\n' + msg.content;
+      messages[messages.length - 1].content += '\n\n' + content;
     } else {
-      messages.push({ role, content: msg.content });
+      messages.push({ role, content });
     }
   }
 
