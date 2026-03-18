@@ -1,6 +1,7 @@
 // gateway/src/council/council-orchestrator.ts
 
 import Anthropic from '@anthropic-ai/sdk';
+import { wrapCouncilQuestion, wrapCouncilFindings } from '@riskready/mcp-shared';
 import { prisma } from '../prisma.js';
 import { logger } from '../logger.js';
 import type { ChatEvent } from '../channels/types.js';
@@ -225,7 +226,7 @@ export class CouncilOrchestrator {
 
         const challenge = await this.runSingleMember(
           challenger,
-          `Review and challenge these findings:\n${this.summarizeOpinion(proposal)}\n\nOriginal question: ${question}`,
+          `Review and challenge these findings:\n${wrapCouncilFindings(this.summarizeOpinion(proposal))}\n\n${wrapCouncilQuestion(question)}`,
           '', organisationId, conversationModel, signal, emit, allMcpServers, getDbConfig,
         );
         opinions.push(challenge);
@@ -260,8 +261,8 @@ export class CouncilOrchestrator {
     const systemPrompt = getCouncilMemberPrompt(role);
 
     const userMessage = previousContext
-      ? `Organisation ID: ${organisationId}\n\nPrevious council member findings:\n${previousContext}\n\nQuestion: ${question}`
-      : `Organisation ID: ${organisationId}\n\nQuestion: ${question}`;
+      ? `Organisation ID: ${organisationId}\n\n${wrapCouncilFindings(previousContext)}\n\n${wrapCouncilQuestion(question)}`
+      : `Organisation ID: ${organisationId}\n\n${wrapCouncilQuestion(question)}`;
 
     let apiKey = process.env.ANTHROPIC_API_KEY;
     let dbModel: string | undefined;
@@ -423,10 +424,11 @@ export class CouncilOrchestrator {
 
 You are synthesizing findings from the AI Agents Council.
 
-**Original Question**: ${question}
+**Original Question**:
+${wrapCouncilQuestion(question)}
 
 **Council Member Analyses**:
-${opinionSummaries}
+${wrapCouncilFindings(opinionSummaries)}
 
 Please produce a comprehensive synthesis that includes:
 1. **Consensus Summary**: What the council agrees on

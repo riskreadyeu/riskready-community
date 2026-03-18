@@ -10,6 +10,9 @@
     "outDir": "dist",
     "rootDir": "src",
     "baseUrl": ".",
+    "paths": {
+      "@riskready/mcp-shared": ["../packages/mcp-shared/dist/index.d.ts"]
+    },
     "declaration": true,
     "sourceMap": true,
     "resolveJsonModule": true
