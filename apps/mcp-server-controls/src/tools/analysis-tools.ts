@@ -326,7 +326,7 @@ export function registerAnalysisTools(server: McpServer) {
         },
       });
 
-      const workloadMap = new Map<string, { tester: { id: string; email: string; firstName: string | null; lastName: string | null }; pending: number; inProgress: number; completed: number; skipped: number; total: number }>();
+      const workloadMap = new Map<string, { tester: { id: string; firstName: string | null; lastName: string | null }; pending: number; inProgress: number; completed: number; skipped: number; total: number }>();
 
       for (const t of tests) {
         if (!t.assignedTester) continue;
