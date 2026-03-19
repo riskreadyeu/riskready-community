@@ -27,7 +27,7 @@ import { ChatModule } from './chat/chat.module';
   imports: [
     ThrottlerModule.forRoot([{
       ttl: 60000, // 1 minute window
-      limit: 100, // 100 requests per minute
+      limit: 300, // 300 requests per minute (dashboard loads ~20 requests at once)
     }]),
     PrismaModule, // Global - provides PrismaService to all modules
     EventEmitterModule.forRoot({
