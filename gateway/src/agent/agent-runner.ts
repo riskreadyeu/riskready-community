@@ -297,8 +297,10 @@ export class AgentRunner {
         const messages = buildConversationMessages(pastMessages, msg.text);
 
         // Build tool definitions from loaded schemas
+        const { supportsToolSearch } = await import('./model-capabilities.js');
         const tools = buildToolDefinitions(this.deps.toolSchemas, {
           allowCodeExecution: false,
+          disableToolSearch: !supportsToolSearch(model),
         });
 
         // Run the message loop

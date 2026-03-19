@@ -298,7 +298,11 @@ export class CouncilOrchestrator {
     const memberToolSchemas = this.toolSchemas.filter((s) => memberServerNames.includes(s.serverName));
 
     // Build tool definitions — council members don't need code execution
-    const tools = buildToolDefinitions(memberToolSchemas, { allowCodeExecution: false });
+    const { supportsToolSearch } = await import('../agent/model-capabilities.js');
+    const tools = buildToolDefinitions(memberToolSchemas, {
+      allowCodeExecution: false,
+      disableToolSearch: !supportsToolSearch(model),
+    });
 
     // Build executor scoped to this member's servers
     const executor = new McpToolExecutor({
@@ -481,7 +485,11 @@ Format your response using the structured output format from your instructions.`
     // Filter tool schemas to CISO's servers
     const cisoServerNames = Object.keys(cisoServers);
     const cisoToolSchemas = this.toolSchemas.filter((s) => cisoServerNames.includes(s.serverName));
-    const tools = buildToolDefinitions(cisoToolSchemas, { allowCodeExecution: false });
+    const { supportsToolSearch: supportsTS } = await import('../agent/model-capabilities.js');
+    const tools = buildToolDefinitions(cisoToolSchemas, {
+      allowCodeExecution: false,
+      disableToolSearch: !supportsTS(model),
+    });
 
     const executor = new McpToolExecutor({
       organisationId,
