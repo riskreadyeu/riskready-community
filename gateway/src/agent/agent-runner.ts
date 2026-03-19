@@ -250,8 +250,10 @@ export class AgentRunner {
       }
 
       // Council decision: check if multi-agent deliberation is needed
-      const mcpServers = this.deps.getMcpServers(msg.text);
       if (this.councilHook && this.councilHook.shouldConvene(msg.text)) {
+        // Council needs ALL servers — each member filters to their own domain.
+        // Don't use BM25-filtered subset here (that's for single-agent path).
+        const allMcpServers = this.deps.getMcpServers();
         emit({ type: 'council_start' as ChatEvent['type'], message: 'Convening AI Agents Council for multi-perspective analysis...' });
 
         try {
@@ -261,7 +263,7 @@ export class AgentRunner {
             conversationId,
             signal,
             emit,
-            mcpServers,
+            allMcpServers,
             this.deps.getDbConfig,
           );
 
