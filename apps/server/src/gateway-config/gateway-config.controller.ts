@@ -22,6 +22,12 @@ export class GatewayConfigController {
     return this.service.getConfig(resolvedOrganisationId!);
   }
 
+  @Get('usage')
+  async getUsage(@Query('organisationId') organisationId?: string) {
+    const resolvedOrganisationId = await resolveSingleOrganisationId(this.prisma, organisationId);
+    return this.service.getUsage(resolvedOrganisationId!);
+  }
+
   @Put()
   async updateConfig(
     @Query('organisationId') organisationId: string | undefined,

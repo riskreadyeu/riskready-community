@@ -50,6 +50,61 @@ export class GatewayConfigService {
     };
   }
 
+  async getUsage(organisationId: string) {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const endOfMonth = new Date(startOfMonth);
+    endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+
+    // Get conversation IDs for this org
+    const conversations = await this.prisma.chatConversation.findMany({
+      where: { organisationId },
+      select: { id: true },
+    });
+    const conversationIds = conversations.map((c) => c.id);
+
+    if (conversationIds.length === 0) {
+      return {
+        period: { start: startOfMonth.toISOString(), end: endOfMonth.toISOString() },
+        totals: { messageCount: 0, inputTokens: 0, outputTokens: 0 },
+        byModel: [],
+      };
+    }
+
+    // Aggregate token usage by model
+    const messages = await this.prisma.chatMessage.groupBy({
+      by: ['model'],
+      where: {
+        role: 'ASSISTANT',
+        conversationId: { in: conversationIds },
+        createdAt: { gte: startOfMonth, lt: endOfMonth },
+      },
+      _count: true,
+      _sum: { inputTokens: true, outputTokens: true },
+    });
+
+    const byModel = messages.map((m) => ({
+      model: m.model || 'unknown',
+      messageCount: m._count,
+      inputTokens: m._sum.inputTokens || 0,
+      outputTokens: m._sum.outputTokens || 0,
+    }));
+
+    const totals = {
+      messageCount: byModel.reduce((sum, m) => sum + m.messageCount, 0),
+      inputTokens: byModel.reduce((sum, m) => sum + m.inputTokens, 0),
+      outputTokens: byModel.reduce((sum, m) => sum + m.outputTokens, 0),
+    };
+
+    return {
+      period: { start: startOfMonth.toISOString(), end: endOfMonth.toISOString() },
+      totals,
+      byModel,
+    };
+  }
+
   async upsertConfig(
     organisationId: string,
     dto: {
