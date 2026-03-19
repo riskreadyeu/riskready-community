@@ -1,6 +1,9 @@
 /**
- * Shared fetch wrapper that redirects to /login on 401 Unauthorized.
+ * Shared fetch wrapper with auth error handling.
  * All API modules should use this instead of raw fetch().
+ *
+ * On 401: throws Error('Unauthorized') — the app's auth context handles redirect.
+ * Does NOT do window.location redirect to avoid loops.
  */
 export async function fetchWithAuth(path: string, init?: RequestInit): Promise<Response> {
   const res = await fetch(path, {
@@ -12,14 +15,7 @@ export async function fetchWithAuth(path: string, init?: RequestInit): Promise<R
     credentials: 'include',
   });
 
-  if (res.status === 401) {
-    // Don't redirect for auth check endpoints (expected to return 401 when not logged in)
-    // Don't redirect if already on login page
-    const isAuthCheck = path.includes('/auth/me');
-    const isLoginPage = window.location.pathname.startsWith('/login');
-    if (!isAuthCheck && !isLoginPage) {
-      window.location.href = '/login';
-    }
+  if (res.status === 401 && !path.includes('/auth/me')) {
     throw new Error('Unauthorized');
   }
 
