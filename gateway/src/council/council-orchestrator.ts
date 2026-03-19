@@ -190,17 +190,22 @@ export class CouncilOrchestrator {
     const opinions: CouncilOpinionData[] = [];
 
     if (decision.deliberationPattern === 'parallel_then_synthesis') {
-      // Run all members in parallel
-      const promises = analysisMembers.map((role) =>
-        this.runSingleMember(role, question, '', organisationId, conversationModel, signal, emit, allMcpServers, getDbConfig),
-      );
-      const results = await Promise.allSettled(promises);
-
-      for (const result of results) {
-        if (result.status === 'fulfilled') {
-          opinions.push(result.value);
-        } else {
-          logger.error({ err: result.reason }, 'Council member failed');
+      // Run members in batches of 2 to limit concurrent MCP server spawns and memory usage
+      const BATCH_SIZE = 2;
+      for (let i = 0; i < analysisMembers.length; i += BATCH_SIZE) {
+        if (signal.aborted) break;
+        const batch = analysisMembers.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+          batch.map((role) =>
+            this.runSingleMember(role, question, '', organisationId, conversationModel, signal, emit, allMcpServers, getDbConfig),
+          ),
+        );
+        for (const result of results) {
+          if (result.status === 'fulfilled') {
+            opinions.push(result.value);
+          } else {
+            logger.error({ err: result.reason }, 'Council member failed');
+          }
         }
       }
     } else if (decision.deliberationPattern === 'sequential_buildup') {
