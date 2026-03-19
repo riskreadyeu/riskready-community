@@ -5,7 +5,7 @@
       "command": "npx",
       "args": ["tsx", "apps/mcp-server-risks/src/index.ts"],
       "env": {
-        "DATABASE_URL": "postgresql://riskready:demopass2024@localhost:5434/riskready"
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
       }
     },
     "riskready-controls": {
@@ -13,7 +13,7 @@
       "command": "npx",
       "args": ["tsx", "apps/mcp-server-controls/src/index.ts"],
       "env": {
-        "DATABASE_URL": "postgresql://riskready:demopass2024@localhost:5434/riskready"
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
       }
     },
     "riskready-incidents": {
@@ -21,7 +21,7 @@
       "command": "npx",
       "args": ["tsx", "apps/mcp-server-incidents/src/index.ts"],
       "env": {
-        "DATABASE_URL": "postgresql://riskready:demopass2024@localhost:5434/riskready"
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
       }
     },
     "riskready-policies": {
@@ -29,7 +29,7 @@
       "command": "npx",
       "args": ["tsx", "apps/mcp-server-policies/src/index.ts"],
       "env": {
-        "DATABASE_URL": "postgresql://riskready:demopass2024@localhost:5434/riskready"
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
       }
     },
     "riskready-evidence": {
@@ -37,7 +37,7 @@
       "command": "npx",
       "args": ["tsx", "apps/mcp-server-evidence/src/index.ts"],
       "env": {
-        "DATABASE_URL": "postgresql://riskready:demopass2024@localhost:5434/riskready"
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
       }
     },
     "riskready-audits": {
@@ -45,7 +45,7 @@
       "command": "npx",
       "args": ["tsx", "apps/mcp-server-audits/src/index.ts"],
       "env": {
-        "DATABASE_URL": "postgresql://riskready:demopass2024@localhost:5434/riskready"
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
       }
     },
     "riskready-itsm": {
@@ -53,7 +53,7 @@
       "command": "npx",
       "args": ["tsx", "apps/mcp-server-itsm/src/index.ts"],
       "env": {
-        "DATABASE_URL": "postgresql://riskready:demopass2024@localhost:5434/riskready"
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
       }
     },
     "riskready-organisation": {
@@ -61,7 +61,7 @@
       "command": "npx",
       "args": ["tsx", "apps/mcp-server-organisation/src/index.ts"],
       "env": {
-        "DATABASE_URL": "postgresql://riskready:demopass2024@localhost:5434/riskready"
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
       }
     },
     "riskready-agent-ops": {
@@ -69,7 +69,7 @@
       "command": "npx",
       "args": ["tsx", "apps/mcp-server-agent-ops/src/index.ts"],
       "env": {
-        "DATABASE_URL": "postgresql://riskready:demopass2024@localhost:5434/riskready"
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
       }
     }
   }

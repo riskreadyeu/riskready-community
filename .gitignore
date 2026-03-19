@@ -10,8 +10,9 @@ build/
 
 # Environment files
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+.prisma/
 
 # OS files
 .DS_Store
