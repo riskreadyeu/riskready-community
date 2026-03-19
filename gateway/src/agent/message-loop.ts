@@ -76,7 +76,7 @@ export async function runMessageLoop(opts: MessageLoopOptions): Promise<MessageL
       max_tokens: 16384,
       system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
       messages: accumulatedMessages,
-      tools: tools as Anthropic.Tool[],
+      tools: tools as unknown as Anthropic.Tool[],
       stream: true,
     });
 

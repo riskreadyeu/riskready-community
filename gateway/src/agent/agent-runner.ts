@@ -383,7 +383,7 @@ export class AgentRunner {
           conversationId,
           role: 'ASSISTANT',
           content: redactPII(fullText || 'I was unable to generate a response.'),
-          toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+          toolCalls: toolCalls.length > 0 ? (toolCalls as any) : undefined,
           actionIds: actionIds.length > 0 ? actionIds : [],
           blocks: blocks.length > 0 ? (blocks as any) : undefined,
           inputTokens: inputTokens || undefined,
