@@ -316,6 +316,13 @@ export class CouncilOrchestrator {
       });
 
       fullText = result.text;
+      logger.info({
+        councilMember: role,
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+        totalTokens: result.usage.inputTokens + result.usage.outputTokens,
+        toolCallCount: result.toolCalls.length,
+      }, 'Council member token usage');
     } finally {
       await executor.shutdown();
     }
@@ -491,6 +498,13 @@ Format your response using the structured output format from your instructions.`
       });
 
       fullText = result.text;
+      logger.info({
+        councilMember: 'ciso-strategist-synthesis',
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+        totalTokens: result.usage.inputTokens + result.usage.outputTokens,
+        toolCallCount: result.toolCalls.length,
+      }, 'Council synthesis token usage');
     } finally {
       await executor.shutdown();
     }
