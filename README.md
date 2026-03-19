@@ -32,6 +32,7 @@ A proactive AI system that runs compliance workflows on schedules, responds to i
   - [API Reference](#api-reference)
   - [Administration Guide](#administration-guide)
   - [MCP Server Reference](#mcp-server-reference)
+  - [AI Council Benchmarks](#ai-council-benchmarks)
 - [Development Setup](#development-setup)
 - [Business Edition](#business-edition)
 - [Contributing](#contributing)
@@ -334,6 +335,12 @@ System administration handbook: database backup and recovery, monitoring and hea
 **[documentation/mcp-servers/](documentation/mcp-servers/)**
 
 Detailed per-server documentation for all 9 MCP servers with complete tool listings, parameters, and usage examples. The servers can also be used standalone with any MCP-compatible client (Claude Desktop, Claude Code, etc.) by pointing to their `src/index.ts` entry point.
+
+### AI Council Benchmarks
+
+**[documentation/AI_COUNCIL_BENCHMARKS.md](documentation/AI_COUNCIL_BENCHMARKS.md)**
+
+Real-world performance benchmarks for the AI Agents Council: token usage before and after the tool search refactor (96% reduction), cost comparison across models (Haiku at $0.19 vs Opus at $10 per council), tool call statistics, and architecture details.
 
 | Server | Tools | Documentation |
 |--------|-------|---------------|
