@@ -5,7 +5,7 @@ import { MEMBER_SERVER_MAP } from './council-types.js';
 import { getCouncilMemberPrompt } from './council-prompts.js';
 
 /**
- * AgentDefinition interface compatible with the Claude Agent SDK's options.agents.
+ * AgentDefinition interface compatible with the Anthropic Messages API's options.agents.
  */
 export interface AgentDefinition {
   description: string;

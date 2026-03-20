@@ -140,7 +140,7 @@ The Risk Register is a filterable table of all risks in the system. From here yo
 Each risk has a comprehensive detail page with multiple tabs:
 
 - **Overview** -- Risk title, description, category, tier, owner, current status, inherent and residual risk scores, and tolerance status (Within, Exceeds, or Critical).
-- **Scenarios** -- Each risk can have multiple scenarios. Scenarios are scored using a 5x5 risk matrix (likelihood x impact) and follow a 10-state lifecycle: Draft, Assessed, Evaluated, Treating, Treated, Accepted, Monitoring, Escalated, Review, Closed. You can create new scenarios, edit existing ones, and transition them through workflow states.
+- **Scenarios** -- Each risk can have multiple scenarios. Scenarios are scored using a 5x5 risk matrix (likelihood x impact) and follow an 11-state lifecycle: Draft, Assessed, Evaluated, Treating, Treated, Accepted, Monitoring, Escalated, Review, Closed, Archived. You can create new scenarios, edit existing ones, and transition them through workflow states.
 - **Controls** -- Controls linked to the risk's scenarios, showing their effectiveness in mitigating the risk.
 - **History** -- A full audit trail of changes to the risk record.
 

@@ -219,12 +219,12 @@ For complex, cross-domain questions, the platform convenes a **council of 6 spec
 
 | Agent | Role | MCP Servers |
 |-------|------|-------------|
-| `risk-analyst` | Risk landscape, KRIs, tolerance, treatments | risks, controls |
-| `controls-auditor` | Control effectiveness, SOA, assessments, gaps | controls, evidence, audits |
-| `compliance-officer` | Policy alignment, ISO 27001/DORA/NIS2 | policies, controls, organisation |
-| `incident-commander` | Incident patterns, response metrics, lessons | incidents, itsm, evidence |
-| `evidence-auditor` | Evidence coverage, audit readiness, documentation | evidence, audits, controls |
-| `ciso-strategist` | Cross-domain synthesis, executive reporting | all 8 servers |
+| `risk-analyst` | Risk landscape, KRIs, tolerance, treatments | risks, controls, agent-ops |
+| `controls-auditor` | Control effectiveness, SOA, assessments, gaps | controls, evidence, audits, agent-ops |
+| `compliance-officer` | Policy alignment, ISO 27001/DORA/NIS2 | policies, controls, organisation, agent-ops |
+| `incident-commander` | Incident patterns, response metrics, lessons | incidents, itsm, evidence, agent-ops |
+| `evidence-auditor` | Evidence coverage, audit readiness, documentation | evidence, audits, controls, agent-ops |
+| `ciso-strategist` | Cross-domain synthesis, executive reporting | all 9 servers |
 
 ### When Is the Council Convened?
 

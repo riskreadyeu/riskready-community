@@ -17,7 +17,7 @@ The Gateway is a multi-channel AI agent orchestrator that powers the RiskReady A
                      │       (query loop)                          │
                      │              │                               │
                      │              ▼                               │
-                     │     8 MCP Servers (248 tools)               │
+                     │     9 MCP Servers (254 tools)               │
                      │     Controls · Risks · Evidence             │
                      │     Policies · Organisation · ITSM          │
                      │     Audits · Incidents                      │
@@ -48,18 +48,19 @@ The Gateway is a multi-channel AI agent orchestrator that powers the RiskReady A
 
 ### MCP Servers
 
-The gateway connects to **8 MCP servers** exposing **248 tools** (139 query + 109 mutation):
+The gateway connects to **9 MCP servers** exposing **254 tools**:
 
 | Server | Tools | Domain |
 |--------|-------|--------|
-| `riskready-controls` | 68 | Controls, SOA, assessments, metrics, gap analysis |
-| `riskready-risks` | 33 | Risk register, scenarios, KRIs, treatment plans |
+| `riskready-controls` | 66 | Controls, SOA, assessments, metrics, gap analysis |
+| `riskready-risks` | 34 | Risk register, scenarios, KRIs, treatment plans |
 | `riskready-itsm` | 40 | CMDB assets, change management, capacity planning |
-| `riskready-organisation` | 32 | Departments, processes, governance, committees |
-| `riskready-policies` | 25 | Policy documents, reviews, exceptions, mappings |
+| `riskready-organisation` | 35 | Departments, processes, governance, committees |
+| `riskready-policies` | 23 | Policy documents, reviews, exceptions, mappings |
 | `riskready-incidents` | 19 | Security incidents, timeline, lessons learned |
 | `riskready-evidence` | 16 | Evidence records, requests, coverage analysis |
-| `riskready-audits` | 15 | Nonconformities, corrective action plans |
+| `riskready-audits` | 14 | Nonconformities, corrective action plans |
+| `riskready-agent-ops` | 7 | Action status, task tracking, agent awareness |
 
 All mutations go through a human approval queue — the AI proposes changes, humans approve them.
 

@@ -132,7 +132,7 @@ The platform can also run without user interaction:
 
 Each server is a standalone process communicating via stdio. All query tools return data directly. All mutation tools (`propose_*`) create pending actions that require human approval.
 
-### Controls Server -- 68 tools (30 query, 38 mutation)
+### Controls Server -- 66 tools (30 query, 36 mutation)
 
 Manages ISO 27001 controls, Statement of Applicability (SOA), control assessments, metrics, and scope items.
 
@@ -142,7 +142,7 @@ Manages ISO 27001 controls, Statement of Applicability (SOA), control assessment
 | **Analysis** | Gap analysis, effectiveness reports, control coverage matrix, tester workload, overdue tests, assessment completion summaries |
 | **Propose** | Create/update/disable controls, create and manage assessments, record test results, manage SOA versions, add scope items, record metric values |
 
-### Risks Server -- 33 tools (22 query, 11 mutation)
+### Risks Server -- 34 tools (22 query, 12 mutation)
 
 Manages the risk register, risk scenarios with likelihood/impact scoring (5×5 matrix, scores 1--25), KRIs, residual risk calculated from linked controls, and treatment plans.
 
@@ -152,7 +152,7 @@ Manages the risk register, risk scenarios with likelihood/impact scoring (5×5 m
 | **Analysis** | Risk heat map, tolerance breaches, treatment progress, KRI alerts |
 | **Propose** | Create risks and scenarios, record KRI values, create treatment plans |
 
-### Policies Server -- 25 tools (14 query, 11 mutation)
+### Policies Server -- 23 tools (14 query, 9 mutation)
 
 Manages policy documents, versions, reviews, exceptions, acknowledgments, and mappings to controls and risks.
 
@@ -162,7 +162,7 @@ Manages policy documents, versions, reviews, exceptions, acknowledgments, and ma
 | **Analysis** | Review calendar, compliance matrix, exception reports |
 | **Propose** | Create/update policies, submit reviews, approve/publish/retire policies, create exceptions |
 
-### Organisation Server -- 32 tools (19 query, 13 mutation)
+### Organisation Server -- 35 tools (23 query, 12 mutation)
 
 Manages organisational profiles, departments, locations, business processes, external dependencies, and governance structures.
 
@@ -192,7 +192,7 @@ Manages the evidence repository and evidence requests.
 | **Analysis** | Expiry tracking, request aging |
 | **Propose** | Create evidence records, link evidence to entities, manage requests |
 
-### Audits Server -- 15 tools (8 query, 7 mutation)
+### Audits Server -- 14 tools (7 query, 7 mutation)
 
 Manages nonconformities and corrective action plan (CAP) workflows.
 
@@ -233,11 +233,11 @@ For complex questions that span multiple GRC domains, the platform automatically
 
 | Agent | Role | MCP Servers Used |
 |-------|------|------------------|
-| **Risk Analyst** | Risk landscape, KRIs, tolerance breaches, treatment plans | risks, controls |
-| **Controls Auditor** | Control effectiveness, SOA, assessments, gap analysis | controls, evidence, audits |
-| **Compliance Officer** | Policy alignment, ISO 27001, DORA, NIS2 compliance | policies, controls, organisation |
-| **Incident Commander** | Incident patterns, response metrics, lessons learned | incidents, itsm, evidence |
-| **Evidence Auditor** | Evidence coverage, audit readiness, documentation gaps | evidence, audits, controls |
+| **Risk Analyst** | Risk landscape, KRIs, tolerance breaches, treatment plans | risks, controls, agent-ops |
+| **Controls Auditor** | Control effectiveness, SOA, assessments, gap analysis | controls, evidence, audits, agent-ops |
+| **Compliance Officer** | Policy alignment, ISO 27001, DORA, NIS2 compliance | policies, controls, organisation, agent-ops |
+| **Incident Commander** | Incident patterns, response metrics, lessons learned | incidents, itsm, evidence, agent-ops |
+| **Evidence Auditor** | Evidence coverage, audit readiness, documentation gaps | evidence, audits, controls, agent-ops |
 | **CISO Strategist** | Cross-domain synthesis, executive reporting | all servers |
 
 ### When Is the Council Convened?

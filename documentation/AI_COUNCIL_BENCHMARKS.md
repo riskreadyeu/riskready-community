@@ -105,15 +105,15 @@ Browser → NestJS Proxy → Gateway (Fastify)
 
 | Role | Domain | MCP Servers |
 |------|--------|-------------|
-| Risk Analyst | Risk register, scenarios, KRIs, tolerance, treatment | riskready-risks, riskready-controls |
-| Controls Auditor | Control effectiveness, SOA, assessments, gap analysis | riskready-controls, riskready-evidence, riskready-audits |
-| Compliance Officer | Policies, framework alignment, governance | riskready-policies, riskready-controls, riskready-organisation |
-| Incident Commander | Incident patterns, lessons learned, response metrics | riskready-incidents, riskready-itsm, riskready-evidence |
-| Evidence Auditor | Evidence coverage, audit readiness, nonconformities | riskready-evidence, riskready-audits, riskready-controls |
+| Risk Analyst | Risk register, scenarios, KRIs, tolerance, treatment | riskready-risks, riskready-controls, riskready-agent-ops |
+| Controls Auditor | Control effectiveness, SOA, assessments, gap analysis | riskready-controls, riskready-evidence, riskready-audits, riskready-agent-ops |
+| Compliance Officer | Policies, framework alignment, governance | riskready-policies, riskready-controls, riskready-organisation, riskready-agent-ops |
+| Incident Commander | Incident patterns, lessons learned, response metrics | riskready-incidents, riskready-itsm, riskready-evidence, riskready-agent-ops |
+| Evidence Auditor | Evidence coverage, audit readiness, nonconformities | riskready-evidence, riskready-audits, riskready-controls, riskready-agent-ops |
 | CISO Strategist | Cross-domain synthesis (all 9 servers) | All MCP servers |
 
 ## Trigger Conditions
 
 The council convenes when:
 1. **3+ GRC domains** are mentioned in a single message, OR
-2. **Trigger phrases** are used: "overall posture", "maturity assessment", "board report", "comprehensive review", "security posture", "cross-domain", "holistic view", "executive summary"
+2. **Trigger phrases** are used: "overall posture", "maturity assessment", "board report", "council review", "multi-perspective", "full assessment", "comprehensive review", "posture assessment", "cross-domain", "holistic view", "executive summary", "security posture"

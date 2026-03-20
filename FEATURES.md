@@ -6,9 +6,9 @@
 
 ## Platform Overview
 
-RiskReady Community Edition is a **full-stack AI-native GRC (Governance, Risk & Compliance) platform** — not a starter kit. It ships with 13 integrated modules, 9 MCP servers with 253 AI tools, a complete React web application, and a ready-to-use demo company (ClearStream Payments) with data across every module.
+RiskReady Community Edition is a **full-stack AI-native GRC (Governance, Risk & Compliance) platform** — not a starter kit. It ships with 13 integrated modules, 9 MCP servers with 254 AI tools, a complete React web application, and a ready-to-use demo company (ClearStream Payments) with data across every module.
 
-**Stack**: PostgreSQL 16 | NestJS | React | Fastify Gateway | Claude Agent SDK | Docker Compose
+**Stack**: PostgreSQL 16 | NestJS | React | Fastify Gateway | Anthropic Messages API | Docker Compose
 
 ---
 
@@ -17,7 +17,7 @@ RiskReady Community Edition is a **full-stack AI-native GRC (Governance, Risk & 
 | Metric | Count |
 |--------|-------|
 | MCP Servers | 9 |
-| AI Tools (total) | 253 |
+| AI Tools (total) | 254 |
 | Web UI Routes | 127 |
 | Database Models | 120 |
 | REST API Controllers | 70 |
@@ -160,13 +160,13 @@ RiskReady Community Edition is a **full-stack AI-native GRC (Governance, Risk & 
 | riskready-controls | 66 | Controls, SOA, assessments, metrics, scope |
 | riskready-itsm | 40 | CMDB, change management, capacity planning |
 | riskready-organisation | 35 | Org structure, committees, processes, personnel |
-| riskready-risks | 33 | Risk register, scenarios, KRIs, RTS, treatments |
+| riskready-risks | 34 | Risk register, scenarios, KRIs, RTS, treatments |
 | riskready-policies | 23 | Policy documents, versions, approvals, exceptions |
 | riskready-incidents | 19 | Incidents, timelines, evidence, lessons learned |
 | riskready-evidence | 16 | Evidence repository, requests, multi-entity links |
 | riskready-audits | 14 | Nonconformities, CAP workflow |
 | riskready-agent-ops | 7 | Action status, task tracking, agent awareness |
-| **Total** | **253** | |
+| **Total** | **254** | |
 
 All 9 servers connect via Claude Desktop or Claude Code (MCP protocol).
 
@@ -268,7 +268,7 @@ Additionally, **32 risks and 94 scenarios** from the GRC risk catalogue are seed
 | db | PostgreSQL 16 Alpine | Database | 1 GB |
 | migrate | Node 20 | Schema migration + seed | 2 GB |
 | server | Node 20 Slim | NestJS REST API | 512 MB |
-| gateway | Node 20 Alpine | Fastify + Claude Agent SDK | 512 MB |
+| gateway | Node 20 Alpine | Fastify + Anthropic Messages API | 512 MB |
 | web | Nginx 1.27 Alpine | React SPA | 256 MB |
 | caddy | Caddy 2 Alpine | Reverse proxy | 256 MB |
 

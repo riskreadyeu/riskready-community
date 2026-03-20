@@ -229,8 +229,8 @@ terminates TLS:
 
 ## AI Features Setup
 
-RiskReady Community Edition exposes 8 MCP (Model Context Protocol) servers with
-248 tools for GRC-specific intelligence. These servers are designed to be used with
+RiskReady Community Edition exposes 9 MCP (Model Context Protocol) servers with
+254 tools for GRC-specific intelligence. These servers are designed to be used with
 **Claude Code** or **Claude Desktop** -- the AI runs on your side, not inside the
 application.
 

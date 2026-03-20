@@ -213,7 +213,7 @@ All autonomous capabilities preserve the human-approval safety model. For full d
 | Frontend | React 18 + Vite + TailwindCSS |
 | Database | PostgreSQL 16 |
 | ORM | Prisma 5 |
-| AI Gateway | Fastify + Claude Agent SDK + 9 MCP Servers + AI Agents Council |
+| AI Gateway | Fastify + Anthropic Messages API + 9 MCP Servers + AI Agents Council |
 | Reverse Proxy | Caddy 2 |
 
 ---
@@ -351,14 +351,14 @@ Connect all 9 MCP servers to Claude Desktop, Claude Code, or any MCP-compatible 
 
 | Server | Tools | Documentation |
 |--------|-------|---------------|
-| Controls | 68 (30 query, 38 mutation) | [controls.md](documentation/mcp-servers/controls.md) |
-| Risks | 33 (22 query, 11 mutation) | [risks.md](documentation/mcp-servers/risks.md) |
+| Controls | 66 (30 query, 36 mutation) | [controls.md](documentation/mcp-servers/controls.md) |
+| Risks | 34 (22 query, 12 mutation) | [risks.md](documentation/mcp-servers/risks.md) |
 | ITSM | 40 (25 query, 15 mutation) | [itsm.md](documentation/mcp-servers/itsm.md) |
-| Organisation | 32 (19 query, 13 mutation) | [organisation.md](documentation/mcp-servers/organisation.md) |
-| Policies | 25 (14 query, 11 mutation) | [policies.md](documentation/mcp-servers/policies.md) |
+| Organisation | 35 (23 query, 12 mutation) | [organisation.md](documentation/mcp-servers/organisation.md) |
+| Policies | 23 (14 query, 9 mutation) | [policies.md](documentation/mcp-servers/policies.md) |
 | Incidents | 19 (11 query, 8 mutation) | [incidents.md](documentation/mcp-servers/incidents.md) |
 | Evidence | 16 (10 query, 6 mutation) | [evidence.md](documentation/mcp-servers/evidence.md) |
-| Audits | 15 (8 query, 7 mutation) | [audits.md](documentation/mcp-servers/audits.md) |
+| Audits | 14 (7 query, 7 mutation) | [audits.md](documentation/mcp-servers/audits.md) |
 | Agent Ops | 7 (7 query) | [documentation/AGENTIC_AI_PLATFORM.md](documentation/AGENTIC_AI_PLATFORM.md) |
 
 ---
