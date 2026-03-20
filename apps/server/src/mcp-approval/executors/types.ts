@@ -6,15 +6,15 @@ export type ExecutorPayload = Record<string, any>;
 export type Executor = (payload: ExecutorPayload, reviewedById: string, organisationId?: string) => Promise<unknown>;
 export type ExecutorMap = Map<McpActionType, Executor>;
 
-/** Strip MCP metadata fields (e.g. organisationId injected by McpToolExecutor) before passing to Prisma */
-const MCP_META_KEYS = ['organisationId', 'reason'];
+/** Strip ALL MCP metadata fields before passing to Prisma update/lifecycle calls */
+const MCP_META_KEYS = ['organisationId', 'reason', 'mcpSessionId', 'mcpToolName'];
 
-export function stripMcpMeta<T extends Record<string, unknown>>(payload: T): Omit<T, 'organisationId' | 'reason'> {
+export function stripMcpMeta<T extends Record<string, unknown>>(payload: T): Record<string, unknown> {
   const cleaned = { ...payload };
   for (const key of MCP_META_KEYS) {
     delete (cleaned as Record<string, unknown>)[key];
   }
-  return cleaned as Omit<T, 'organisationId' | 'reason'>;
+  return cleaned;
 }
 
 /** MCP-only fields that should never be passed to any Prisma create/update call */
