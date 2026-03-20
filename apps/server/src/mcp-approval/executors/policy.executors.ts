@@ -14,9 +14,13 @@ export function registerPolicyExecutors(executors: ExecutorMap, services: Policy
 
   // --- Policy CRUD ---
 
-  executors.set('CREATE_POLICY', (p, userId) =>
-    policyDocumentService.create(p as any, userId),
-  );
+  executors.set('CREATE_POLICY', (p, userId) => {
+    const { organisationId, reason: _r, createdBy: _cb, createdById: _cbi, ...data } = p as Record<string, any>;
+    return policyDocumentService.create({
+      ...data,
+      organisation: { connect: { id: organisationId } },
+    } as any, userId);
+  });
 
   executors.set('UPDATE_POLICY', (p, userId) => {
     const { documentId, ...rest } = p as { documentId: string; [k: string]: any };
