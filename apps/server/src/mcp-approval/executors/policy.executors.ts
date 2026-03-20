@@ -1,7 +1,7 @@
 import { PolicyDocumentService } from '../../policies/services/policy-document.service';
 import { DocumentExceptionService } from '../../policies/services/document-exception.service';
 import { ChangeRequestService } from '../../policies/services/change-request.service';
-import { ExecutorMap, stripMcpMeta } from './types';
+import { ExecutorMap, prepareCreatePayload, stripMcpMeta } from './types';
 
 export interface PolicyExecutorServices {
   policyDocumentService: PolicyDocumentService;
@@ -14,13 +14,12 @@ export function registerPolicyExecutors(executors: ExecutorMap, services: Policy
 
   // --- Policy CRUD ---
 
-  executors.set('CREATE_POLICY', (p, userId) => {
-    const { organisationId, reason: _r, createdBy: _cb, createdById: _cbi, ...data } = p as Record<string, any>;
-    return policyDocumentService.create({
-      ...data,
-      organisation: { connect: { id: organisationId } },
-    } as any, userId);
-  });
+  executors.set('CREATE_POLICY', (p, userId) =>
+    policyDocumentService.create(
+      prepareCreatePayload(p, { relationalOrg: true }) as any,
+      userId,
+    ),
+  );
 
   executors.set('UPDATE_POLICY', (p, userId) => {
     const { documentId, ...rest } = p as { documentId: string; [k: string]: any };
@@ -49,7 +48,7 @@ export function registerPolicyExecutors(executors: ExecutorMap, services: Policy
 
   executors.set('CREATE_POLICY_EXCEPTION', (p, userId) =>
     documentExceptionService.create({
-      ...p,
+      ...prepareCreatePayload(p),
       requestedById: userId,
       expiryDate: p['expiryDate'] ? new Date(p['expiryDate']) : undefined,
       startDate: p['startDate'] ? new Date(p['startDate']) : undefined,
@@ -67,7 +66,7 @@ export function registerPolicyExecutors(executors: ExecutorMap, services: Policy
 
   executors.set('CREATE_POLICY_CHANGE_REQUEST', (p, userId) =>
     changeRequestService.create({
-      ...p,
+      ...prepareCreatePayload(p),
       requestedById: userId,
       targetDate: p['targetDate'] ? new Date(p['targetDate']) : undefined,
     } as any),

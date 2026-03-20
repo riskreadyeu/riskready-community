@@ -1,5 +1,5 @@
 import { NonconformityService } from '../../audits/services/nonconformity.service';
-import { ExecutorMap, stripMcpMeta } from './types';
+import { ExecutorMap, prepareCreatePayload, stripMcpMeta } from './types';
 
 export interface AuditExecutorServices {
   nonconformityService: NonconformityService;
@@ -11,7 +11,7 @@ export function registerAuditExecutors(executors: ExecutorMap, services: AuditEx
   // --- Nonconformity CRUD ---
 
   executors.set('CREATE_NONCONFORMITY', (p, userId) =>
-    nonconformityService.create({ ...p, raisedById: userId } as any),
+    nonconformityService.create({ ...prepareCreatePayload(p), raisedById: userId } as any),
   );
 
   executors.set('UPDATE_NONCONFORMITY', (p) => {

@@ -2,7 +2,7 @@ import { ChangeService } from '../../itsm/services/change.service';
 import { AssetService } from '../../itsm/services/asset.service';
 import { CapacityService } from '../../itsm/services/capacity.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ExecutorMap, stripMcpMeta } from './types';
+import { ExecutorMap, prepareCreatePayload, stripMcpMeta } from './types';
 
 export interface ItsmExecutorServices {
   changeService: ChangeService;
@@ -82,7 +82,7 @@ export function registerItsmExecutors(executors: ExecutorMap, services: ItsmExec
   // --- Asset management ---
 
   executors.set('CREATE_ASSET', (p) =>
-    assetService.create(p as any),
+    assetService.create(prepareCreatePayload(p) as any),
   );
 
   executors.set('UPDATE_ASSET', (p) => {
@@ -136,12 +136,12 @@ export function registerItsmExecutors(executors: ExecutorMap, services: ItsmExec
   // --- Change management (create) ---
 
   executors.set('CREATE_CHANGE', (p, userId) =>
-    changeService.create(p as any, userId),
+    changeService.create(prepareCreatePayload(p) as any, userId),
   );
 
   // --- Capacity planning (create) ---
 
   executors.set('CREATE_CAPACITY_PLAN', (p) =>
-    capacityService.createCapacityPlan(p as any),
+    capacityService.createCapacityPlan(prepareCreatePayload(p) as any),
   );
 }

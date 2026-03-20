@@ -1,6 +1,6 @@
 import { IncidentService } from '../../incidents/services/incident.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ExecutorMap, stripMcpMeta } from './types';
+import { ExecutorMap, prepareCreatePayload, stripMcpMeta } from './types';
 
 export interface IncidentExecutorServices {
   incidentService: IncidentService;
@@ -13,7 +13,7 @@ export function registerIncidentExecutors(executors: ExecutorMap, services: Inci
   // --- Incident CRUD ---
 
   executors.set('CREATE_INCIDENT', (p, userId) =>
-    incidentService.create({ ...p, detectedAt: p['detectedAt'] || new Date().toISOString() } as any, userId),
+    incidentService.create({ ...prepareCreatePayload(p), detectedAt: p['detectedAt'] || new Date().toISOString() } as any, userId),
   );
 
   executors.set('UPDATE_INCIDENT', (p, userId) => {

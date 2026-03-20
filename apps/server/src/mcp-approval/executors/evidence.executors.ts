@@ -1,7 +1,7 @@
 import { EvidenceService } from '../../evidence/services/evidence.service';
 import { EvidenceLinkService } from '../../evidence/services/evidence-link.service';
 import { EvidenceRequestService } from '../../evidence/services/evidence-request.service';
-import { ExecutorMap, stripMcpMeta } from './types';
+import { ExecutorMap, prepareCreatePayload, stripMcpMeta } from './types';
 
 export interface EvidenceExecutorServices {
   evidenceService: EvidenceService;
@@ -15,7 +15,7 @@ export function registerEvidenceExecutors(executors: ExecutorMap, services: Evid
   // --- Evidence CRUD ---
 
   executors.set('CREATE_EVIDENCE', (p, userId) =>
-    evidenceService.create({ ...p, createdById: userId } as any),
+    evidenceService.create({ ...prepareCreatePayload(p), createdById: userId } as any),
   );
 
   executors.set('UPDATE_EVIDENCE', (p, userId) => {
@@ -40,7 +40,7 @@ export function registerEvidenceExecutors(executors: ExecutorMap, services: Evid
 
   executors.set('CREATE_EVIDENCE_REQUEST', (p, userId) =>
     evidenceRequestService.create({
-      ...p,
+      ...prepareCreatePayload(p),
       requestedById: userId,
       createdById: userId,
       dueDate: p['dueDate'] ? new Date(p['dueDate']) : undefined,

@@ -6,7 +6,7 @@ import { SOAEntryService } from '../../controls/services/soa-entry.service';
 import { ScopeItemService } from '../../controls/services/scope-item.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TreatmentPlanService } from '../../risks/services/treatment-plan.service';
-import { ExecutorMap, stripMcpMeta } from './types';
+import { ExecutorMap, prepareCreatePayload, stripMcpMeta } from './types';
 
 export interface ControlExecutorServices {
   controlService: ControlService;
@@ -36,7 +36,7 @@ export function registerControlExecutors(executors: ExecutorMap, services: Contr
   // Service methods have strict signatures, so we cast where needed.
 
   executors.set('CREATE_CONTROL', (p, userId) =>
-    controlService.create({ ...p, createdById: userId } as any),
+    controlService.create({ ...prepareCreatePayload(p), createdById: userId } as any),
   );
 
   executors.set('UPDATE_CONTROL', (p) => {
@@ -245,7 +245,7 @@ export function registerControlExecutors(executors: ExecutorMap, services: Contr
   // --- Scope executors ---
 
   executors.set('CREATE_SCOPE_ITEM', (p, userId) =>
-    scopeItemService.create(p as any, userId),
+    scopeItemService.create(prepareCreatePayload(p) as any, userId),
   );
 
   executors.set('UPDATE_SCOPE_ITEM', (p) => {
@@ -261,7 +261,7 @@ export function registerControlExecutors(executors: ExecutorMap, services: Contr
 
   executors.set('CREATE_REMEDIATION', (p, userId) =>
     treatmentPlanService.createAction({
-      ...p,
+      ...prepareCreatePayload(p),
       createdById: userId,
     } as any),
   );

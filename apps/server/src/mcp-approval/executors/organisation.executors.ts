@@ -5,7 +5,7 @@ import { BusinessProcessService } from '../../organisation/services/business-pro
 import { SecurityCommitteeService } from '../../organisation/services/security-committee.service';
 import { CommitteeMeetingService } from '../../organisation/services/committee-meeting.service';
 import { ExternalDependencyService } from '../../organisation/services/external-dependency.service';
-import { ExecutorMap, stripMcpMeta } from './types';
+import { ExecutorMap, prepareCreatePayload, stripMcpMeta } from './types';
 
 export interface OrganisationExecutorServices {
   organisationProfileService: OrganisationProfileService;
@@ -37,9 +37,12 @@ export function registerOrganisationExecutors(executors: ExecutorMap, services: 
 
   // --- Departments ---
 
-  executors.set('CREATE_DEPARTMENT', (p) =>
-    departmentService.create(p as any),
-  );
+  executors.set('CREATE_DEPARTMENT', (p) => {
+    const cleaned = prepareCreatePayload(p);
+    // Department has no organisationId column; strip it along with MCP metadata
+    delete cleaned['organisationId'];
+    return departmentService.create(cleaned as any);
+  });
 
   executors.set('UPDATE_DEPARTMENT', (p) => {
     const { departmentId, ...data } = p as { departmentId: string; [k: string]: any };
@@ -48,9 +51,12 @@ export function registerOrganisationExecutors(executors: ExecutorMap, services: 
 
   // --- Locations ---
 
-  executors.set('CREATE_LOCATION', (p) =>
-    locationService.create(p as any),
-  );
+  executors.set('CREATE_LOCATION', (p) => {
+    const cleaned = prepareCreatePayload(p);
+    // Location has no organisationId column; strip it along with MCP metadata
+    delete cleaned['organisationId'];
+    return locationService.create(cleaned as any);
+  });
 
   executors.set('UPDATE_LOCATION', (p) => {
     const { locationId, ...data } = p as { locationId: string; [k: string]: any };
@@ -60,7 +66,7 @@ export function registerOrganisationExecutors(executors: ExecutorMap, services: 
   // --- Business Processes ---
 
   executors.set('CREATE_BUSINESS_PROCESS', (p) =>
-    businessProcessService.create(p as any),
+    businessProcessService.create(prepareCreatePayload(p) as any),
   );
 
   executors.set('UPDATE_BUSINESS_PROCESS', (p) => {
@@ -71,7 +77,7 @@ export function registerOrganisationExecutors(executors: ExecutorMap, services: 
   // --- Security Committees ---
 
   executors.set('CREATE_COMMITTEE', (p) =>
-    securityCommitteeService.create(p as any),
+    securityCommitteeService.create(prepareCreatePayload(p) as any),
   );
 
   executors.set('UPDATE_COMMITTEE', (p) => {
@@ -80,13 +86,13 @@ export function registerOrganisationExecutors(executors: ExecutorMap, services: 
   });
 
   executors.set('CREATE_COMMITTEE_MEETING', (p) =>
-    committeeMeetingService.create(p as any),
+    committeeMeetingService.create(prepareCreatePayload(p) as any),
   );
 
   // --- External Dependencies ---
 
   executors.set('CREATE_EXTERNAL_DEPENDENCY', (p) =>
-    externalDependencyService.create(p as any),
+    externalDependencyService.create(prepareCreatePayload(p) as any),
   );
 
   executors.set('UPDATE_EXTERNAL_DEPENDENCY', (p) => {
