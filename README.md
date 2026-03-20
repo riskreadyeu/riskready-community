@@ -33,6 +33,7 @@ A proactive AI system that runs compliance workflows on schedules, responds to i
   - [Administration Guide](#administration-guide)
   - [MCP Server Reference](#mcp-server-reference)
   - [AI Council Benchmarks](#ai-council-benchmarks)
+  - [Claude Desktop & Code Integration](#claude-desktop--code-integration)
 - [Development Setup](#development-setup)
 - [Business Edition](#business-edition)
 - [Contributing](#contributing)
@@ -341,6 +342,12 @@ Detailed per-server documentation for all 9 MCP servers with complete tool listi
 **[documentation/AI_COUNCIL_BENCHMARKS.md](documentation/AI_COUNCIL_BENCHMARKS.md)**
 
 Real-world performance benchmarks for the AI Agents Council: token usage before and after the tool search refactor (96% reduction), cost comparison across models (Haiku at $0.19 vs Opus at $10 per council), tool call statistics, and architecture details.
+
+### Claude Desktop & Code Integration
+
+**[documentation/CLAUDE_DESKTOP_INTEGRATION.md](documentation/CLAUDE_DESKTOP_INTEGRATION.md)**
+
+Connect all 9 MCP servers to Claude Desktop, Claude Code, or any MCP-compatible client. Use Claude as a GRC co-worker with direct access to your compliance database — 254 tools across risks, controls, policies, evidence, incidents, audits, ITSM, and organisation governance. Includes setup instructions, database connection options, security considerations, and example conversations.
 
 | Server | Tools | Documentation |
 |--------|-------|---------------|
