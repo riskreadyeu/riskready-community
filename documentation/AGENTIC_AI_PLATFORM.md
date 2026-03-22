@@ -295,6 +295,28 @@ The council emits real-time events via SSE:
 
 ---
 
+## Tool Search Optimization
+
+The gateway uses Anthropic's `tool_search_tool_bm25` with `defer_loading: true` to dramatically reduce token usage. Instead of sending all 254 tool schemas (previously ~180k tokens) in every API call, Claude discovers tools on demand via keyword search. This reduced input tokens by **96%** — critical for making council sessions (which run 6 separate agent loops) cost-effective.
+
+Model-aware capability detection (`gateway/src/agent/model-capabilities.ts`) automatically enables tool search for supported models (Sonnet 4.5+, Haiku 4.5+, Opus 4.6+) and falls back to full schema loading for older models.
+
+---
+
+## MCP Proxy (Remote Claude Desktop)
+
+The gateway exposes an HTTPS endpoint at `POST /mcp` that allows Claude Desktop to connect remotely without direct database access. Users create API keys (prefixed `rr_sk_`) from **Settings > AI Configuration** in the web UI.
+
+**Key features:**
+- Per-user API keys, bcrypt-hashed at rest, revocable
+- Rate limiting: 100 calls/minute per key
+- Automatic organisation scoping on every tool call
+- Full access to all 254 tools via a single remote MCP server entry
+
+See [CLAUDE_DESKTOP_INTEGRATION.md](./CLAUDE_DESKTOP_INTEGRATION.md#option-3-remote-connection-mcp-proxy) for connection instructions.
+
+---
+
 ## Configuration
 
 ### Environment Variables
@@ -342,6 +364,7 @@ gateway/
 │   ├── router/
 │   │   └── router.ts             # Expanded keywords + domain counting
 │   ├── channels/
+│   │   ├── mcp-http-transport.ts # MCP proxy for remote Claude Desktop
 │   │   └── types.ts              # Council event types
 │   └── config.ts                 # Council config section
 ├── skills.yaml                   # 9 MCP servers

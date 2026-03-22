@@ -8,7 +8,8 @@ RiskReady's 9 MCP servers expose 254 GRC tools that any MCP-compatible client ca
 - [Prerequisites](#prerequisites)
 - [Option 1: Claude Desktop](#option-1-claude-desktop)
 - [Option 2: Claude Code](#option-2-claude-code)
-- [Option 3: Any MCP Client](#option-3-any-mcp-client)
+- [Option 3: Remote Connection (MCP Proxy)](#option-3-remote-connection-mcp-proxy)
+- [Option 4: Any MCP Client (stdio)](#option-4-any-mcp-client-stdio)
 - [Database Connection](#database-connection)
 - [What You Get](#what-you-get)
 - [Security Considerations](#security-considerations)
@@ -200,7 +201,65 @@ Claude Code automatically discovers the `.mcp.json` and connects to all 9 MCP se
 
 ---
 
-## Option 3: Any MCP Client
+## Option 3: Remote Connection (MCP Proxy)
+
+If your RiskReady instance is running on a remote server (or even locally via Docker), you can connect Claude Desktop **without** cloning the repo or running Node.js locally. The gateway exposes an MCP proxy endpoint at `/mcp` that accepts JSON-RPC tool calls over HTTPS.
+
+### Step 1: Create an MCP API Key
+
+1. Log in to the RiskReady web UI
+2. Go to **Settings > AI Configuration**
+3. Click **Create MCP API Key**
+4. Give it a name (e.g. "My MacBook") and click **Create**
+5. Copy the API key (starts with `rr_sk_`) — it will only be shown once
+
+### Step 2: Configure Claude Desktop
+
+The AI Settings page shows a ready-to-copy Claude Desktop config JSON. Alternatively, add this to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "riskready": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://your-riskready-instance.com/gateway/mcp",
+        "--header",
+        "Authorization: Bearer rr_sk_your_api_key_here"
+      ]
+    }
+  }
+}
+```
+
+> Replace `https://your-riskready-instance.com` with your actual RiskReady URL, and `rr_sk_your_api_key_here` with your API key.
+
+### Step 3: Restart Claude Desktop
+
+Quit and reopen Claude Desktop. You should see a single "riskready" MCP server connected with access to all 254 tools.
+
+### Security
+
+- **API keys** are bcrypt-hashed at rest — the plaintext is never stored
+- **Rate limiting**: 100 calls/minute per API key
+- **Organisation scoping**: every tool call is scoped to the API key owner's organisation
+- **Revocable**: delete the key from Settings > AI Configuration at any time
+- **HTTPS required**: always use HTTPS in production to protect the API key in transit
+
+### How it differs from local (Options 1 & 2)
+
+| | Local (stdio) | Remote (MCP Proxy) |
+|---|---|---|
+| Database access | Direct (MCP servers connect to PostgreSQL) | Via gateway (API key authenticated) |
+| Node.js required | Yes (on your machine) | No (only `npx mcp-remote`) |
+| Approval queue | Writes `McpPendingAction` records directly | Same — writes via MCP servers on the gateway |
+| Rate limiting | None | 100 calls/minute per key |
+| Organisation scoping | Manual (`organisationId` parameter) | Automatic (bound to API key) |
+
+---
+
+## Option 4: Any MCP Client (stdio)
 
 Any tool that supports the MCP protocol (stdio transport) can connect to RiskReady's servers. Each server is a standalone Node.js process:
 

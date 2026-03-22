@@ -2,7 +2,7 @@
 
 # RiskReady Community Edition
 
-The first open-source GRC platform with an **autonomous AI Agents Council** — 9 MCP servers, 250+ tools, scheduled workflows, and multi-agent deliberation.
+The first open-source GRC platform with an **autonomous AI Agents Council** — 9 MCP servers, 254 tools, scheduled workflows, multi-agent deliberation, and an MCP proxy for Claude Desktop remote connections.
 <br />
 A proactive AI system that runs compliance workflows on schedules, responds to incidents autonomously, and convenes a council of 6 specialist agents for complex cross-domain decisions — all with human-in-the-loop approval.
 
@@ -44,7 +44,7 @@ A proactive AI system that runs compliance workflows on schedules, responds to i
 
 ## Why RiskReady
 
-Traditional GRC tools are form-fillers. RiskReady ships **9 specialised MCP servers** exposing 250+ tools that connect Claude directly to your compliance database. Beyond reactive Q&A, the platform runs **autonomous workflows on schedules**, **responds to incidents automatically**, and **convenes a council of 6 specialist AI agents** for complex cross-domain decisions.
+Traditional GRC tools are form-fillers. RiskReady ships **9 specialised MCP servers** exposing 254 tools that connect Claude directly to your compliance database. Beyond reactive Q&A, the platform runs **autonomous workflows on schedules**, **responds to incidents automatically**, and **convenes a council of 6 specialist AI agents** for complex cross-domain decisions.
 
 ```
 You:    "Give me a full security posture assessment — risks, controls, compliance, and priorities."
@@ -95,13 +95,17 @@ Every mutation (creating assessments, updating SOA entries, recording test resul
 | Feature | Description |
 |---------|-------------|
 | **MCP Servers** | 9 servers spawn as stdio child processes, each with full database access via Prisma |
+| **Tool Search** | `tool_search_tool_bm25` with `defer_loading` — Claude discovers tools on demand, reducing input tokens by 96% |
 | **Smart Routing** | Matches your query to relevant servers by keyword across all 8 GRC domains |
 | **AI Agents Council** | 6 specialist agents deliberate on complex cross-domain questions with CISO synthesis |
+| **MCP Proxy** | HTTPS endpoint at `/mcp` for Claude Desktop remote connections with per-user API keys |
+| **AI Settings** | Web UI for API key management, model selection, and monthly usage dashboard |
 | **Scheduled Workflows** | Cron-based autonomous runs: weekly risk reviews, control assurance, policy compliance |
 | **Event-Driven Triggers** | Automatic analysis on critical incidents, approval resolutions |
 | **Task Tracking** | Persistent agent state across sessions with multi-step workflow support |
 | **Approval Queue** | All mutations create pending actions reviewed in the web UI before execution |
 | **Streaming Responses** | Real-time SSE with tool-call visibility and council progress events |
+| **Prompt Caching** | System prompt cached with `cache_control: { type: 'ephemeral' }` for reduced latency and cost |
 | **Anti-Hallucination** | System prompts enforce data citation; zero is a valid answer |
 
 ---
@@ -347,7 +351,7 @@ Real-world performance benchmarks for the AI Agents Council: token usage before 
 
 **[documentation/CLAUDE_DESKTOP_INTEGRATION.md](documentation/CLAUDE_DESKTOP_INTEGRATION.md)**
 
-Connect all 9 MCP servers to Claude Desktop, Claude Code, or any MCP-compatible client. Use Claude as a GRC co-worker with direct access to your compliance database — 254 tools across risks, controls, policies, evidence, incidents, audits, ITSM, and organisation governance. Includes setup instructions, database connection options, security considerations, and example conversations.
+Connect all 9 MCP servers to Claude Desktop, Claude Code, or any MCP-compatible client. Use Claude as a GRC co-worker with direct access to your compliance database — 254 tools across risks, controls, policies, evidence, incidents, audits, ITSM, and organisation governance. Includes local stdio setup, remote MCP proxy connection via API keys, database connection options, security considerations, and example conversations.
 
 | Server | Tools | Documentation |
 |--------|-------|---------------|

@@ -13,8 +13,8 @@ The Gateway is a multi-channel AI agent orchestrator that powers the RiskReady A
 │              │◀────│                                      │       │
 └──────────────┘     │              ┌───────────────────────┘       │
                      │              ▼                               │
-                     │     Claude Agent SDK                        │
-                     │       (query loop)                          │
+                     │     Anthropic Messages API                   │
+                     │     + tool_search_tool_bm25                 │
                      │              │                               │
                      │              ▼                               │
                      │     9 MCP Servers (254 tools)               │
@@ -37,7 +37,7 @@ The Gateway is a multi-channel AI agent orchestrator that powers the RiskReady A
 | Component | File | Description |
 |-----------|------|-------------|
 | **Fastify server** | `src/channels/internal.adapter.ts` | HTTP endpoints: `/dispatch`, `/stream/:runId`, `/cancel/:runId`, `/health` |
-| **Agent runner** | `src/agent/agent-runner.ts` | Orchestrates the Claude Agent SDK loop, streams events, saves messages |
+| **Agent runner** | `src/agent/agent-runner.ts` | Orchestrates the Anthropic Messages API loop, streams events, saves messages |
 | **Skill registry** | `src/agent/skill-registry.ts` | Loads MCP server definitions from `skills.yaml`, hot-reloads on change |
 | **Router** | `src/router/router.ts` | Keyword-based routing to select which MCP servers to activate per message |
 | **Lane queue** | `src/queue/lane-queue.ts` | Per-user sequential job queue with timeout and cancellation |
@@ -335,7 +335,7 @@ User sends message
        ├── Build prompt with context
        │
        ▼
-  Claude Agent SDK query loop
+  Anthropic Messages API loop (tool_search + defer_loading)
        │
        ├── Stream text_delta events → SSE
        ├── MCP tool calls → tool_start/tool_done events
@@ -403,7 +403,7 @@ gateway/
 │   ├── logger.ts                  # Pino logger
 │   ├── db-config.ts               # DB config loader (decrypt + fallback)
 │   ├── agent/
-│   │   ├── agent-runner.ts        # Claude Agent SDK orchestration
+│   │   ├── agent-runner.ts        # Anthropic Messages API orchestration
 │   │   ├── system-prompt.ts       # System prompt for the AI
 │   │   ├── block-extractor.ts     # Structured block extraction
 │   │   └── skill-registry.ts      # YAML-based MCP server registry

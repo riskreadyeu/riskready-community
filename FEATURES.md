@@ -1,6 +1,6 @@
 # RiskReady Community Edition — Feature Reference
 
-> Accurate as of February 2026. All numbers verified from source code.
+> Accurate as of March 2026. All numbers verified from source code.
 
 ---
 
@@ -150,6 +150,25 @@ RiskReady Community Edition is a **full-stack AI-native GRC (Governance, Risk & 
   - Check action status, list pending/recent actions
   - Task tracking and progress updates
   - Schedule management
+
+#### Tool Search Optimization
+- **`tool_search_tool_bm25`** with **`defer_loading: true`** — Claude discovers tools on demand instead of receiving all 254 tool schemas upfront
+- **96% token reduction** on input tokens for council sessions (from ~180k to ~7k per member)
+- **Model-aware**: automatically enabled for supported models (Sonnet 4.5+, Haiku 4.5+, Opus 4.6+), disabled for older models via `model-capabilities.ts`
+- **Prompt caching**: system prompt sent with `cache_control: { type: 'ephemeral' }` for reduced latency on multi-turn conversations
+
+#### MCP Proxy (Remote Claude Desktop)
+- **HTTPS endpoint** at `/mcp` on the gateway for remote Claude Desktop connections
+- **Per-user API keys** with `rr_sk_` prefix, bcrypt-hashed, revocable from the web UI
+- **Rate limiting**: 100 calls/minute per API key
+- **Organisation scoping**: API key is bound to a user and organisation, enforced on every tool call
+- Connect Claude Desktop from anywhere without exposing your database
+
+#### AI Settings Page
+- **Settings > AI Configuration** tab in the web UI
+- **API key management**: create, list, and revoke MCP API keys with copy-to-clipboard Claude Desktop config
+- **Model selector**: choose between Haiku, Sonnet, and Opus models
+- **Monthly usage dashboard**: track token consumption across conversations
 
 ---
 
@@ -315,7 +334,7 @@ docker compose up -d    # ~2 minutes to build and seed
                               |
                     ┌─────────┴─────────┐
                     │   Fastify Gateway  │
-                    │  (Agent SDK + SSE) │
+                    │  (Messages API)    │
                     └─────────┬─────────┘
                               |
               ┌───────────────┼───────────────┐

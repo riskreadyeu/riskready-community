@@ -230,12 +230,41 @@ terminates TLS:
 ## AI Features Setup
 
 RiskReady Community Edition exposes 9 MCP (Model Context Protocol) servers with
-254 tools for GRC-specific intelligence. These servers are designed to be used with
-**Claude Code** or **Claude Desktop** -- the AI runs on your side, not inside the
-application.
+254 tools for GRC-specific intelligence. These servers can be used with
+**Claude Code**, **Claude Desktop**, or any MCP-compatible client.
 
-See the [AI Assistant Guide](AI_ASSISTANT.md) for instructions on connecting the
-MCP servers to your preferred Claude client.
+### AI Settings
+
+The web UI includes an **AI Configuration** tab under **Settings** where you can:
+
+- Set your Anthropic API key (encrypted at rest with AES-256-GCM)
+- Select the Claude model (Haiku, Sonnet, or Opus)
+- Monitor monthly token usage across conversations
+- Create and manage MCP API keys for remote Claude Desktop connections
+
+### MCP Proxy (Remote Claude Desktop)
+
+The gateway exposes an MCP proxy endpoint at `/mcp` that allows Claude Desktop to
+connect remotely over HTTPS. This eliminates the need to clone the repo or run
+Node.js locally.
+
+**Setup:**
+1. Go to **Settings > AI Configuration** in the web UI
+2. Click **Create MCP API Key** and copy the generated key
+3. Configure Claude Desktop with the `mcp-remote` bridge (see [Claude Desktop Integration](CLAUDE_DESKTOP_INTEGRATION.md#option-3-remote-connection-mcp-proxy))
+
+**Caddy configuration:** The default Caddyfile already routes `/gateway/*` to the
+gateway service. The `/mcp` endpoint is accessible at
+`https://yourdomain.com/gateway/mcp`. No additional Caddy configuration is needed.
+
+**API key security:**
+- Keys use the `rr_sk_` prefix and are bcrypt-hashed at rest
+- Rate limited to 100 calls/minute per key
+- Revocable from the web UI at any time
+
+See the [AI Assistant Guide](AI_ASSISTANT.md) and
+[Claude Desktop Integration Guide](CLAUDE_DESKTOP_INTEGRATION.md) for full setup
+instructions.
 
 ---
 

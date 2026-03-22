@@ -172,6 +172,47 @@ system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' 
 
 **Token budget**: If `inputTokens + outputTokens > 500,000`, a budget-exceeded notice is appended and the loop stops.
 
+### Tool Search (96% Token Reduction)
+
+`gateway/src/agent/tool-builder.ts`, `gateway/src/agent/model-capabilities.ts`
+
+With 254 tools across 9 MCP servers, sending all tool schemas in every API call consumed ~180,000 input tokens per request. The tool search refactor replaces this with Anthropic's built-in tool discovery:
+
+1. **`tool_search_tool_bm25`**: A special tool type that lets Claude search for relevant tools by keyword instead of receiving all schemas upfront
+2. **`defer_loading: true`**: Each tool definition is sent with deferred loading — Claude only receives the full schema when it discovers a tool via search
+3. **Model capability detection** (`model-capabilities.ts`): Tool search is only enabled for models that support it (Sonnet 4.5+, Haiku 4.5+, Opus 4.6+). Older models fall back to sending all tool schemas.
+
+```typescript
+// tool-builder.ts
+tools.push({ type: 'tool_search_tool_bm25_20251119', name: 'tool_search_tool_bm25' });
+
+for (const schema of schemas) {
+  tools.push({ name: schema.fullName, description: schema.description,
+               input_schema: schema.inputSchema, defer_loading: true });
+}
+```
+
+**Impact**: Input tokens dropped from ~180k to ~7k per council member, a 96% reduction. This makes running 6-member council sessions practical on cost-constrained deployments.
+
+### MCP Proxy
+
+`gateway/src/channels/mcp-http-transport.ts`
+
+The gateway exposes an HTTPS endpoint at `POST /mcp` that accepts MCP JSON-RPC requests authenticated via Bearer token (API keys with `rr_sk_` prefix). This allows Claude Desktop to connect remotely without direct database access.
+
+**Request flow:**
+1. Claude Desktop sends MCP JSON-RPC via `mcp-remote` bridge
+2. Gateway validates the Bearer API key (bcrypt comparison)
+3. Organisation and user are resolved from the API key
+4. Tool calls are routed to the appropriate MCP server with enforced org scoping
+5. Results are returned as JSON-RPC responses
+
+**Security controls:**
+- Per-key rate limiting (100 calls/minute)
+- Organisation scoping enforced on every tool call
+- API keys are bcrypt-hashed at rest, revocable via web UI
+- Keys managed in `apps/server/src/gateway-config/mcp-key.service.ts`
+
 ### Lane Queue
 
 `gateway/src/queue/lane-queue.ts`
@@ -370,7 +411,7 @@ Each member gets a scoped `McpToolExecutor` with access only to its permitted se
 
 **`parallel_then_synthesis`** (default):
 ```
-All members run simultaneously (Promise.allSettled)
+Members run in batches of 2 (BATCH_SIZE = 2, for 512MB Docker memory)
      ↓
 CISO synthesises all opinions
 ```
@@ -689,8 +730,13 @@ servers:
 |------|---------|
 | `gateway/src/channels/internal.adapter.ts` | Fastify HTTP server: dispatch, stream, cancel |
 | `gateway/src/agent/agent-runner.ts` | Core orchestration: conversation, memory, council, task tracking |
-| `gateway/src/agent/message-loop.ts` | Anthropic streaming loop with tool call accumulation |
+| `gateway/src/agent/message-loop.ts` | Anthropic Messages API streaming loop with tool call accumulation |
+| `gateway/src/agent/tool-builder.ts` | Tool search + defer_loading builder |
+| `gateway/src/agent/tool-schema-loader.ts` | Loads tool schemas from skill registry |
+| `gateway/src/agent/model-capabilities.ts` | Model capability detection for tool search support |
+| `gateway/src/agent/conversation-builder.ts` | Conversation history builder |
 | `gateway/src/agent/mcp-tool-executor.ts` | Stdio MCP client with org-scoping enforcement |
+| `gateway/src/channels/mcp-http-transport.ts` | MCP proxy endpoint for remote Claude Desktop |
 | `gateway/src/agent/system-prompt.ts` | Main agent system prompt |
 | `gateway/src/agent/skill-registry.ts` | YAML loader, tool schema pre-loading |
 | `gateway/src/router/router.ts` | Keyword routing, council trigger phrases |
@@ -723,6 +769,8 @@ servers:
 | `apps/server/src/mcp-approval/mcp-approval.controller.ts` | REST endpoints with executor dispatch |
 | `apps/server/src/mcp-approval/mcp-approval-executor.service.ts` | ExecutorMap across 9 domains |
 | `apps/server/src/mcp-approval/executors/*.ts` | Per-domain executor implementations |
+| `apps/server/src/gateway-config/mcp-key.service.ts` | MCP API key management (create, validate, revoke) |
+| `apps/server/src/gateway-config/mcp-key.controller.ts` | MCP API key REST endpoints |
 
 ### Prisma Schema
 | File | Purpose |
