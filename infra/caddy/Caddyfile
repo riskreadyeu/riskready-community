@@ -13,6 +13,10 @@
     reverse_proxy server:3000
   }
 
+  handle /mcp {
+    reverse_proxy gateway:3100
+  }
+
   handle {
     reverse_proxy {$WEB_UPSTREAM:web:80}
   }
