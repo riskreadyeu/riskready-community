@@ -42,6 +42,7 @@ export interface McpApiKey {
   id: string;
   prefix: string;
   name: string;
+  scopes: string[];
   lastUsedAt: string | null;
   createdAt: string;
 }
@@ -50,10 +51,10 @@ export interface McpApiKeyCreated extends McpApiKey {
   key: string; // Full key, shown once
 }
 
-export async function createMcpKey(name: string): Promise<McpApiKeyCreated> {
+export async function createMcpKey(name: string, scopes?: string[]): Promise<McpApiKeyCreated> {
   const res = await fetchWithAuth('/api/gateway-config/mcp-keys', {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, scopes }),
   });
   if (!res.ok) throw new Error('Failed to create API key');
   return res.json();

@@ -5,6 +5,7 @@ model McpApiKey {
   prefix         String    // First 8 chars: "rr_sk_ab"
   keyHash        String    // bcrypt hash
   name           String    // User label
+  scopes         String[]  @default(["all"])
   userId         String
   organisationId String
   lastUsedAt     DateTime?

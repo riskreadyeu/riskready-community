@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Key, Bot, BarChart3, Check, AlertTriangle, Copy, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -92,6 +93,7 @@ export function AiSettingsTab() {
   const [creatingKey, setCreatingKey] = useState(false);
   const [createdKey, setCreatedKey] = useState<McpApiKeyCreated | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [newKeyScopes, setNewKeyScopes] = useState<string[]>(["all"]);
 
   useEffect(() => {
     async function load() {
@@ -132,10 +134,12 @@ export function AiSettingsTab() {
     if (!newKeyName.trim()) return;
     setCreatingKey(true);
     try {
-      const result = await createMcpKey(newKeyName.trim());
+      const scopesToSend = newKeyScopes.length === 0 ? ["all"] : newKeyScopes;
+      const result = await createMcpKey(newKeyName.trim(), scopesToSend);
       setCreatedKey(result);
       setMcpKeys((prev) => [result, ...prev]);
       setNewKeyName("");
+      setNewKeyScopes(["all"]);
     } catch {
       toast.error("Failed to create API key");
     } finally {
@@ -160,6 +164,7 @@ export function AiSettingsTab() {
     setCreateKeyDialogOpen(false);
     setCreatedKey(null);
     setNewKeyName("");
+    setNewKeyScopes(["all"]);
   };
 
   const handleSaveApiKey = async () => {
@@ -444,6 +449,9 @@ export function AiSettingsTab() {
                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                       Name
                     </th>
+                    <th className="hidden px-3 py-2 text-left text-xs font-medium text-muted-foreground md:table-cell">
+                      Scopes
+                    </th>
                     <th className="hidden px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:table-cell">
                       Last used
                     </th>
@@ -460,6 +468,19 @@ export function AiSettingsTab() {
                         {k.prefix}...
                       </td>
                       <td className="px-3 py-2 text-foreground">{k.name}</td>
+                      <td className="hidden px-3 py-2 md:table-cell">
+                        <div className="flex flex-wrap gap-1">
+                          {(k.scopes ?? ["all"]).map((scope) => (
+                            <Badge
+                              key={scope}
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0"
+                            >
+                              {scope}
+                            </Badge>
+                          ))}
+                        </div>
+                      </td>
                       <td className="hidden px-3 py-2 text-muted-foreground sm:table-cell">
                         {formatRelativeTime(k.lastUsedAt)}
                       </td>
@@ -592,6 +613,53 @@ export function AiSettingsTab() {
                 />
                 <p className="text-xs text-muted-foreground">
                   A descriptive name to identify where this key is used.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Scopes</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: "all", label: "All access" },
+                    { id: "read", label: "Read only" },
+                    { id: "write", label: "Write (propose changes)" },
+                    { id: "risks", label: "Risks" },
+                    { id: "controls", label: "Controls" },
+                    { id: "policies", label: "Policies" },
+                    { id: "evidence", label: "Evidence" },
+                    { id: "incidents", label: "Incidents" },
+                    { id: "audits", label: "Audits" },
+                    { id: "itsm", label: "ITSM" },
+                    { id: "organisation", label: "Organisation" },
+                    { id: "agent-ops", label: "Agent Ops" },
+                  ].map((scope) => (
+                    <div key={scope.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`scope-${scope.id}`}
+                        checked={newKeyScopes.includes(scope.id)}
+                        disabled={scope.id !== "all" && newKeyScopes.includes("all")}
+                        onCheckedChange={(checked) => {
+                          if (scope.id === "all") {
+                            setNewKeyScopes(checked ? ["all"] : []);
+                          } else {
+                            setNewKeyScopes((prev) =>
+                              checked
+                                ? [...prev.filter((s) => s !== "all"), scope.id]
+                                : prev.filter((s) => s !== scope.id),
+                            );
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`scope-${scope.id}`}
+                        className="text-sm text-foreground cursor-pointer"
+                      >
+                        {scope.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Restrict which tools this key can access. Scopes combine with OR logic.
                 </p>
               </div>
               <DialogFooter>

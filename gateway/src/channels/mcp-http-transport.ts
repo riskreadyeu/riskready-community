@@ -10,7 +10,7 @@ import { trackToolCall } from '../middleware/tool-call-tracker.js';
 interface McpTransportOptions {
   toolSchemas: FullToolSchema[];
   getServerConfig: (serverName: string) => { command: string; args: string[]; env?: Record<string, string> } | undefined;
-  validateApiKey: (key: string) => Promise<{ valid: boolean; userId?: string; organisationId?: string }>;
+  validateApiKey: (key: string) => Promise<{ valid: boolean; userId?: string; organisationId?: string; scopes?: string[] }>;
   databaseUrl: string;
 }
 
@@ -66,6 +66,29 @@ function jsonRpcResult(id: number | string, result: unknown): JsonRpcResponse {
   };
 }
 
+export function isToolAllowed(toolName: string, scopes: string[]): boolean {
+  if (scopes.includes('all')) return true;
+
+  // Parse tool name: mcp__riskready-risks__list_risks
+  const parts = toolName.split('__');
+  if (parts.length !== 3) return false;
+  const serverName = parts[1]; // riskready-risks
+  const toolAction = parts[2]; // list_risks
+
+  for (const scope of scopes) {
+    // Domain scopes
+    if (scope === serverName.replace('riskready-', '')) return true;
+
+    // Read scope
+    if (scope === 'read' && (toolAction.startsWith('list_') || toolAction.startsWith('get_') || toolAction.startsWith('search_'))) return true;
+
+    // Write scope
+    if (scope === 'write' && toolAction.startsWith('propose_')) return true;
+  }
+
+  return false;
+}
+
 export function registerMcpTransport(server: FastifyInstance, options: McpTransportOptions): void {
   server.post('/mcp', async (request, reply) => {
     // 1. Extract Bearer token
@@ -81,7 +104,7 @@ export function registerMcpTransport(server: FastifyInstance, options: McpTransp
     }
 
     // 3. Validate API key
-    let auth: { valid: boolean; userId?: string; organisationId?: string };
+    let auth: { valid: boolean; userId?: string; organisationId?: string; scopes?: string[] };
     try {
       auth = await options.validateApiKey(apiKey);
     } catch {
@@ -91,6 +114,8 @@ export function registerMcpTransport(server: FastifyInstance, options: McpTransp
     if (!auth.valid) {
       return reply.status(401).send(jsonRpcError(null, -32000, 'Invalid API key'));
     }
+
+    const scopes = auth.scopes ?? ['all'];
 
     // 4. Parse JSON-RPC body
     const body = request.body as JsonRpcRequest;
@@ -113,11 +138,13 @@ export function registerMcpTransport(server: FastifyInstance, options: McpTransp
       }
 
       case 'tools/list': {
-        const tools = options.toolSchemas.map((s) => ({
-          name: s.fullName,
-          description: s.description,
-          inputSchema: s.inputSchema,
-        }));
+        const tools = options.toolSchemas
+          .filter((s) => isToolAllowed(s.fullName, scopes))
+          .map((s) => ({
+            name: s.fullName,
+            description: s.description,
+            inputSchema: s.inputSchema,
+          }));
         return reply.send(jsonRpcResult(id, { tools }));
       }
 
@@ -127,6 +154,10 @@ export function registerMcpTransport(server: FastifyInstance, options: McpTransp
 
         if (!toolName || !TOOL_NAME_PATTERN.test(toolName)) {
           return reply.send(jsonRpcError(id, -32602, `Invalid tool name: ${toolName ?? '(none)'}`));
+        }
+
+        if (!isToolAllowed(toolName, scopes)) {
+          return reply.send(jsonRpcError(id, -32600, 'Tool not permitted by API key scopes'));
         }
 
         const startMs = Date.now();

@@ -38,7 +38,7 @@ export class McpKeyController {
       this.prisma,
       undefined,
     );
-    return this.service.createKey(req.user.id, organisationId!, dto.name);
+    return this.service.createKey(req.user.id, organisationId!, dto.name, dto.scopes);
   }
 
   @Get()

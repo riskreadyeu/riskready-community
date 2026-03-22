@@ -11,14 +11,14 @@ const BCRYPT_ROUNDS = 10;
 export class McpKeyService {
   constructor(private prisma: PrismaService) {}
 
-  async createKey(userId: string, organisationId: string, name: string) {
+  async createKey(userId: string, organisationId: string, name: string, scopes: string[] = ['all']) {
     const rawKey = KEY_PREFIX + randomBytes(KEY_LENGTH / 2).toString('hex');
     const prefix = rawKey.slice(0, 8);
     const keyHash = await bcrypt.hash(rawKey, BCRYPT_ROUNDS);
 
     const record = await this.prisma.mcpApiKey.create({
-      data: { prefix, keyHash, name, userId, organisationId },
-      select: { id: true, prefix: true, name: true, createdAt: true },
+      data: { prefix, keyHash, name, scopes, userId, organisationId },
+      select: { id: true, prefix: true, name: true, scopes: true, createdAt: true },
     });
 
     // Return full key ONCE — never stored in plain text
@@ -32,6 +32,7 @@ export class McpKeyService {
         id: true,
         prefix: true,
         name: true,
+        scopes: true,
         lastUsedAt: true,
         createdAt: true,
       },
@@ -48,13 +49,13 @@ export class McpKeyService {
 
   async validateKey(
     rawKey: string,
-  ): Promise<{ valid: boolean; userId?: string; organisationId?: string }> {
+  ): Promise<{ valid: boolean; userId?: string; organisationId?: string; scopes?: string[] }> {
     if (!rawKey.startsWith(KEY_PREFIX)) return { valid: false };
 
     const prefix = rawKey.slice(0, 8);
     const candidates = await this.prisma.mcpApiKey.findMany({
       where: { prefix, revokedAt: null },
-      select: { id: true, keyHash: true, userId: true, organisationId: true },
+      select: { id: true, keyHash: true, userId: true, organisationId: true, scopes: true },
     });
 
     for (const candidate of candidates) {
@@ -72,6 +73,7 @@ export class McpKeyService {
           valid: true,
           userId: candidate.userId,
           organisationId: candidate.organisationId,
+          scopes: candidate.scopes,
         };
       }
     }
