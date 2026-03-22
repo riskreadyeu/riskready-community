@@ -87,8 +87,8 @@ function registerIncidentMutations(server: McpServer) {
       incidentId: zId.describe('Incident UUID'),
       targetStatus: z.enum(['DETECTED', 'TRIAGED', 'INVESTIGATING', 'CONTAINING', 'ERADICATING', 'RECOVERING', 'POST_INCIDENT', 'CLOSED']).describe('Target status'),
       resolutionType: z.enum(['RESOLVED', 'FALSE_POSITIVE', 'ACCEPTED_RISK', 'DUPLICATE', 'TRANSFERRED']).optional().describe('Resolution type (required when closing)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this transition is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_transition_incident', async (params) => {
       const incident = await prisma.incident.findUnique({

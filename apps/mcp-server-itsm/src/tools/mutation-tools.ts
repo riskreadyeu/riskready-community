@@ -161,7 +161,7 @@ function registerAssetMutations(server: McpServer) {
       businessCriticality: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('New business criticality'),
       dataClassification: z.enum(['PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED']).optional().describe('New data classification'),
       ownerId: zId.optional().describe('Owner user UUID'),
-      custodianId: z.string().optional().describe('New custodian user UUID'),
+      custodianId: zId.optional().describe('New custodian user UUID'),
       departmentId: zId.optional().describe('Department UUID'),
       locationId: zId.optional().describe('Location UUID'),
       inIsmsScope: z.boolean().optional().describe('New ISMS scope setting'),
