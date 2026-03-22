@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { createPendingAction, withErrorHandling } from '#mcp-shared';
+import { createPendingAction, withErrorHandling, zId, zSessionId, zOrgId, zReason } from '#mcp-shared';
 
 function registerIncidentMutations(server: McpServer) {
   server.tool(
@@ -17,13 +17,13 @@ function registerIncidentMutations(server: McpServer) {
       source: z.enum(['SIEM', 'USER_REPORT', 'THREAT_INTEL', 'AUTOMATED', 'THIRD_PARTY', 'REGULATOR', 'VULNERABILITY_SCAN', 'PENETRATION_TEST', 'OTHER']).describe('Detection source'),
       detectedAt: z.string().datetime().optional().describe('Detection timestamp (ISO 8601, defaults to now)'),
       isConfirmed: z.boolean().optional().describe('Whether the incident is confirmed'),
-      reporterId: z.string().optional().describe('Reporter user UUID'),
-      handlerId: z.string().optional().describe('Handler user UUID'),
-      incidentManagerId: z.string().optional().describe('Incident manager user UUID'),
+      reporterId: zId.optional().describe('Reporter user UUID'),
+      handlerId: zId.optional().describe('Handler user UUID'),
+      incidentManagerId: zId.optional().describe('Incident manager user UUID'),
       sourceRef: z.string().max(200).optional().describe('Source reference (e.g. SIEM alert ID)'),
-      organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      organisationId: zOrgId,
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_incident', async (params) => {
       return createPendingAction({
@@ -42,7 +42,7 @@ function registerIncidentMutations(server: McpServer) {
     'propose_update_incident',
     'Propose updating an existing incident. Validates the incident exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      incidentId: z.string().describe('Incident UUID to update'),
+      incidentId: zId.describe('Incident UUID to update'),
       title: z.string().max(500).optional().describe('Updated title'),
       description: z.string().max(5000).optional().describe('Updated description'),
       severity: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Updated severity'),
@@ -51,13 +51,13 @@ function registerIncidentMutations(server: McpServer) {
       integrityBreach: z.boolean().optional().describe('Integrity breach flag'),
       availabilityBreach: z.boolean().optional().describe('Availability breach flag'),
       isConfirmed: z.boolean().optional().describe('Whether the incident is confirmed'),
-      handlerId: z.string().optional().describe('Handler user UUID'),
-      incidentManagerId: z.string().optional().describe('Incident manager user UUID'),
+      handlerId: zId.optional().describe('Handler user UUID'),
+      incidentManagerId: zId.optional().describe('Incident manager user UUID'),
       sourceRef: z.string().max(200).optional().describe('Source reference'),
       source: z.enum(['SIEM', 'USER_REPORT', 'THREAT_INTEL', 'AUTOMATED', 'THIRD_PARTY', 'REGULATOR', 'VULNERABILITY_SCAN', 'PENETRATION_TEST', 'OTHER']).optional().describe('Updated detection source'),
       status: z.enum(['DETECTED', 'TRIAGED', 'INVESTIGATING', 'CONTAINING', 'ERADICATING', 'RECOVERING', 'POST_INCIDENT', 'CLOSED']).optional().describe('Updated status'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_incident', async (params) => {
       const incident = await prisma.incident.findUnique({
@@ -84,7 +84,7 @@ function registerIncidentMutations(server: McpServer) {
     'propose_transition_incident',
     'Propose a status transition for an incident. Validates the incident exists. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      incidentId: z.string().describe('Incident UUID'),
+      incidentId: zId.describe('Incident UUID'),
       targetStatus: z.enum(['DETECTED', 'TRIAGED', 'INVESTIGATING', 'CONTAINING', 'ERADICATING', 'RECOVERING', 'POST_INCIDENT', 'CLOSED']).describe('Target status'),
       resolutionType: z.enum(['RESOLVED', 'FALSE_POSITIVE', 'ACCEPTED_RISK', 'DUPLICATE', 'TRANSFERRED']).optional().describe('Resolution type (required when closing)'),
       reason: z.string().max(1000).optional().describe('Explain WHY this transition is proposed — shown to human reviewers'),
@@ -115,12 +115,12 @@ function registerIncidentMutations(server: McpServer) {
     'propose_add_incident_asset',
     'Propose linking an affected asset to an incident. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      incidentId: z.string().describe('Incident UUID'),
-      assetId: z.string().describe('Asset UUID'),
+      incidentId: zId.describe('Incident UUID'),
+      assetId: zId.describe('Asset UUID'),
       impactType: z.enum(['COMPROMISED', 'AFFECTED', 'AT_RISK']).describe('How the asset was impacted'),
       notes: z.string().max(2000).optional().describe('Notes about the impact'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_add_incident_asset', async (params) => {
       const [incident, asset] = await Promise.all([
@@ -150,12 +150,12 @@ function registerIncidentMutations(server: McpServer) {
     'propose_link_incident_control',
     'Propose linking a control to an incident (failed, bypassed, effective, or not applicable). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      incidentId: z.string().describe('Incident UUID'),
-      controlId: z.string().describe('Control UUID'),
+      incidentId: zId.describe('Incident UUID'),
+      controlId: zId.describe('Control UUID'),
       linkType: z.enum(['failed', 'bypassed', 'effective', 'not_applicable']).describe('How the control performed during the incident'),
       notes: z.string().max(2000).optional().describe('Notes about the control performance'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_link_incident_control', async (params) => {
       const [incident, control] = await Promise.all([
@@ -185,14 +185,14 @@ function registerIncidentMutations(server: McpServer) {
     'propose_close_incident',
     'Propose closing an incident with resolution details. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      incidentId: z.string().describe('Incident UUID'),
+      incidentId: zId.describe('Incident UUID'),
       resolutionType: z.enum(['RESOLVED', 'FALSE_POSITIVE', 'ACCEPTED_RISK', 'DUPLICATE', 'TRANSFERRED']).describe('Resolution type'),
       rootCauseIdentified: z.boolean().optional().describe('Whether root cause was identified'),
       lessonsLearnedCompleted: z.boolean().optional().describe('Whether lessons learned review is complete'),
       correctiveActionsIdentified: z.boolean().optional().describe('Whether corrective actions were identified'),
       resolutionSummary: z.string().max(1000).optional().describe('Summary of the resolution'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_close_incident', async (params) => {
       const incident = await prisma.incident.findUnique({
@@ -221,15 +221,15 @@ function registerTimelineMutations(server: McpServer) {
     'propose_add_timeline_entry',
     'Propose adding a timeline entry to an incident. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      incidentId: z.string().describe('Incident UUID'),
+      incidentId: zId.describe('Incident UUID'),
       timestamp: z.string().datetime().describe('Event timestamp (ISO 8601)'),
       entryType: z.enum(['STATUS_CHANGE', 'ACTION_TAKEN', 'COMMUNICATION', 'EVIDENCE_COLLECTED', 'ESCALATION', 'FINDING', 'CLASSIFICATION_CHANGE', 'NOTIFICATION_SENT', 'OTHER']).describe('Timeline entry type'),
       title: z.string().max(500).describe('Entry title'),
       description: z.string().max(5000).optional().describe('Entry description'),
       visibility: z.enum(['INTERNAL', 'MANAGEMENT', 'REGULATOR', 'PUBLIC']).optional().describe('Entry visibility'),
       sourceSystem: z.string().max(200).optional().describe('Source system that generated the entry'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_add_timeline_entry', async (params) => {
       const incident = await prisma.incident.findUnique({
@@ -258,17 +258,17 @@ function registerLessonMutations(server: McpServer) {
     'propose_create_lesson',
     'Propose creating a lessons learned entry for an incident. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      incidentId: z.string().describe('Incident UUID'),
+      incidentId: zId.describe('Incident UUID'),
       category: z.enum(['DETECTION', 'RESPONSE', 'COMMUNICATION', 'TOOLING', 'TRAINING', 'PROCESS', 'THIRD_PARTY', 'DOCUMENTATION']).describe('Lesson category'),
       observation: z.string().max(5000).describe('What was observed'),
       recommendation: z.string().max(5000).describe('Recommended improvement'),
       priority: z.number().int().min(1).max(5).optional().describe('Priority (1=highest, 5=lowest)'),
       targetDate: z.string().datetime().optional().describe('Target completion date (ISO 8601)'),
       status: z.enum(['IDENTIFIED', 'IN_PROGRESS', 'IMPLEMENTED', 'VALIDATED']).optional().describe('Initial lesson status'),
-      assignedToId: z.string().optional().describe('Assigned user UUID'),
+      assignedToId: zId.optional().describe('Assigned user UUID'),
       completedDate: z.string().datetime().optional().describe('Completed date (ISO 8601)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_lesson', async (params) => {
       const incident = await prisma.incident.findUnique({

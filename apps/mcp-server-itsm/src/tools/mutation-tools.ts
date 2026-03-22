@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { createPendingAction, getDefaultOrganisationId, withErrorHandling } from '#mcp-shared';
+import { createPendingAction, getDefaultOrganisationId, withErrorHandling, zId, zSessionId, zOrgId, zReason } from '#mcp-shared';
 
 // ========================================
 // ASSET MUTATIONS
@@ -33,10 +33,10 @@ function registerAssetMutations(server: McpServer) {
       description: z.string().max(5000).optional().describe('Asset description'),
       businessCriticality: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Business criticality level'),
       dataClassification: z.enum(['PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED']).optional().describe('Data classification level'),
-      ownerId: z.string().optional().describe('Owner user UUID'),
-      custodianId: z.string().optional().describe('Custodian user UUID'),
-      departmentId: z.string().optional().describe('Department UUID'),
-      locationId: z.string().optional().describe('Location UUID'),
+      ownerId: zId.optional().describe('Owner user UUID'),
+      custodianId: zId.optional().describe('Custodian user UUID'),
+      departmentId: zId.optional().describe('Department UUID'),
+      locationId: zId.optional().describe('Location UUID'),
       fqdn: z.string().max(200).optional().describe('Fully qualified domain name'),
       cloudProvider: z.enum([
         'AWS', 'AZURE', 'GCP', 'ORACLE_CLOUD', 'IBM_CLOUD', 'ALIBABA_CLOUD',
@@ -84,7 +84,7 @@ function registerAssetMutations(server: McpServer) {
       supportContract: z.string().max(200).optional().describe('Support contract reference'),
       supportExpiry: z.string().datetime().optional().describe('Support contract expiry (ISO 8601)'),
       supportTier: z.string().max(200).optional().describe('Support tier (e.g. Gold, Silver)'),
-      vendorId: z.string().optional().describe('Vendor/external dependency UUID'),
+      vendorId: zId.optional().describe('Vendor/external dependency UUID'),
       // Financial
       purchaseCost: z.number().max(1_000_000_000).optional().describe('Purchase cost'),
       costCurrency: z.string().max(200).optional().describe('Cost currency (e.g. USD, EUR)'),
@@ -115,7 +115,7 @@ function registerAssetMutations(server: McpServer) {
       targetAvailability: z.number().max(100).optional().describe('Target availability percentage (e.g. 99.9)'),
       hasRedundancy: z.boolean().optional().describe('Whether redundancy is configured'),
       redundancyType: z.string().max(200).optional().describe('Redundancy type (e.g. active-active, active-passive)'),
-      failoverAssetId: z.string().optional().describe('Failover asset UUID'),
+      failoverAssetId: zId.optional().describe('Failover asset UUID'),
       // Metadata
       typeAttributes: z.record(z.string().max(100), z.unknown()).optional().refine(
         (val) => !val || JSON.stringify(val).length < 10_000,
@@ -123,9 +123,9 @@ function registerAssetMutations(server: McpServer) {
       ).describe('Type-specific attributes (JSON object)'),
       tags: z.array(z.string()).max(50).optional().describe('Tags (JSON array)'),
       discoverySource: z.string().max(200).optional().describe('Discovery source'),
-      organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      organisationId: zOrgId,
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_asset', async (params) => {
       return createPendingAction({
@@ -144,7 +144,7 @@ function registerAssetMutations(server: McpServer) {
     'propose_asset_update',
     'Propose updating an existing asset. Validates the asset exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assetId: z.string().describe('Asset UUID to update'),
+      assetId: zId.describe('Asset UUID to update'),
       name: z.string().max(500).optional().describe('New asset name'),
       displayName: z.string().max(500).optional().describe('New display name'),
       assetSubtype: z.string().max(200).optional().describe('New asset subtype'),
@@ -160,10 +160,10 @@ function registerAssetMutations(server: McpServer) {
       description: z.string().max(5000).optional().describe('New description'),
       businessCriticality: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('New business criticality'),
       dataClassification: z.enum(['PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED']).optional().describe('New data classification'),
-      ownerId: z.string().optional().describe('New owner user UUID'),
+      ownerId: zId.optional().describe('Owner user UUID'),
       custodianId: z.string().optional().describe('New custodian user UUID'),
-      departmentId: z.string().optional().describe('New department UUID'),
-      locationId: z.string().optional().describe('New location UUID'),
+      departmentId: zId.optional().describe('Department UUID'),
+      locationId: zId.optional().describe('Location UUID'),
       inIsmsScope: z.boolean().optional().describe('New ISMS scope setting'),
       // Data handling
       handlesPersonalData: z.boolean().optional().describe('Whether asset handles personal data'),
@@ -207,7 +207,7 @@ function registerAssetMutations(server: McpServer) {
       supportContract: z.string().max(200).optional().describe('Support contract reference'),
       supportExpiry: z.string().datetime().optional().describe('Support contract expiry (ISO 8601)'),
       supportTier: z.string().max(200).optional().describe('Support tier'),
-      vendorId: z.string().optional().describe('Vendor/external dependency UUID'),
+      vendorId: zId.optional().describe('Vendor/external dependency UUID'),
       // Financial
       purchaseCost: z.number().max(1_000_000_000).optional().describe('Purchase cost'),
       costCurrency: z.string().max(200).optional().describe('Cost currency'),
@@ -238,7 +238,7 @@ function registerAssetMutations(server: McpServer) {
       targetAvailability: z.number().max(100).optional().describe('Target availability percentage'),
       hasRedundancy: z.boolean().optional().describe('Whether redundancy is configured'),
       redundancyType: z.string().max(200).optional().describe('Redundancy type'),
-      failoverAssetId: z.string().optional().describe('Failover asset UUID'),
+      failoverAssetId: zId.optional().describe('Failover asset UUID'),
       // Metadata
       typeAttributes: z.record(z.string().max(100), z.unknown()).optional().refine(
         (val) => !val || JSON.stringify(val).length < 10_000,
@@ -246,8 +246,8 @@ function registerAssetMutations(server: McpServer) {
       ).describe('Type-specific attributes (JSON object)'),
       tags: z.array(z.string()).max(50).optional().describe('Tags (JSON array)'),
       discoverySource: z.string().max(200).optional().describe('Discovery source'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_asset_update', async (params) => {
       const asset = await prisma.asset.findUnique({
@@ -276,8 +276,8 @@ function registerAssetMutations(server: McpServer) {
     'propose_asset_relationship',
     'Propose creating a relationship between two assets (dependency, hosting, network, data flow, etc.). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      fromAssetId: z.string().max(200).describe('Source asset UUID'),
-      toAssetId: z.string().max(200).describe('Target asset UUID'),
+      fromAssetId: zId.describe('Source asset UUID'),
+      toAssetId: zId.describe('Target asset UUID'),
       relationshipType: z.enum([
         'DEPENDS_ON', 'RUNS_ON', 'HOSTED_ON', 'DEPLOYED_TO', 'CONNECTS_TO',
         'STORES_DATA_ON', 'READS_FROM', 'WRITES_TO', 'REPLICATES_TO',
@@ -287,8 +287,8 @@ function registerAssetMutations(server: McpServer) {
       isCritical: z.boolean().optional().describe('Whether this is a critical dependency'),
       description: z.string().max(5000).optional().describe('Relationship description'),
       notes: z.string().max(2000).optional().describe('Additional notes about the relationship'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_asset_relationship', async (params) => {
       // Validate both assets exist
@@ -321,15 +321,15 @@ function registerAssetMutations(server: McpServer) {
     'propose_link_asset_control',
     'Propose linking an asset to a security control. Tracks which controls protect which assets. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assetId: z.string().describe('Asset UUID'),
-      controlId: z.string().describe('Control UUID'),
+      assetId: zId.describe('Asset UUID'),
+      controlId: zId.describe('Control UUID'),
       status: z.string().max(200).optional().describe('Implementation status (e.g. "planned", "implemented", "verified")'),
       implementationNotes: z.string().max(2000).optional().describe('Notes about how the control is implemented for this asset'),
       implementedDate: z.string().datetime().optional().describe('Date the control was implemented (ISO 8601)'),
       evidenceUrl: z.string().max(200).optional().describe('URL to implementation evidence'),
       lastVerified: z.string().datetime().optional().describe('Date the implementation was last verified (ISO 8601)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_link_asset_control', async (params) => {
       const [asset, control] = await Promise.all([
@@ -359,12 +359,12 @@ function registerAssetMutations(server: McpServer) {
     'propose_link_asset_risk',
     'Propose linking an asset to a risk. Tracks which risks affect which assets. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assetId: z.string().describe('Asset UUID'),
-      riskId: z.string().describe('Risk UUID'),
+      assetId: zId.describe('Asset UUID'),
+      riskId: zId.describe('Risk UUID'),
       impactLevel: z.string().max(200).optional().describe('Impact level if this asset is compromised (critical, high, medium, low)'),
       notes: z.string().max(2000).optional().describe('Notes about the risk-asset relationship'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_link_asset_risk', async (params) => {
       const [asset, risk] = await Promise.all([
@@ -394,10 +394,10 @@ function registerAssetMutations(server: McpServer) {
     'propose_delete_asset',
     'Propose deleting/disposing an asset from the CMDB. Validates the asset exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assetId: z.string().describe('Asset UUID to delete/dispose'),
+      assetId: zId.describe('Asset UUID to delete/dispose'),
       disposalReason: z.string().max(1000).describe('Reason for disposing the asset'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_delete_asset', async (params) => {
       const asset = await prisma.asset.findUnique({
@@ -458,14 +458,14 @@ function registerChangeMutations(server: McpServer) {
       cabRequired: z.boolean().optional().describe('Whether CAB review is required'),
       cabMeetingDate: z.string().datetime().optional().describe('CAB meeting date (ISO 8601)'),
       successCriteria: z.string().max(5000).optional().describe('Success criteria'),
-      parentChangeId: z.string().optional().describe('Parent change UUID'),
-      incidentId: z.string().optional().describe('Related incident UUID'),
-      implementerId: z.string().optional().describe('Implementer user UUID'),
-      departmentId: z.string().optional().describe('Department UUID'),
-      vendorId: z.string().optional().describe('Vendor/external dependency UUID'),
-      organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      parentChangeId: zId.optional().describe('Parent change UUID'),
+      incidentId: zId.optional().describe('Related incident UUID'),
+      implementerId: zId.optional().describe('Implementer user UUID'),
+      departmentId: zId.optional().describe('Department UUID'),
+      vendorId: zId.optional().describe('Vendor/external dependency UUID'),
+      organisationId: zOrgId,
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_change', async (params) => {
       const year = new Date().getFullYear();
@@ -487,7 +487,7 @@ function registerChangeMutations(server: McpServer) {
     'propose_update_change',
     'Propose updating a change request. Validates the change exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      changeId: z.string().describe('Change UUID to update'),
+      changeId: zId.describe('Change UUID to update'),
       title: z.string().max(500).optional().describe('New change title'),
       description: z.string().max(5000).optional().describe('New change description'),
       changeType: z.enum(['STANDARD', 'NORMAL', 'EMERGENCY']).optional().describe('New change type'),
@@ -520,12 +520,12 @@ function registerChangeMutations(server: McpServer) {
       estimatedDowntime: z.number().int().optional().describe('Estimated downtime in minutes'),
       implementationNotes: z.string().max(2000).optional().describe('Implementation notes'),
       successCriteria: z.string().max(5000).optional().describe('Success criteria'),
-      implementerId: z.string().optional().describe('Implementer user UUID'),
-      departmentId: z.string().optional().describe('Department UUID'),
-      parentChangeId: z.string().optional().describe('Parent change UUID'),
-      vendorId: z.string().optional().describe('Vendor/external dependency UUID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      implementerId: zId.optional().describe('Implementer user UUID'),
+      departmentId: zId.optional().describe('Department UUID'),
+      parentChangeId: zId.optional().describe('Parent change UUID'),
+      vendorId: zId.optional().describe('Vendor/external dependency UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_change', async (params) => {
       const change = await prisma.change.findUnique({
@@ -554,10 +554,10 @@ function registerChangeMutations(server: McpServer) {
     'propose_approve_change',
     'Propose approving a change request. Validates the change exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      changeId: z.string().describe('Change UUID to approve'),
+      changeId: zId.describe('Change UUID to approve'),
       comments: z.string().max(1000).optional().describe('Approval comments'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_approve_change', async (params) => {
       const change = await prisma.change.findUnique({
@@ -586,10 +586,10 @@ function registerChangeMutations(server: McpServer) {
     'propose_reject_change',
     'Propose rejecting a change request. Validates the change exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      changeId: z.string().describe('Change UUID to reject'),
+      changeId: zId.describe('Change UUID to reject'),
       rejectionReason: z.string().max(1000).describe('Reason for rejecting the change'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_reject_change', async (params) => {
       const change = await prisma.change.findUnique({
@@ -618,11 +618,11 @@ function registerChangeMutations(server: McpServer) {
     'propose_implement_change',
     'Propose marking a change request as implementing. Validates the change exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      changeId: z.string().describe('Change UUID to mark as implementing'),
+      changeId: zId.describe('Change UUID to mark as implementing'),
       implementationNotes: z.string().max(2000).optional().describe('Implementation notes'),
       actualStart: z.string().datetime().optional().describe('Actual start date (ISO 8601)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_implement_change', async (params) => {
       const change = await prisma.change.findUnique({
@@ -651,15 +651,15 @@ function registerChangeMutations(server: McpServer) {
     'propose_complete_change',
     'Propose completing a change request. Validates the change exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      changeId: z.string().describe('Change UUID to complete'),
+      changeId: zId.describe('Change UUID to complete'),
       successful: z.boolean().describe('Whether the change was successful'),
       completionNotes: z.string().max(2000).optional().describe('Completion notes'),
       testResults: z.string().max(5000).optional().describe('Test results'),
       lessonsLearned: z.string().max(5000).optional().describe('Lessons learned'),
       pirRequired: z.boolean().optional().describe('Whether post-implementation review is required'),
       pirNotes: z.string().max(2000).optional().describe('Post-implementation review notes'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_complete_change', async (params) => {
       const change = await prisma.change.findUnique({
@@ -688,10 +688,10 @@ function registerChangeMutations(server: McpServer) {
     'propose_cancel_change',
     'Propose cancelling a change request. Validates the change exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      changeId: z.string().describe('Change UUID to cancel'),
+      changeId: zId.describe('Change UUID to cancel'),
       cancellationReason: z.string().max(1000).describe('Reason for cancelling the change'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_cancel_change', async (params) => {
       const change = await prisma.change.findUnique({
@@ -736,7 +736,7 @@ function registerCapacityMutations(server: McpServer) {
     'Propose creating a new capacity plan for an asset. Supports NIS2 capacity management requirements. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       title: z.string().max(500).describe('Capacity plan title'),
-      assetId: z.string().optional().describe('Asset UUID (optional if planning for a group)'),
+      assetId: zId.optional().describe('Asset UUID (optional if planning for a group)'),
       assetGroup: z.string().max(200).optional().describe('Asset group name (alternative to specific assetId)'),
       description: z.string().max(5000).optional().describe('Plan description'),
       currentCapacity: z.string().max(5000).describe('Description of current capacity'),
@@ -749,9 +749,9 @@ function registerCapacityMutations(server: McpServer) {
       recommendedDate: z.string().datetime().optional().describe('Recommended action date (ISO 8601)'),
       costCurrency: z.string().max(200).optional().describe('Cost currency (e.g. USD, EUR)'),
       reviewDate: z.string().datetime().optional().describe('Next review date (ISO 8601)'),
-      organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      organisationId: zOrgId,
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_capacity_plan', async (params) => {
       // Validate asset if provided
@@ -781,7 +781,7 @@ function registerCapacityMutations(server: McpServer) {
     'propose_update_capacity_plan',
     'Propose updating a capacity plan. Validates the capacity plan exists before creating the proposal. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      capacityPlanId: z.string().describe('Capacity plan UUID to update'),
+      capacityPlanId: zId.describe('Capacity plan UUID to update'),
       title: z.string().max(500).optional().describe('New capacity plan title'),
       description: z.string().max(5000).optional().describe('New description'),
       status: z.enum(['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).optional().describe('New capacity plan status'),
@@ -794,8 +794,8 @@ function registerCapacityMutations(server: McpServer) {
       estimatedCost: z.number().max(1_000_000_000).optional().describe('Estimated cost'),
       costCurrency: z.string().max(200).optional().describe('Cost currency'),
       reviewDate: z.string().datetime().optional().describe('Next review date (ISO 8601)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_capacity_plan', async (params) => {
       const plan = await prisma.capacityPlan.findUnique({

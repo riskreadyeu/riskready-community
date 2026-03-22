@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { createPendingAction, getDefaultOrganisationId, withErrorHandling } from '#mcp-shared';
+import { createPendingAction, getDefaultOrganisationId, withErrorHandling, zId, zSessionId, zOrgId, zReason } from '#mcp-shared';
 
 // ========================================
 // ASSESSMENT MUTATIONS
@@ -13,12 +13,12 @@ function registerAssessmentMutations(server: McpServer) {
     'propose_assessment',
     'Propose creating a new control assessment. The proposal goes into an approval queue for human review before execution. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
+      organisationId: zOrgId,
       assessmentRef: z.string().max(200).describe('Assessment reference ID (e.g. "ASM-2026-001")'),
       title: z.string().max(500).describe('Assessment title'),
       description: z.string().max(5000).optional().describe('Assessment description'),
-      leadTesterId: z.string().optional().describe('Lead tester user ID'),
-      reviewerId: z.string().optional().describe('Reviewer user ID'),
+      leadTesterId: zId.optional().describe('Lead tester user ID'),
+      reviewerId: zId.optional().describe('Reviewer user ID'),
       plannedStartDate: z.string().datetime().optional().describe('Planned start date (ISO 8601)'),
       plannedEndDate: z.string().datetime().optional().describe('Planned end date (ISO 8601)'),
       dueDate: z.string().datetime().optional().describe('Due date (ISO 8601)'),
@@ -29,8 +29,8 @@ function registerAssessmentMutations(server: McpServer) {
       controlIds: z.array(z.string()).max(500).optional().describe('Control UUIDs to include in scope'),
       scopeItemIds: z.array(z.string()).max(500).optional().describe('Scope item UUIDs to include'),
       status: z.string().max(200).optional().describe('Initial assessment status'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_assessment', async (params) => {
       return createPendingAction({
@@ -49,11 +49,11 @@ function registerAssessmentMutations(server: McpServer) {
     'propose_update_assessment',
     'Propose updating assessment details (title, dates, team). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentId: z.string().describe('Assessment UUID'),
+      assessmentId: zId.describe('Assessment UUID'),
       title: z.string().max(500).optional().describe('New title'),
       description: z.string().max(5000).optional().describe('New description'),
-      leadTesterId: z.string().optional().describe('New lead tester user ID'),
-      reviewerId: z.string().optional().describe('New reviewer user ID'),
+      leadTesterId: zId.optional().describe('Lead tester user ID'),
+      reviewerId: zId.optional().describe('Reviewer user ID'),
       plannedStartDate: z.string().datetime().optional().describe('New planned start date (ISO 8601)'),
       plannedEndDate: z.string().datetime().optional().describe('New planned end date (ISO 8601)'),
       dueDate: z.string().datetime().optional().describe('New due date (ISO 8601)'),
@@ -62,8 +62,8 @@ function registerAssessmentMutations(server: McpServer) {
       actualStartDate: z.string().datetime().optional().describe('Actual start date (ISO 8601)'),
       actualEndDate: z.string().datetime().optional().describe('Actual end date (ISO 8601)'),
       status: z.string().max(200).optional().describe('New assessment status'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_assessment', async (params) => {
       const assessment = await prisma.assessment.findUnique({
@@ -90,9 +90,9 @@ function registerAssessmentMutations(server: McpServer) {
     'propose_delete_assessment',
     'Propose deleting a draft assessment. Only DRAFT assessments can be deleted. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentId: z.string().describe('Assessment UUID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      assessmentId: zId.describe('Assessment UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_delete_assessment', async (params) => {
       const assessment = await prisma.assessment.findUnique({
@@ -122,9 +122,9 @@ function registerAssessmentMutations(server: McpServer) {
     'propose_start_assessment',
     'Propose starting a draft assessment (DRAFT → IN_PROGRESS). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentId: z.string().describe('Assessment UUID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      assessmentId: zId.describe('Assessment UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_start_assessment', async (params) => {
       const assessment = await prisma.assessment.findUnique({
@@ -154,9 +154,9 @@ function registerAssessmentMutations(server: McpServer) {
     'propose_submit_assessment_review',
     'Propose submitting an assessment for review (IN_PROGRESS → UNDER_REVIEW). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentId: z.string().describe('Assessment UUID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      assessmentId: zId.describe('Assessment UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_submit_assessment_review', async (params) => {
       const assessment = await prisma.assessment.findUnique({
@@ -186,10 +186,10 @@ function registerAssessmentMutations(server: McpServer) {
     'propose_complete_assessment',
     'Propose completing an assessment under review (UNDER_REVIEW → COMPLETED). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentId: z.string().describe('Assessment UUID'),
+      assessmentId: zId.describe('Assessment UUID'),
       reviewNotes: z.string().max(2000).optional().describe('Review notes'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_complete_assessment', async (params) => {
       const assessment = await prisma.assessment.findUnique({
@@ -219,10 +219,10 @@ function registerAssessmentMutations(server: McpServer) {
     'propose_cancel_assessment',
     'Propose cancelling an assessment. Cannot cancel already COMPLETED or CANCELLED assessments. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentId: z.string().describe('Assessment UUID'),
+      assessmentId: zId.describe('Assessment UUID'),
       cancelReason: z.string().max(1000).optional().describe('Reason for cancellation'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_cancel_assessment', async (params) => {
       const assessment = await prisma.assessment.findUnique({
@@ -252,10 +252,10 @@ function registerAssessmentMutations(server: McpServer) {
     'propose_add_assessment_controls',
     'Propose adding controls to an assessment scope. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentId: z.string().describe('Assessment UUID'),
+      assessmentId: zId.describe('Assessment UUID'),
       controlIds: z.array(z.string()).max(500).describe('Control UUIDs to add'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_add_assessment_controls', async (params) => {
       const assessment = await prisma.assessment.findUnique({
@@ -282,10 +282,10 @@ function registerAssessmentMutations(server: McpServer) {
     'propose_remove_assessment_control',
     'Propose removing a control from an assessment scope. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentId: z.string().describe('Assessment UUID'),
-      controlId: z.string().describe('Control UUID to remove'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      assessmentId: zId.describe('Assessment UUID'),
+      controlId: zId.describe('Control UUID to remove'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_remove_assessment_control', async (params) => {
       const assessment = await prisma.assessment.findUnique({
@@ -312,10 +312,10 @@ function registerAssessmentMutations(server: McpServer) {
     'propose_add_assessment_scope_items',
     'Propose adding scope items to an assessment. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentId: z.string().describe('Assessment UUID'),
+      assessmentId: zId.describe('Assessment UUID'),
       scopeItemIds: z.array(z.string()).max(500).describe('Scope item UUIDs to add'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_add_assessment_scope_items', async (params) => {
       const assessment = await prisma.assessment.findUnique({
@@ -342,10 +342,10 @@ function registerAssessmentMutations(server: McpServer) {
     'propose_remove_assessment_scope_item',
     'Propose removing a scope item from an assessment. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentId: z.string().describe('Assessment UUID'),
-      scopeItemId: z.string().describe('Scope item UUID to remove'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      assessmentId: zId.describe('Assessment UUID'),
+      scopeItemId: zId.describe('Scope item UUID to remove'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_remove_assessment_scope_item', async (params) => {
       const assessment = await prisma.assessment.findUnique({
@@ -372,9 +372,9 @@ function registerAssessmentMutations(server: McpServer) {
     'propose_populate_tests',
     'Propose auto-generating tests for an assessment based on its controls in scope. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentId: z.string().describe('Assessment UUID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      assessmentId: zId.describe('Assessment UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_populate_tests', async (params) => {
       const assessment = await prisma.assessment.findUnique({
@@ -405,12 +405,12 @@ function registerAssessmentMutations(server: McpServer) {
     'Propose bulk-assigning tests to testers, owners, or assessors. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
       testIds: z.array(z.string()).max(500).describe('Assessment test UUIDs to update'),
-      assignedTesterId: z.string().optional().describe('Tester user ID to assign'),
-      ownerId: z.string().optional().describe('Owner user ID to assign'),
-      assessorId: z.string().optional().describe('Assessor user ID to assign'),
+      assignedTesterId: zId.optional().describe('Assigned tester user ID'),
+      ownerId: zId.optional().describe('Owner user ID'),
+      assessorId: zId.optional().describe('Assessor user ID'),
       testMethod: z.string().max(200).optional().describe('Test method to set'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_bulk_assign_tests', async (params) => {
       // Get org from first test
@@ -444,16 +444,16 @@ function registerSoaMutations(server: McpServer) {
     'propose_soa_entry_update',
     'Propose updating an SOA entry — change applicability or implementation status. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      soaEntryId: z.string().describe('SOAEntry UUID'),
+      soaEntryId: zId.describe('SOAEntry UUID'),
       applicable: z.boolean().optional().describe('Change applicability'),
       implementationStatus: z.enum(['NOT_STARTED', 'PARTIAL', 'IMPLEMENTED']).optional().describe('New implementation status'),
       implementationDesc: z.string().max(5000).optional().describe('Implementation description'),
       justificationIfNa: z.string().max(5000).optional().describe('Justification if marking not applicable'),
-      controlRecordId: z.string().optional().describe('Control record ID'),
-      parentRiskId: z.string().optional().describe('Parent risk ID for mapping'),
+      controlRecordId: zId.optional().describe('Control record ID'),
+      parentRiskId: zId.optional().describe('Parent risk ID for mapping'),
       scenarioIds: z.string().max(200).optional().describe('Comma-separated scenario IDs (e.g. "R-001-S01, R-001-S02")'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_soa_entry_update', async (params) => {
       // Validate SOA entry exists
@@ -487,9 +487,9 @@ function registerSoaMutations(server: McpServer) {
       version: z.string().max(200).describe('SOA version identifier (e.g. "1.0", "2024-Q1")'),
       name: z.string().max(500).optional().describe('SOA name'),
       notes: z.string().max(2000).optional().describe('SOA notes'),
-      organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      organisationId: zOrgId,
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_soa', async (params) => {
       return createPendingAction({
@@ -510,9 +510,9 @@ function registerSoaMutations(server: McpServer) {
     {
       version: z.string().max(200).describe('SOA version identifier'),
       name: z.string().max(500).optional().describe('SOA name'),
-      organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      organisationId: zOrgId,
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_soa_from_controls', async (params) => {
       return createPendingAction({
@@ -531,12 +531,12 @@ function registerSoaMutations(server: McpServer) {
     'propose_create_soa_version',
     'Propose creating a new SOA version by copying entries from an existing SOA. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      sourceSoaId: z.string().describe('Source SOA UUID to copy from'),
+      sourceSoaId: zId.describe('Source SOA UUID to copy from'),
       newVersion: z.string().max(200).describe('New version identifier'),
       name: z.string().max(500).optional().describe('New SOA name'),
       notes: z.string().max(2000).optional().describe('New SOA notes'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_soa_version', async (params) => {
       const sourceSoa = await prisma.statementOfApplicability.findUnique({
@@ -563,11 +563,11 @@ function registerSoaMutations(server: McpServer) {
     'propose_update_soa',
     'Propose updating SOA metadata (name, notes). Only DRAFT SOAs can be updated. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      soaId: z.string().describe('SOA UUID'),
+      soaId: zId.describe('SOA UUID'),
       name: z.string().max(500).optional().describe('New SOA name'),
       notes: z.string().max(2000).optional().describe('New SOA notes'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_soa', async (params) => {
       const soa = await prisma.statementOfApplicability.findUnique({
@@ -597,9 +597,9 @@ function registerSoaMutations(server: McpServer) {
     'propose_submit_soa_review',
     'Propose submitting an SOA for review (DRAFT → PENDING_REVIEW). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      soaId: z.string().describe('SOA UUID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      soaId: zId.describe('SOA UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_submit_soa_review', async (params) => {
       const soa = await prisma.statementOfApplicability.findUnique({
@@ -629,9 +629,9 @@ function registerSoaMutations(server: McpServer) {
     'propose_approve_soa',
     'Propose approving an SOA under review (PENDING_REVIEW → APPROVED). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      soaId: z.string().describe('SOA UUID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      soaId: zId.describe('SOA UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_approve_soa', async (params) => {
       const soa = await prisma.statementOfApplicability.findUnique({
@@ -661,9 +661,9 @@ function registerSoaMutations(server: McpServer) {
     'propose_delete_soa',
     'Propose deleting a draft SOA. Only DRAFT SOAs can be deleted. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      soaId: z.string().describe('SOA UUID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      soaId: zId.describe('SOA UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_delete_soa', async (params) => {
       const soa = await prisma.statementOfApplicability.findUnique({
@@ -699,15 +699,15 @@ function registerScopeMutations(server: McpServer) {
     'propose_scope_item',
     'Propose adding a new scope item (application, asset class, location, etc.) for assessment testing. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
+      organisationId: zOrgId,
       scopeType: z.enum(['APPLICATION', 'ASSET_CLASS', 'LOCATION', 'PERSONNEL_TYPE', 'BUSINESS_UNIT', 'PLATFORM', 'PROVIDER', 'NETWORK_ZONE', 'PROCESS']).describe('Scope type'),
       code: z.string().max(200).describe('Unique scope item code (e.g. "APP-001", "LOC-HQ")'),
       name: z.string().max(500).describe('Scope item name'),
       description: z.string().max(5000).optional().describe('Description'),
       criticality: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).default('MEDIUM').describe('Criticality level'),
       isActive: z.boolean().optional().describe('Whether the scope item is active'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_scope_item', async (params) => {
       return createPendingAction({
@@ -726,13 +726,13 @@ function registerScopeMutations(server: McpServer) {
     'propose_update_scope_item',
     'Propose updating a scope item\'s details. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      scopeItemId: z.string().describe('Scope item UUID'),
+      scopeItemId: zId.describe('Scope item UUID'),
       name: z.string().max(500).optional().describe('New name'),
       description: z.string().max(5000).optional().describe('New description'),
       criticality: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('New criticality level'),
       isActive: z.boolean().optional().describe('Active status'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_scope_item', async (params) => {
       const item = await prisma.scopeItem.findUnique({
@@ -759,9 +759,9 @@ function registerScopeMutations(server: McpServer) {
     'propose_delete_scope_item',
     'Propose deleting a scope item. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      scopeItemId: z.string().describe('Scope item UUID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      scopeItemId: zId.describe('Scope item UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_delete_scope_item', async (params) => {
       const item = await prisma.scopeItem.findUnique({
@@ -794,7 +794,7 @@ function registerTestMutations(server: McpServer) {
     'propose_test_result',
     'Propose recording a test result for an assessment test. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentTestId: z.string().describe('AssessmentTest UUID'),
+      assessmentTestId: zId.describe('AssessmentTest UUID'),
       result: z.enum(['PASS', 'PARTIAL', 'FAIL', 'NOT_APPLICABLE']).describe('Test result'),
       findings: z.string().max(5000).optional().describe('Test findings'),
       recommendations: z.string().max(2000).optional().describe('Recommendations'),
@@ -804,9 +804,9 @@ function registerTestMutations(server: McpServer) {
       remediationEffort: z.enum(['TRIVIAL', 'MINOR', 'MODERATE', 'MAJOR', 'STRATEGIC']).optional().describe('Remediation effort'),
       estimatedHours: z.number().max(100_000).optional().describe('Estimated hours to complete'),
       estimatedCost: z.number().max(1_000_000_000).optional().describe('Estimated cost to remediate'),
-      assignedTesterId: z.string().optional().describe('Assigned tester user ID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      assignedTesterId: zId.optional().describe('Assigned tester user ID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_test_result', async (params) => {
       const test = await prisma.assessmentTest.findUnique({
@@ -833,13 +833,13 @@ function registerTestMutations(server: McpServer) {
     'propose_remediation',
     'Propose a remediation action for a failed assessment test. Creates a treatment action linked to the test. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentTestId: z.string().describe('AssessmentTest UUID (the failed/partial test)'),
+      assessmentTestId: zId.describe('AssessmentTest UUID (the failed/partial test)'),
       title: z.string().max(500).describe('Remediation action title'),
       description: z.string().max(5000).optional().describe('Detailed description of the remediation'),
       priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).default('MEDIUM').describe('Priority level'),
       estimatedHours: z.number().int().max(100_000).optional().describe('Estimated hours to complete'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_remediation', async (params) => {
       const test = await prisma.assessmentTest.findUnique({
@@ -866,15 +866,15 @@ function registerTestMutations(server: McpServer) {
     'propose_update_test',
     'Propose updating test assignment or method details. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentTestId: z.string().describe('AssessmentTest UUID'),
+      assessmentTestId: zId.describe('AssessmentTest UUID'),
       testMethod: z.string().max(200).optional().describe('New test method'),
-      ownerId: z.string().optional().describe('New owner user ID'),
-      assessorId: z.string().optional().describe('New assessor user ID'),
-      assignedTesterId: z.string().optional().describe('New assigned tester user ID'),
+      ownerId: zId.optional().describe('Owner user ID'),
+      assessorId: zId.optional().describe('Assessor user ID'),
+      assignedTesterId: zId.optional().describe('Assigned tester user ID'),
       status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'SKIPPED']).optional().describe('New test status'),
       result: z.enum(['PASS', 'PARTIAL', 'FAIL', 'NOT_TESTED', 'NOT_APPLICABLE']).optional().describe('New test result'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_test', async (params) => {
       const test = await prisma.assessmentTest.findUnique({
@@ -901,10 +901,10 @@ function registerTestMutations(server: McpServer) {
     'propose_assign_tester',
     'Propose assigning a specific tester to a test. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentTestId: z.string().describe('AssessmentTest UUID'),
-      testerId: z.string().describe('User UUID of the tester to assign'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      assessmentTestId: zId.describe('AssessmentTest UUID'),
+      testerId: zId.describe('User UUID of the tester to assign'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_assign_tester', async (params) => {
       const test = await prisma.assessmentTest.findUnique({
@@ -931,14 +931,14 @@ function registerTestMutations(server: McpServer) {
     'propose_update_root_cause',
     'Propose updating root cause analysis for a failed or partial test. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentTestId: z.string().describe('AssessmentTest UUID'),
+      assessmentTestId: zId.describe('AssessmentTest UUID'),
       rootCause: z.enum(['PEOPLE', 'PROCESS', 'TECHNOLOGY', 'BUDGET', 'THIRD_PARTY', 'DESIGN', 'UNKNOWN']).optional().describe('Root cause category'),
       rootCauseNotes: z.string().max(2000).optional().describe('Root cause notes'),
       remediationEffort: z.enum(['TRIVIAL', 'MINOR', 'MODERATE', 'MAJOR', 'STRATEGIC']).optional().describe('Remediation effort'),
       estimatedHours: z.number().max(100_000).optional().describe('Estimated hours to remediate'),
       estimatedCost: z.number().max(1_000_000_000).optional().describe('Estimated cost to remediate'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_root_cause', async (params) => {
       const test = await prisma.assessmentTest.findUnique({
@@ -968,10 +968,10 @@ function registerTestMutations(server: McpServer) {
     'propose_skip_test',
     'Propose skipping a test with justification. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      assessmentTestId: z.string().describe('AssessmentTest UUID'),
+      assessmentTestId: zId.describe('AssessmentTest UUID'),
       justification: z.string().max(1000).describe('Justification for skipping the test'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_skip_test', async (params) => {
       const test = await prisma.assessmentTest.findUnique({
@@ -1007,13 +1007,13 @@ function registerControlMutations(server: McpServer) {
     'propose_control_status',
     'Propose changing a control\'s implementation status or applicability. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      controlId: z.string().describe('Control UUID'),
+      controlId: zId.describe('Control UUID'),
       implementationStatus: z.enum(['NOT_STARTED', 'PARTIAL', 'IMPLEMENTED']).describe('New implementation status'),
       implementationDesc: z.string().max(5000).optional().describe('Implementation description'),
       applicable: z.boolean().optional().describe('Whether the control is applicable (regulatory scope)'),
       justificationIfNa: z.string().max(5000).optional().describe('Justification when marking control as not applicable'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_control_status', async (params) => {
       const control = await prisma.control.findUnique({
@@ -1057,9 +1057,9 @@ function registerControlMutations(server: McpServer) {
       justificationIfNa: z.string().max(5000).optional().describe('Justification if not applicable'),
       implementationStatus: z.enum(['NOT_STARTED', 'PARTIAL', 'IMPLEMENTED']).optional().describe('Initial implementation status'),
       implementationDesc: z.string().max(5000).optional().describe('Implementation description'),
-      organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      organisationId: zOrgId,
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_control', async (params) => {
       // Check no duplicate controlId for org
@@ -1087,7 +1087,7 @@ function registerControlMutations(server: McpServer) {
     'propose_update_control',
     'Propose updating an existing control\'s details. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      controlId: z.string().describe('Control UUID'),
+      controlId: zId.describe('Control UUID'),
       name: z.string().max(500).optional().describe('New control name'),
       description: z.string().max(5000).optional().describe('New description'),
       theme: z.enum(['ORGANISATIONAL', 'PEOPLE', 'PHYSICAL', 'TECHNOLOGICAL']).optional().describe('New theme'),
@@ -1099,8 +1099,8 @@ function registerControlMutations(server: McpServer) {
       justificationIfNa: z.string().max(5000).optional().describe('Justification if not applicable'),
       implementationStatus: z.enum(['NOT_STARTED', 'PARTIAL', 'IMPLEMENTED']).optional().describe('New implementation status'),
       implementationDesc: z.string().max(5000).optional().describe('New implementation description'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_control', async (params) => {
       const control = await prisma.control.findUnique({
@@ -1127,10 +1127,10 @@ function registerControlMutations(server: McpServer) {
     'propose_disable_control',
     'Propose disabling a control (soft-delete). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      controlId: z.string().describe('Control UUID'),
+      controlId: zId.describe('Control UUID'),
       disableReason: z.string().max(1000).describe('Reason for disabling the control'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_disable_control', async (params) => {
       const control = await prisma.control.findUnique({
@@ -1160,9 +1160,9 @@ function registerControlMutations(server: McpServer) {
     'propose_enable_control',
     'Propose re-enabling a disabled control. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      controlId: z.string().describe('Control UUID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      controlId: zId.describe('Control UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_enable_control', async (params) => {
       const control = await prisma.control.findUnique({
@@ -1201,12 +1201,12 @@ function registerMetricMutations(server: McpServer) {
     'propose_metric_value',
     'Propose recording a new metric measurement value. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      metricId: z.string().describe('ControlMetric UUID'),
+      metricId: zId.describe('ControlMetric UUID'),
       value: z.string().max(200).describe('New measurement value (e.g. "95%", "3", "14 days")'),
       status: z.enum(['GREEN', 'AMBER', 'RED']).describe('RAG status for this measurement'),
       notes: z.string().max(2000).optional().describe('Measurement notes'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_metric_value', async (params) => {
       const metric = await prisma.controlMetric.findUnique({

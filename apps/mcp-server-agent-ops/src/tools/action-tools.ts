@@ -1,15 +1,15 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling } from '#mcp-shared';
+import { withErrorHandling, zId, zOrgId } from '#mcp-shared';
 
 export function registerActionTools(server: McpServer) {
   server.tool(
     'check_action_status',
     'Check the status of a previously proposed action by its ID. Returns status (PENDING/APPROVED/REJECTED/EXECUTED/FAILED), reviewer notes, and result data.',
     {
-      actionId: z.string().describe('The action ID returned when the action was proposed'),
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      actionId: zId.describe('The action ID returned when the action was proposed'),
+      organisationId: zOrgId,
     },
     withErrorHandling('check_action_status', async ({ actionId, organisationId }) => {
       const action = await prisma.mcpPendingAction.findFirst({
@@ -50,7 +50,7 @@ export function registerActionTools(server: McpServer) {
     'list_pending_actions',
     'List pending actions for an organisation with optional status filter. Useful for checking what proposals are awaiting approval.',
     {
-      organisationId: z.string().describe('Organisation UUID'),
+      organisationId: zId.describe('Organisation UUID'),
       status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'EXECUTED', 'FAILED']).optional().describe('Filter by action status'),
       limit: z.number().int().min(1).max(100).default(20).describe('Max results to return'),
     },
@@ -98,7 +98,7 @@ export function registerActionTools(server: McpServer) {
     'list_recent_actions',
     'List recent actions since a given date. Useful for reviewing what the agent has proposed and what happened to those proposals.',
     {
-      organisationId: z.string().describe('Organisation UUID'),
+      organisationId: zId.describe('Organisation UUID'),
       since: z.string().optional().describe('ISO date string — only return actions created after this date (defaults to last 24 hours)'),
       limit: z.number().int().min(1).max(100).default(20).describe('Max results to return'),
     },

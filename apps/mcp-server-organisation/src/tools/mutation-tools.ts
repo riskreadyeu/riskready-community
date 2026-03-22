@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { createPendingAction, withErrorHandling } from '#mcp-shared';
+import { createPendingAction, withErrorHandling, zId, zSessionId, zOrgId, zReason } from '#mcp-shared';
 import { getSingleOrganisation } from './single-org.js';
 
 // ---------------------------------------------------------------------------
@@ -13,7 +13,7 @@ function registerProfileMutations(server: McpServer) {
     'propose_update_org_profile',
     'Propose updating the organisation profile. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      organisationId: z.string().optional().describe('Organisation UUID (uses first org if omitted)'),
+      organisationId: zOrgId,
       name: z.string().max(500).optional().describe('New organisation name'),
       description: z.string().max(5000).optional().describe('New description'),
       employeeCount: z.number().int().optional().describe('Updated employee count'),
@@ -62,8 +62,8 @@ function registerProfileMutations(server: McpServer) {
       ).describe('Risk tolerance (JSON object)'),
       riskAcceptanceThreshold: z.number().int().optional().describe('Risk acceptance threshold score (e.g. 6, 12, 16)'),
       maxTolerableDowntime: z.number().int().optional().describe('Maximum tolerable downtime in hours'),
-      reason: z.string().max(1000).optional().describe('Reason for update'),
-      mcpSessionId: z.string().optional().describe('MCP session ID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_org_profile', async (params) => {
       const org = params.organisationId
@@ -100,10 +100,10 @@ function registerStructureMutations(server: McpServer) {
       description: z.string().max(5000).optional().describe('Department description'),
       departmentCategory: z.string().max(200).optional().describe('Department category'),
       criticalityLevel: z.string().max(200).optional().describe('Criticality level'),
-      parentId: z.string().optional().describe('Parent department UUID'),
+      parentId: zId.optional().describe('Parent department UUID'),
       functionType: z.string().max(200).optional().describe('Function type'),
-      departmentHeadId: z.string().optional().describe('Department head user UUID'),
-      deputyHeadId: z.string().optional().describe('Deputy head user UUID'),
+      departmentHeadId: zId.optional().describe('Department head user UUID'),
+      deputyHeadId: zId.optional().describe('Deputy head user UUID'),
       headcount: z.number().int().optional().describe('Headcount'),
       costCenter: z.string().max(200).optional().describe('Cost center'),
       contactEmail: z.string().max(200).optional().describe('Contact email'),
@@ -111,8 +111,8 @@ function registerStructureMutations(server: McpServer) {
       handlesPersonalData: z.boolean().optional().describe('Whether department handles personal data'),
       handlesFinancialData: z.boolean().optional().describe('Whether department handles financial data'),
       establishedDate: z.string().datetime().optional().describe('Established date (ISO 8601)'),
-      reason: z.string().max(1000).optional().describe('Reason for creation'),
-      mcpSessionId: z.string().optional().describe('MCP session ID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_department', async (params) => {
       return createPendingAction({
@@ -130,22 +130,22 @@ function registerStructureMutations(server: McpServer) {
     'propose_update_department',
     'Propose updating an existing department. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      departmentId: z.string().describe('Department UUID'),
+      departmentId: zId.describe('Department UUID'),
       name: z.string().max(500).optional().describe('New name'),
       description: z.string().max(5000).optional().describe('New description'),
       departmentCategory: z.string().max(200).optional().describe('New category'),
       criticalityLevel: z.string().max(200).optional().describe('New criticality level'),
       isActive: z.boolean().optional().describe('Active status'),
       functionType: z.string().max(200).optional().describe('Function type'),
-      departmentHeadId: z.string().optional().describe('Department head user UUID'),
-      deputyHeadId: z.string().optional().describe('Deputy head user UUID'),
+      departmentHeadId: zId.optional().describe('Department head user UUID'),
+      deputyHeadId: zId.optional().describe('Deputy head user UUID'),
       headcount: z.number().int().optional().describe('Headcount'),
       costCenter: z.string().max(200).optional().describe('Cost center'),
       contactEmail: z.string().max(200).optional().describe('Contact email'),
       contactPhone: z.string().max(200).optional().describe('Contact phone'),
       handlesPersonalData: z.boolean().optional().describe('Whether department handles personal data'),
-      reason: z.string().max(1000).optional().describe('Reason for update'),
-      mcpSessionId: z.string().optional().describe('MCP session ID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_department', async (params) => {
       const dept = await prisma.department.findUnique({
@@ -191,8 +191,8 @@ function registerStructureMutations(server: McpServer) {
       networkType: z.string().max(200).optional().describe('Network type'),
       isActive: z.boolean().optional().describe('Whether location is active'),
       scopeJustification: z.string().max(5000).optional().describe('Scope justification'),
-      reason: z.string().max(1000).optional().describe('Reason for creation'),
-      mcpSessionId: z.string().optional().describe('MCP session ID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_location', async (params) => {
       return createPendingAction({
@@ -210,7 +210,7 @@ function registerStructureMutations(server: McpServer) {
     'propose_update_location',
     'Propose updating an existing location. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      locationId: z.string().describe('Location UUID'),
+      locationId: zId.describe('Location UUID'),
       name: z.string().max(500).optional().describe('New name'),
       locationType: z.string().max(200).optional().describe('New location type'),
       address: z.string().max(200).optional().describe('New address'),
@@ -226,8 +226,8 @@ function registerStructureMutations(server: McpServer) {
       hasServerRoom: z.boolean().optional().describe('Whether location has a server room'),
       backupPower: z.boolean().optional().describe('Whether location has backup power'),
       scopeJustification: z.string().max(5000).optional().describe('Scope justification'),
-      reason: z.string().max(1000).optional().describe('Reason for update'),
-      mcpSessionId: z.string().optional().describe('MCP session ID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_location', async (params) => {
       const loc = await prisma.location.findUnique({
@@ -263,9 +263,9 @@ function registerProcessMutations(server: McpServer) {
       processType: z.string().max(200).describe('Process type'),
       description: z.string().max(5000).optional().describe('Process description'),
       criticalityLevel: z.string().max(200).optional().describe('Criticality level (critical, high, medium, low)'),
-      departmentId: z.string().optional().describe('Department UUID'),
-      processOwnerId: z.string().optional().describe('Process owner user UUID'),
-      processManagerId: z.string().optional().describe('Process manager user UUID'),
+      departmentId: zId.optional().describe('Department UUID'),
+      processOwnerId: zId.optional().describe('Process owner user UUID'),
+      processManagerId: zId.optional().describe('Process manager user UUID'),
       frequency: z.string().max(200).optional().describe('Process frequency'),
       automationLevel: z.string().max(200).optional().describe('Automation level'),
       isActive: z.boolean().optional().describe('Whether the process is active'),
@@ -275,9 +275,9 @@ function registerProcessMutations(server: McpServer) {
       recoveryTimeObjectiveMinutes: z.number().int().optional().describe('Recovery Time Objective in minutes'),
       recoveryPointObjectiveMinutes: z.number().int().optional().describe('Recovery Point Objective in minutes'),
       maximumTolerableDowntimeMinutes: z.number().int().optional().describe('Maximum tolerable downtime in minutes'),
-      parentProcessId: z.string().optional().describe('Parent process UUID'),
-      reason: z.string().max(1000).optional().describe('Reason for creation'),
-      mcpSessionId: z.string().optional().describe('MCP session ID'),
+      parentProcessId: zId.optional().describe('Parent process UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_business_process', async (params) => {
       return createPendingAction({
@@ -295,22 +295,22 @@ function registerProcessMutations(server: McpServer) {
     'propose_update_business_process',
     'Propose updating an existing business process. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      processId: z.string().describe('BusinessProcess UUID'),
+      processId: zId.describe('BusinessProcess UUID'),
       name: z.string().max(500).optional().describe('New name'),
       description: z.string().max(5000).optional().describe('New description'),
       criticalityLevel: z.string().max(200).optional().describe('New criticality level'),
       processType: z.string().max(200).optional().describe('New process type'),
       isActive: z.boolean().optional().describe('Active status'),
-      processOwnerId: z.string().optional().describe('Process owner user UUID'),
-      processManagerId: z.string().optional().describe('Process manager user UUID'),
+      processOwnerId: zId.optional().describe('Process owner user UUID'),
+      processManagerId: zId.optional().describe('Process manager user UUID'),
       frequency: z.string().max(200).optional().describe('Process frequency'),
       automationLevel: z.string().max(200).optional().describe('Automation level'),
       biaStatus: z.string().max(200).optional().describe('BIA status'),
       bcpEnabled: z.boolean().optional().describe('Whether BCP is enabled'),
       bcpCriticality: z.string().max(200).optional().describe('BCP criticality'),
-      parentProcessId: z.string().optional().describe('Parent process UUID'),
-      reason: z.string().max(1000).optional().describe('Reason for update'),
-      mcpSessionId: z.string().optional().describe('MCP session ID'),
+      parentProcessId: zId.optional().describe('Parent process UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_business_process', async (params) => {
       const process = await prisma.businessProcess.findUnique({
@@ -352,8 +352,8 @@ function registerProcessMutations(server: McpServer) {
       primaryContact: z.string().max(200).optional().describe('Primary contact name'),
       contactPhone: z.string().max(200).optional().describe('Contact phone'),
       exitStrategy: z.string().max(5000).optional().describe('Exit strategy'),
-      reason: z.string().max(1000).optional().describe('Reason for creation'),
-      mcpSessionId: z.string().optional().describe('MCP session ID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_external_dependency', async (params) => {
       return createPendingAction({
@@ -371,7 +371,7 @@ function registerProcessMutations(server: McpServer) {
     'propose_update_external_dependency',
     'Propose updating an existing external dependency. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      dependencyId: z.string().describe('ExternalDependency UUID'),
+      dependencyId: zId.describe('ExternalDependency UUID'),
       name: z.string().max(500).optional().describe('New name'),
       description: z.string().max(5000).optional().describe('New description'),
       criticalityLevel: z.string().max(200).optional().describe('New criticality level'),
@@ -382,8 +382,8 @@ function registerProcessMutations(server: McpServer) {
       dataLocation: z.string().max(200).optional().describe('Data location/jurisdiction'),
       primaryContact: z.string().max(200).optional().describe('Primary contact name'),
       riskRating: z.string().max(200).optional().describe('New risk rating'),
-      reason: z.string().max(1000).optional().describe('Reason for update'),
-      mcpSessionId: z.string().optional().describe('MCP session ID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_external_dependency', async (params) => {
       const dep = await prisma.externalDependency.findUnique({
@@ -419,11 +419,11 @@ function registerGovernanceMutations(server: McpServer) {
       description: z.string().max(5000).optional().describe('Committee description'),
       meetingFrequency: z.string().max(200).describe('Meeting frequency (e.g. "monthly", "quarterly")'),
       establishedDate: z.string().datetime().describe('Established date (ISO 8601)'),
-      chairId: z.string().optional().describe('Chair user UUID'),
+      chairId: zId.optional().describe('Chair user UUID'),
       authorityLevel: z.string().max(200).optional().describe('Authority level'),
       isActive: z.boolean().optional().describe('Whether the committee is active'),
-      reason: z.string().max(1000).optional().describe('Reason for creation'),
-      mcpSessionId: z.string().optional().describe('MCP session ID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_committee', async (params) => {
       return createPendingAction({
@@ -441,16 +441,16 @@ function registerGovernanceMutations(server: McpServer) {
     'propose_update_committee',
     'Propose updating an existing committee. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      committeeId: z.string().describe('SecurityCommittee UUID'),
+      committeeId: zId.describe('SecurityCommittee UUID'),
       name: z.string().max(500).optional().describe('New name'),
       description: z.string().max(5000).optional().describe('New description'),
       meetingFrequency: z.string().max(200).optional().describe('New meeting frequency'),
       isActive: z.boolean().optional().describe('Active status'),
-      chairId: z.string().optional().describe('Chair user UUID'),
+      chairId: zId.optional().describe('Chair user UUID'),
       authorityLevel: z.string().max(200).optional().describe('Authority level'),
       committeeType: z.string().max(200).optional().describe('Committee type'),
-      reason: z.string().max(1000).optional().describe('Reason for update'),
-      mcpSessionId: z.string().optional().describe('MCP session ID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_committee', async (params) => {
       const committee = await prisma.securityCommittee.findUnique({
@@ -476,7 +476,7 @@ function registerGovernanceMutations(server: McpServer) {
     'propose_create_meeting',
     'Propose scheduling a new committee meeting. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      committeeId: z.string().describe('SecurityCommittee UUID'),
+      committeeId: zId.describe('SecurityCommittee UUID'),
       title: z.string().max(500).describe('Meeting title'),
       meetingDate: z.string().datetime().describe('Meeting date (ISO 8601)'),
       startTime: z.string().max(200).describe('Start time (HH:MM)'),
@@ -489,8 +489,8 @@ function registerGovernanceMutations(server: McpServer) {
       objectives: z.string().max(5000).optional().describe('Meeting objectives'),
       status: z.enum(['scheduled', 'in_progress', 'completed', 'cancelled', 'postponed']).optional().describe('Initial meeting status'),
       quorumRequirement: z.number().int().optional().describe('Minimum attendees for quorum'),
-      reason: z.string().max(1000).optional().describe('Reason for scheduling'),
-      mcpSessionId: z.string().optional().describe('MCP session ID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_meeting', async (params) => {
       const committee = await prisma.securityCommittee.findUnique({

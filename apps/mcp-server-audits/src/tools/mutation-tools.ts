@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { createPendingAction, withErrorHandling } from '#mcp-shared';
+import { createPendingAction, withErrorHandling, zId, zSessionId, zOrgId, zReason } from '#mcp-shared';
 
 function registerNonconformityMutations(server: McpServer) {
   server.tool(
@@ -15,15 +15,15 @@ function registerNonconformityMutations(server: McpServer) {
       source: z.enum(['TEST', 'INTERNAL_AUDIT', 'EXTERNAL_AUDIT', 'CERTIFICATION_AUDIT', 'INCIDENT', 'SELF_ASSESSMENT', 'MANAGEMENT_REVIEW', 'SURVEILLANCE_AUDIT', 'ISRA_GAP']).describe('Source of the nonconformity'),
       severity: z.enum(['MAJOR', 'MINOR', 'OBSERVATION']).describe('Severity level'),
       category: z.enum(['CONTROL_FAILURE', 'DOCUMENTATION', 'PROCESS', 'TECHNICAL', 'ORGANIZATIONAL', 'TRAINING', 'RESOURCE']).describe('Nonconformity category'),
-      controlId: z.string().optional().describe('Related control UUID'),
+      controlId: zId.optional().describe('Related control UUID'),
       isoClause: z.string().max(200).optional().describe('ISO clause reference (e.g. "A.5.2", "Clause 6.1")'),
       findings: z.string().max(5000).optional().describe('Detailed audit findings'),
       rootCause: z.string().max(5000).optional().describe('Root cause analysis'),
       impact: z.string().max(5000).optional().describe('Business/security impact'),
       targetClosureDate: z.string().datetime().optional().describe('Target closure date (ISO 8601)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
-      organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
+      organisationId: zOrgId,
     },
     withErrorHandling('propose_create_nc', async (params) => {
       // Check for duplicate ncId
@@ -50,7 +50,7 @@ function registerNonconformityMutations(server: McpServer) {
     'propose_update_nc',
     'Propose updating an existing nonconformity. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      ncId: z.string().describe('Nonconformity UUID to update'),
+      ncId: zId.describe('Nonconformity UUID'),
       title: z.string().max(500).optional().describe('New title'),
       description: z.string().max(5000).optional().describe('New description'),
       severity: z.enum(['MAJOR', 'MINOR', 'OBSERVATION']).optional().describe('New severity'),
@@ -62,8 +62,8 @@ function registerNonconformityMutations(server: McpServer) {
       impact: z.string().max(5000).optional().describe('Business/security impact'),
       correctiveAction: z.string().max(5000).optional().describe('Corrective action plan text'),
       targetClosureDate: z.string().datetime().optional().describe('Target closure date (ISO 8601)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_nc', async (params) => {
       const nc = await prisma.nonconformity.findUnique({
@@ -90,11 +90,11 @@ function registerNonconformityMutations(server: McpServer) {
     'propose_transition_nc',
     'Propose transitioning a nonconformity to a new status. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      ncId: z.string().describe('Nonconformity UUID'),
+      ncId: zId.describe('Nonconformity UUID'),
       targetStatus: z.enum(['DRAFT', 'OPEN', 'IN_PROGRESS', 'AWAITING_VERIFICATION', 'VERIFIED_EFFECTIVE', 'VERIFIED_INEFFECTIVE', 'CLOSED', 'REJECTED']).describe('Target NC status'),
       justification: z.string().max(1000).optional().describe('Justification for the transition'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_transition_nc', async (params) => {
       const nc = await prisma.nonconformity.findUnique({
@@ -121,13 +121,13 @@ function registerNonconformityMutations(server: McpServer) {
     'propose_close_nc',
     'Propose closing a nonconformity after verification. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      ncId: z.string().describe('Nonconformity UUID'),
+      ncId: zId.describe('Nonconformity UUID'),
       verificationMethod: z.string().max(1000).optional().describe('Verification method (e.g. "RE_TEST", "RE_AUDIT", "DOCUMENT_REVIEW", "WALKTHROUGH")'),
       verificationResult: z.string().max(1000).optional().describe('Verification result (e.g. "EFFECTIVE", "INEFFECTIVE")'),
       verificationNotes: z.string().max(2000).optional().describe('Verification notes'),
       verificationDate: z.string().datetime().optional().describe('Verification date (ISO 8601)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_close_nc', async (params) => {
       const nc = await prisma.nonconformity.findUnique({
@@ -156,12 +156,12 @@ function registerCapMutations(server: McpServer) {
     'propose_submit_cap',
     'Propose submitting a corrective action plan (CAP) for approval. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      ncId: z.string().describe('Nonconformity UUID'),
+      ncId: zId.describe('Nonconformity UUID'),
       correctiveAction: z.string().max(5000).describe('Corrective action plan text'),
       targetClosureDate: z.string().datetime().optional().describe('Target closure date (ISO 8601)'),
-      responsibleUserId: z.string().optional().describe('Responsible user UUID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      responsibleUserId: zId.optional().describe('Responsible user UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_submit_cap', async (params) => {
       const nc = await prisma.nonconformity.findUnique({
@@ -188,10 +188,10 @@ function registerCapMutations(server: McpServer) {
     'propose_approve_cap',
     'Propose approving a corrective action plan (CAP). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      ncId: z.string().describe('Nonconformity UUID'),
+      ncId: zId.describe('Nonconformity UUID'),
       approvalComments: z.string().max(1000).optional().describe('Approval comments'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_approve_cap', async (params) => {
       const nc = await prisma.nonconformity.findUnique({
@@ -218,10 +218,10 @@ function registerCapMutations(server: McpServer) {
     'propose_reject_cap',
     'Propose rejecting a corrective action plan (CAP). Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      ncId: z.string().describe('Nonconformity UUID'),
+      ncId: zId.describe('Nonconformity UUID'),
       rejectionReason: z.string().max(1000).describe('Reason for rejecting the CAP'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_reject_cap', async (params) => {
       const nc = await prisma.nonconformity.findUnique({

@@ -1,17 +1,17 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { withErrorHandling, createPendingAction } from '#mcp-shared';
+import { withErrorHandling, createPendingAction, zId } from '#mcp-shared';
 
 export function registerTaskTools(server: McpServer) {
   server.tool(
     'create_agent_task',
     'Create a new agent task to track multi-step work. Use this for complex operations that span multiple tool calls or require approval gates.',
     {
-      organisationId: z.string().describe('Organisation UUID'),
+      organisationId: zId.describe('Organisation UUID'),
       title: z.string().describe('Short title describing the task'),
       instruction: z.string().describe('Detailed instruction for the task'),
-      parentTaskId: z.string().optional().describe('Parent task ID for sub-tasks'),
+      parentTaskId: zId.optional().describe('Parent task ID for sub-tasks'),
       workflowId: z.string().optional().describe('Workflow ID if part of a workflow'),
       stepIndex: z.number().int().optional().describe('Step index within a workflow'),
     },
@@ -31,11 +31,11 @@ export function registerTaskTools(server: McpServer) {
     'update_agent_task',
     'Update the status or result of an agent task. Use this to track progress as you work through multi-step operations.',
     {
-      taskId: z.string().describe('Task UUID'),
+      taskId: zId.describe('Task UUID'),
       status: z.enum(['PENDING', 'IN_PROGRESS', 'AWAITING_APPROVAL', 'COMPLETED', 'FAILED', 'CANCELLED']).optional().describe('New task status'),
       result: z.string().optional().describe('Result summary or output'),
       errorMessage: z.string().optional().describe('Error message if task failed'),
-      actionIds: z.array(z.string()).optional().describe('Action IDs to append to the task'),
+      actionIds: z.array(zId).optional().describe('Action IDs to append to the task'),
     },
     withErrorHandling('update_agent_task', async (params) => {
       const existing = await prisma.agentTask.findUniqueOrThrow({ where: { id: params.taskId } });
@@ -54,7 +54,7 @@ export function registerTaskTools(server: McpServer) {
     'get_agent_task',
     'Get full details of an agent task including child tasks and linked action IDs.',
     {
-      taskId: z.string().describe('Task UUID'),
+      taskId: zId.describe('Task UUID'),
     },
     withErrorHandling('get_agent_task', async ({ taskId }) => {
       const task = await prisma.agentTask.findUnique({
@@ -109,7 +109,7 @@ export function registerTaskTools(server: McpServer) {
     'list_agent_tasks',
     'List agent tasks for an organisation with optional status filter.',
     {
-      organisationId: z.string().describe('Organisation UUID'),
+      organisationId: zId.describe('Organisation UUID'),
       status: z.enum(['PENDING', 'IN_PROGRESS', 'AWAITING_APPROVAL', 'COMPLETED', 'FAILED', 'CANCELLED']).optional().describe('Filter by task status'),
       limit: z.number().int().min(1).max(100).default(20).describe('Max results to return'),
     },
