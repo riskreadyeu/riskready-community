@@ -11,14 +11,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Key, Bot, BarChart3, Check, AlertTriangle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Loader2, Key, Bot, BarChart3, Check, AlertTriangle, Copy, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getGatewayConfig,
   updateGatewayConfig,
   getUsage,
+  createMcpKey,
+  listMcpKeys,
+  revokeMcpKey,
   type GatewayConfig,
   type UsageResponse,
+  type McpApiKey,
+  type McpApiKeyCreated,
 } from "@/lib/gateway-config-api";
 import { listModels, type ChatModelOption } from "@/lib/chat-api";
 
@@ -47,6 +59,21 @@ function formatNumber(n: number): string {
   return n.toLocaleString();
 }
 
+function formatRelativeTime(dateStr: string | null): string {
+  if (!dateStr) return "Never";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 30) return `${diffDays} days ago`;
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12) return `${diffMonths} month${diffMonths > 1 ? "s" : ""} ago`;
+  const diffYears = Math.floor(diffMonths / 12);
+  return `${diffYears} year${diffYears > 1 ? "s" : ""} ago`;
+}
+
 export function AiSettingsTab() {
   const [config, setConfig] = useState<GatewayConfig | null>(null);
   const [usage, setUsage] = useState<UsageResponse | null>(null);
@@ -56,6 +83,15 @@ export function AiSettingsTab() {
   const [selectedModel, setSelectedModel] = useState("");
   const [savingKey, setSavingKey] = useState(false);
   const [savingModel, setSavingModel] = useState(false);
+
+  // MCP API Keys state
+  const [mcpKeys, setMcpKeys] = useState<McpApiKey[]>([]);
+  const [mcpKeysLoading, setMcpKeysLoading] = useState(false);
+  const [createKeyDialogOpen, setCreateKeyDialogOpen] = useState(false);
+  const [newKeyName, setNewKeyName] = useState("");
+  const [creatingKey, setCreatingKey] = useState(false);
+  const [createdKey, setCreatedKey] = useState<McpApiKeyCreated | null>(null);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -77,7 +113,54 @@ export function AiSettingsTab() {
       }
     }
     load();
+    loadMcpKeys();
   }, []);
+
+  async function loadMcpKeys() {
+    setMcpKeysLoading(true);
+    try {
+      const keys = await listMcpKeys();
+      setMcpKeys(keys);
+    } catch (err) {
+      console.error("Failed to load MCP API keys", err);
+    } finally {
+      setMcpKeysLoading(false);
+    }
+  }
+
+  const handleCreateKey = async () => {
+    if (!newKeyName.trim()) return;
+    setCreatingKey(true);
+    try {
+      const result = await createMcpKey(newKeyName.trim());
+      setCreatedKey(result);
+      setMcpKeys((prev) => [result, ...prev]);
+      setNewKeyName("");
+    } catch {
+      toast.error("Failed to create API key");
+    } finally {
+      setCreatingKey(false);
+    }
+  };
+
+  const handleRevokeKey = async (id: string) => {
+    setRevokingId(id);
+    try {
+      await revokeMcpKey(id);
+      setMcpKeys((prev) => prev.filter((k) => k.id !== id));
+      toast.success("API key revoked");
+    } catch {
+      toast.error("Failed to revoke API key");
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
+  const handleCloseCreateDialog = () => {
+    setCreateKeyDialogOpen(false);
+    setCreatedKey(null);
+    setNewKeyName("");
+  };
 
   const handleSaveApiKey = async () => {
     if (!apiKey.trim()) return;
@@ -324,6 +407,205 @@ export function AiSettingsTab() {
           </p>
         </CardContent>
       </Card>
+
+      {/* MCP API Keys Section */}
+      <Card className="glass-card">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div className="flex items-center gap-2">
+            <Key className="h-4 w-4 text-muted-foreground" />
+            <CardTitle>MCP API Keys</CardTitle>
+          </div>
+          <Button size="sm" onClick={() => setCreateKeyDialogOpen(true)}>
+            Create Key
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Use these keys to connect external MCP clients (e.g. Claude Desktop) to your RiskReady
+            gateway.
+          </p>
+
+          {mcpKeysLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : mcpKeys.length === 0 ? (
+            <div className="rounded-lg border border-border/60 bg-background/40 px-3 py-6 text-center text-sm text-muted-foreground">
+              No API keys yet. Create one to connect an MCP client.
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-border/60">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/60 bg-background/40">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Key
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Name
+                    </th>
+                    <th className="hidden px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:table-cell">
+                      Last used
+                    </th>
+                    <th className="hidden px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:table-cell">
+                      Created
+                    </th>
+                    <th className="px-3 py-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {mcpKeys.map((k) => (
+                    <tr key={k.id} className="border-b border-border/40 last:border-0">
+                      <td className="px-3 py-2 font-mono text-xs text-foreground">
+                        {k.prefix}...
+                      </td>
+                      <td className="px-3 py-2 text-foreground">{k.name}</td>
+                      <td className="hidden px-3 py-2 text-muted-foreground sm:table-cell">
+                        {formatRelativeTime(k.lastUsedAt)}
+                      </td>
+                      <td className="hidden px-3 py-2 text-muted-foreground sm:table-cell">
+                        {new Date(k.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          disabled={revokingId === k.id}
+                          onClick={() => handleRevokeKey(k.id)}
+                          title="Revoke key"
+                        >
+                          {revokingId === k.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Create Key Dialog */}
+      <Dialog open={createKeyDialogOpen} onOpenChange={(open) => !open && handleCloseCreateDialog()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create MCP API Key</DialogTitle>
+          </DialogHeader>
+
+          {createdKey ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
+                <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  This key will only be shown once. Copy it now.
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Your new API key</Label>
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={createdKey.key}
+                    className="font-mono text-xs bg-background/40"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdKey.key);
+                      toast.success("Copied to clipboard");
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Claude Desktop config</Label>
+                <div className="relative">
+                  <pre className="overflow-x-auto rounded-lg border border-border/60 bg-background/40 p-3 text-xs font-mono text-foreground">
+{JSON.stringify(
+  {
+    mcpServers: {
+      riskready: {
+        type: "url",
+        url: "https://YOUR_SERVER/mcp",
+        headers: { Authorization: `Bearer ${createdKey.key}` },
+      },
+    },
+  },
+  null,
+  2,
+)}
+                  </pre>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-2 h-7 w-7 text-muted-foreground"
+                    onClick={() => {
+                      const config = JSON.stringify(
+                        {
+                          mcpServers: {
+                            riskready: {
+                              type: "url",
+                              url: "https://YOUR_SERVER/mcp",
+                              headers: { Authorization: `Bearer ${createdKey.key}` },
+                            },
+                          },
+                        },
+                        null,
+                        2,
+                      );
+                      navigator.clipboard.writeText(config);
+                      toast.success("Config copied to clipboard");
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Replace <code className="font-mono">YOUR_SERVER</code> with your gateway URL.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleCloseCreateDialog}>Done</Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="key-name">Key name</Label>
+                <Input
+                  id="key-name"
+                  placeholder="e.g. My Laptop"
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  className="bg-background/40"
+                  onKeyDown={(e) => e.key === "Enter" && handleCreateKey()}
+                />
+                <p className="text-xs text-muted-foreground">
+                  A descriptive name to identify where this key is used.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={handleCloseCreateDialog}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateKey} disabled={!newKeyName.trim() || creatingKey}>
+                  {creatingKey ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

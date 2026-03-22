@@ -1,4 +1,5 @@
 import { api } from './api';
+import { fetchWithAuth } from './fetch-with-auth';
 
 export interface GatewayConfig {
   anthropicApiKey: string | null;
@@ -35,4 +36,36 @@ export function updateGatewayConfig(data: {
 
 export function getUsage(): Promise<UsageResponse> {
   return api.get<UsageResponse>('/gateway-config/usage');
+}
+
+export interface McpApiKey {
+  id: string;
+  prefix: string;
+  name: string;
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+
+export interface McpApiKeyCreated extends McpApiKey {
+  key: string; // Full key, shown once
+}
+
+export async function createMcpKey(name: string): Promise<McpApiKeyCreated> {
+  const res = await fetchWithAuth('/api/gateway-config/mcp-keys', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) throw new Error('Failed to create API key');
+  return res.json();
+}
+
+export async function listMcpKeys(): Promise<McpApiKey[]> {
+  const res = await fetchWithAuth('/api/gateway-config/mcp-keys');
+  if (!res.ok) throw new Error('Failed to load API keys');
+  return res.json();
+}
+
+export async function revokeMcpKey(id: string): Promise<void> {
+  const res = await fetchWithAuth(`/api/gateway-config/mcp-keys/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to revoke API key');
 }
