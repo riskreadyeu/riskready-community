@@ -1,6 +1,7 @@
 import type { PrismaClient, ChatMessage } from '@prisma/client';
 import { MemoryService } from './memory.service.js';
 import { logger } from '../logger.js';
+import { detectInjectionPatterns } from '../agent/injection-detector.js';
 
 const DISTILL_PROMPT = `Analyze this conversation and extract key information to remember for future conversations. Extract:
 
@@ -55,6 +56,11 @@ export class MemoryDistiller {
       let stored = 0;
       for (const item of items) {
         if (!item.content || !item.type) continue;
+        const { suspicious, patterns } = detectInjectionPatterns(item.content);
+        if (suspicious) {
+          logger.warn({ patterns, userId, organisationId }, 'Injection patterns detected in distilled memory — discarding');
+          continue;
+        }
         await this.memoryService.store({
           type: item.type,
           content: item.content,

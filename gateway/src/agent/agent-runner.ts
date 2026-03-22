@@ -55,9 +55,14 @@ export interface CouncilHook {
   ): Promise<{ text: string; sessionId: string }>;
 }
 
+// Council rate limiting — max 5 sessions per user per hour
+const COUNCIL_LIMIT_PER_HOUR = 5;
+const COUNCIL_WINDOW_MS = 60 * 60 * 1000;
+
 export class AgentRunner {
   private deps: AgentRunnerDeps;
   private councilHook: CouncilHook | null = null;
+  private councilInvocations = new Map<string, { count: number; windowStart: number }>();
 
   constructor(deps: AgentRunnerDeps) {
     this.deps = deps;
@@ -255,31 +260,46 @@ export class AgentRunner {
 
       // Council decision: check if multi-agent deliberation is needed
       if (this.councilHook && this.councilHook.shouldConvene(msg.text)) {
-        // Council needs ALL servers — each member filters to their own domain.
-        // Don't use BM25-filtered subset here (that's for single-agent path).
-        const allMcpServers = this.deps.getMcpServers();
-        emit({ type: 'council_start' as ChatEvent['type'], message: 'Convening AI Agents Council for multi-perspective analysis...' });
+        // Apply per-user council rate limit
+        const councilStats = this.councilInvocations.get(msg.userId) || { count: 0, windowStart: Date.now() };
+        if (Date.now() - councilStats.windowStart > COUNCIL_WINDOW_MS) {
+          councilStats.count = 0;
+          councilStats.windowStart = Date.now();
+        }
 
-        try {
-          const result = await this.councilHook.deliberate(
-            msg.text,
-            msg.organisationId,
-            conversationId,
-            signal,
-            emit,
-            allMcpServers,
-            this.deps.getDbConfig,
-          );
+        if (councilStats.count >= COUNCIL_LIMIT_PER_HOUR) {
+          logger.warn({ userId: msg.userId, count: councilStats.count }, 'Council rate limit exceeded — using single agent');
+          // Skip council, fall through to single-agent path
+        } else {
+          councilStats.count++;
+          this.councilInvocations.set(msg.userId, councilStats);
 
-          fullText = result.text;
+          // Council needs ALL servers — each member filters to their own domain.
+          // Don't use BM25-filtered subset here (that's for single-agent path).
+          const allMcpServers = this.deps.getMcpServers();
+          emit({ type: 'council_start' as ChatEvent['type'], message: 'Convening AI Agents Council for multi-perspective analysis...' });
 
-          // Emit text as delta for streaming
-          emit({ type: 'text_delta', text: fullText });
-          emit({ type: 'council_done' as ChatEvent['type'], message: 'Council deliberation complete' });
-        } catch (err) {
-          logger.error({ err }, 'Council deliberation failed, falling back to single agent');
-          emit({ type: 'error', message: 'Council deliberation failed, using single agent...' });
-          // Fall through to single-agent path below
+          try {
+            const result = await this.councilHook.deliberate(
+              msg.text,
+              msg.organisationId,
+              conversationId,
+              signal,
+              emit,
+              allMcpServers,
+              this.deps.getDbConfig,
+            );
+
+            fullText = result.text;
+
+            // Emit text as delta for streaming
+            emit({ type: 'text_delta', text: fullText });
+            emit({ type: 'council_done' as ChatEvent['type'], message: 'Council deliberation complete' });
+          } catch (err) {
+            logger.error({ err }, 'Council deliberation failed, falling back to single agent');
+            emit({ type: 'error', message: 'Council deliberation failed, using single agent...' });
+            // Fall through to single-agent path below
+          }
         }
       }
 
