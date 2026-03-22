@@ -18,6 +18,7 @@ import { CreateMcpKeyDto } from './mcp-key.dto';
 import { AuthenticatedRequest } from '../shared/types';
 import { PrismaService } from '../prisma/prisma.service';
 import { resolveSingleOrganisationId } from '../shared/utils/single-organisation.util';
+import { Public } from '../auth/public.decorator';
 
 @Controller('gateway-config/mcp-keys')
 export class McpKeyController {
@@ -62,6 +63,7 @@ export class McpKeyController {
     return { success: true };
   }
 
+  @Public()
   @Post('validate')
   async validateKey(
     @Body() body: { key: string },
