@@ -22,7 +22,7 @@ export class MemoryService {
         source: input.source,
         organisationId: input.organisationId,
         userId: input.userId ?? null,
-        expiresAt: input.expiresAt ?? null,
+        expiresAt: input.expiresAt ?? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90-day default TTL
       },
     });
   }

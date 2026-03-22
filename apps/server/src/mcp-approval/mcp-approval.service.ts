@@ -1,10 +1,51 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { McpActionStatus, McpActionType, Prisma } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class McpApprovalService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(McpApprovalService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
+
+  async create(params: {
+    actionType: McpActionType;
+    summary: string;
+    reason?: string;
+    payload: unknown;
+    mcpSessionId?: string;
+    mcpToolName: string;
+    organisationId: string;
+  }) {
+    const action = await this.prisma.mcpPendingAction.create({
+      data: {
+        actionType: params.actionType,
+        summary: params.summary,
+        reason: params.reason,
+        payload: params.payload as never,
+        mcpSessionId: params.mcpSessionId,
+        mcpToolName: params.mcpToolName,
+        organisationId: params.organisationId,
+      },
+    });
+
+    this.logger.log(
+      `Pending action created — awaiting approval: ${action.id} (${action.actionType})`,
+    );
+
+    this.eventEmitter.emit('approval.created', {
+      actionId: action.id,
+      actionType: action.actionType,
+      summary: action.summary,
+      organisationId: action.organisationId,
+    });
+
+    return action;
+  }
 
   async findAll(params?: {
     status?: McpActionStatus;

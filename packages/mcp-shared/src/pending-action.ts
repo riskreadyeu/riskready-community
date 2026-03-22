@@ -37,6 +37,15 @@ export async function createPendingAction(params: {
       organisationId: orgId,
     },
   });
+  console.info(JSON.stringify({
+    level: 'info',
+    actionId: action.id,
+    actionType: action.actionType,
+    summary: action.summary,
+    organisationId: orgId,
+    msg: 'Pending action created — awaiting approval',
+  }));
+
   return {
     content: [{
       type: 'text' as const,
