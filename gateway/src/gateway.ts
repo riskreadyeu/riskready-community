@@ -156,7 +156,7 @@ export class Gateway {
       },
       validateApiKey: async (key) => {
         const gatewaySecret = this.config.gatewaySecret;
-        const serverUrl = process.env.GATEWAY_URL?.replace(/:\d+/, ':3000') || 'http://localhost:3000';
+        const serverUrl = process.env.SERVER_URL || 'http://server:3000';
         const res = await fetch(`${serverUrl}/api/gateway-config/mcp-keys/validate`, {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'x-gateway-secret': gatewaySecret || '' },
