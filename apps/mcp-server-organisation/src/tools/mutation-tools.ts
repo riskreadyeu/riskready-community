@@ -37,7 +37,7 @@ function registerProfileMutations(server: McpServer) {
       naceCode: z.string().max(200).optional().describe('NACE economic activity code'),
       // ISMS
       ismsPolicy: z.string().max(5000).optional().describe('ISMS policy reference'),
-      ismsObjectives: z.array(z.string()).optional().describe('ISMS objectives (JSON array of objective strings)'),
+      ismsObjectives: z.array(z.string()).max(50).optional().describe('ISMS objectives (JSON array of objective strings)'),
       scopeExclusions: z.string().max(5000).optional().describe('ISMS scope exclusions'),
       exclusionJustification: z.string().max(5000).optional().describe('Justification for scope exclusions'),
       // Certification
@@ -56,7 +56,10 @@ function registerProfileMutations(server: McpServer) {
       nis2Sector: z.string().max(200).optional().describe('NIS2 sector'),
       nis2AnnexType: z.string().max(200).optional().describe('NIS2 annex type'),
       // Risk
-      riskTolerance: z.record(z.string(), z.unknown()).optional().describe('Risk tolerance (JSON object)'),
+      riskTolerance: z.record(z.string().max(100), z.unknown()).optional().refine(
+        (val) => !val || JSON.stringify(val).length < 10_000,
+        'JSON object too large (max 10KB)'
+      ).describe('Risk tolerance (JSON object)'),
       riskAcceptanceThreshold: z.number().int().optional().describe('Risk acceptance threshold score (e.g. 6, 12, 16)'),
       maxTolerableDowntime: z.number().int().optional().describe('Maximum tolerable downtime in hours'),
       reason: z.string().max(1000).optional().describe('Reason for update'),
@@ -343,7 +346,7 @@ function registerProcessMutations(server: McpServer) {
       singlePointOfFailure: z.boolean().optional().describe('Is single point of failure'),
       vendorWebsite: z.string().max(200).optional().describe('Vendor website URL'),
       contractReference: z.string().max(200).optional().describe('Contract reference'),
-      annualCost: z.number().optional().describe('Annual cost'),
+      annualCost: z.number().max(1_000_000_000).optional().describe('Annual cost'),
       dataLocation: z.string().max(200).optional().describe('Data location/jurisdiction'),
       riskRating: z.string().max(200).optional().describe('Risk rating'),
       primaryContact: z.string().max(200).optional().describe('Primary contact name'),
@@ -375,7 +378,7 @@ function registerProcessMutations(server: McpServer) {
       dependencyType: z.string().max(200).optional().describe('New dependency type'),
       contractEnd: z.string().datetime().optional().describe('New contract end date (ISO 8601)'),
       contractReference: z.string().max(200).optional().describe('Contract reference'),
-      annualCost: z.number().optional().describe('Annual cost'),
+      annualCost: z.number().max(1_000_000_000).optional().describe('Annual cost'),
       dataLocation: z.string().max(200).optional().describe('Data location/jurisdiction'),
       primaryContact: z.string().max(200).optional().describe('Primary contact name'),
       riskRating: z.string().max(200).optional().describe('New risk rating'),
@@ -484,7 +487,7 @@ function registerGovernanceMutations(server: McpServer) {
       physicalLocation: z.string().max(200).optional().describe('Physical location address'),
       virtualMeetingLink: z.string().max(200).optional().describe('Virtual meeting link/URL'),
       objectives: z.string().max(5000).optional().describe('Meeting objectives'),
-      status: z.string().max(200).optional().describe('Initial meeting status'),
+      status: z.enum(['scheduled', 'in_progress', 'completed', 'cancelled', 'postponed']).optional().describe('Initial meeting status'),
       quorumRequirement: z.number().int().optional().describe('Minimum attendees for quorum'),
       reason: z.string().max(1000).optional().describe('Reason for scheduling'),
       mcpSessionId: z.string().optional().describe('MCP session ID'),

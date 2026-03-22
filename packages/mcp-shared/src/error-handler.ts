@@ -12,9 +12,15 @@ export function withErrorHandling<TArgs extends unknown[]>(
     try {
       return await handler(...args);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const raw = error instanceof Error ? error.message : String(error);
+      // Sanitize: remove connection strings, stack traces, Prisma internals
+      const safeMessage = raw
+        .replace(/postgresql:\/\/[^\s]+/gi, '[DB_CONNECTION]')
+        .replace(/at\s+\S+\s+\(\S+:\d+:\d+\)/g, '') // stack frames
+        .replace(/prisma\.\w+\.\w+/gi, '[DB_QUERY]')
+        .slice(0, 200);
       return {
-        content: [{ type: 'text', text: `Error in ${toolName}: ${message}` }],
+        content: [{ type: 'text', text: `Error in ${toolName}: ${safeMessage}` }],
         isError: true,
       };
     }

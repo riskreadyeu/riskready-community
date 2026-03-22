@@ -264,7 +264,7 @@ function registerLessonMutations(server: McpServer) {
       recommendation: z.string().max(5000).describe('Recommended improvement'),
       priority: z.number().int().min(1).max(5).optional().describe('Priority (1=highest, 5=lowest)'),
       targetDate: z.string().datetime().optional().describe('Target completion date (ISO 8601)'),
-      status: z.string().max(200).optional().describe('Initial lesson status'),
+      status: z.enum(['IDENTIFIED', 'IN_PROGRESS', 'IMPLEMENTED', 'VALIDATED']).optional().describe('Initial lesson status'),
       assignedToId: z.string().optional().describe('Assigned user UUID'),
       completedDate: z.string().datetime().optional().describe('Completed date (ISO 8601)'),
       reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),

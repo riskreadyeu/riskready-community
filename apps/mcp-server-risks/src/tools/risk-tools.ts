@@ -47,7 +47,6 @@ export function registerRiskTools(server: McpServer) {
             avgScenarioScore: true,
             scenarioCount: true,
             scenariosExceedingTolerance: true,
-            riskOwner: true,
             _count: { select: { scenarios: true, kris: true, treatmentPlans: true } },
           },
         }),

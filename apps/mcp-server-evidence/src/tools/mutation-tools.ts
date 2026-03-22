@@ -130,7 +130,7 @@ function registerRequestMutations(server: McpServer) {
       contextType: z.string().max(200).optional().describe('Context type (e.g. "Control", "Test")'),
       contextRef: z.string().max(200).optional().describe('Context reference (e.g. "A.5.1")'),
       contextId: z.string().max(200).optional().describe('Context entity UUID (linked control, test, etc.)'),
-      status: z.string().max(200).optional().describe('Initial request status'),
+      status: z.enum(['OPEN', 'IN_PROGRESS', 'SUBMITTED', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'OVERDUE']).optional().describe('Initial request status'),
       requiredFormat: z.string().max(200).optional().describe('Required evidence format'),
       acceptanceCriteria: z.string().max(2000).optional().describe('Acceptance criteria'),
       notes: z.string().max(2000).optional().describe('Additional notes'),
