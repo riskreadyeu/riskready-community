@@ -47,6 +47,54 @@ import { SecurityCommitteeService } from '../organisation/services/security-comm
 import { CommitteeMeetingService } from '../organisation/services/committee-meeting.service';
 import { ExternalDependencyService } from '../organisation/services/external-dependency.service';
 
+// Action severity tiers for audit logging
+const TIER_MAP: Record<string, string> = {
+  // Tier 1: Create (new data, reversible)
+  CREATE_RISK: 'low', CREATE_CONTROL: 'low', CREATE_SCENARIO: 'low',
+  CREATE_ASSESSMENT: 'low', CREATE_KRI: 'low', CREATE_RTS: 'low',
+  CREATE_TREATMENT_PLAN: 'low', CREATE_TREATMENT_ACTION: 'low',
+  CREATE_POLICY: 'low', CREATE_EVIDENCE: 'low', CREATE_INCIDENT: 'low',
+  CREATE_NONCONFORMITY: 'low', CREATE_ASSET: 'low', CREATE_CHANGE: 'low',
+  CREATE_DEPARTMENT: 'low', CREATE_LOCATION: 'low',
+  CREATE_BUSINESS_PROCESS: 'low', CREATE_COMMITTEE: 'low',
+  CREATE_COMMITTEE_MEETING: 'low', CREATE_EXTERNAL_DEPENDENCY: 'low',
+  CREATE_EVIDENCE_REQUEST: 'low', CREATE_CAPACITY_PLAN: 'low',
+  CREATE_SCOPE_ITEM: 'low', CREATE_SOA: 'low',
+  CREATE_POLICY_EXCEPTION: 'low', CREATE_POLICY_CHANGE_REQUEST: 'low',
+  CREATE_ASSET_RELATIONSHIP: 'low', CREATE_REMEDIATION: 'low',
+
+  // Tier 2: Update (modify existing data)
+  UPDATE_RISK: 'medium', UPDATE_CONTROL: 'medium', UPDATE_POLICY: 'medium',
+  UPDATE_INCIDENT: 'medium', UPDATE_NONCONFORMITY: 'medium',
+  UPDATE_ASSESSMENT: 'medium', UPDATE_CHANGE: 'medium',
+  UPDATE_ASSET: 'medium', UPDATE_SCOPE_ITEM: 'medium',
+  UPDATE_SOA: 'medium', UPDATE_DEPARTMENT: 'medium',
+  UPDATE_LOCATION: 'medium', UPDATE_BUSINESS_PROCESS: 'medium',
+  UPDATE_COMMITTEE: 'medium', UPDATE_EXTERNAL_DEPENDENCY: 'medium',
+  UPDATE_CAPACITY_PLAN: 'medium', UPDATE_ORG_PROFILE: 'medium',
+  UPDATE_EVIDENCE: 'medium', UPDATE_CONTROL_STATUS: 'medium',
+  UPDATE_METRIC_VALUE: 'medium', UPDATE_SOA_ENTRY: 'medium',
+  UPDATE_TEST: 'medium', UPDATE_ROOT_CAUSE: 'medium',
+  RECORD_KRI_VALUE: 'medium', RECORD_TEST_RESULT: 'medium',
+
+  // Tier 3: Lifecycle transitions and approvals (business-critical)
+  APPROVE_POLICY: 'high', PUBLISH_POLICY: 'high', RETIRE_POLICY: 'high',
+  APPROVE_SOA: 'high', APPROVE_RTS: 'high', APPROVE_CAP: 'high',
+  APPROVE_CHANGE: 'high', APPROVE_POLICY_EXCEPTION: 'high',
+  SUBMIT_POLICY_REVIEW: 'high', SUBMIT_SOA_REVIEW: 'high',
+  SUBMIT_ASSESSMENT_REVIEW: 'high', SUBMIT_CAP: 'high',
+  COMPLETE_ASSESSMENT: 'high', COMPLETE_CHANGE: 'high',
+  CLOSE_INCIDENT: 'high', CLOSE_NONCONFORMITY: 'high',
+  CLOSE_EVIDENCE_REQUEST: 'high',
+
+  // Tier 4: Destructive (irreversible)
+  DELETE_ASSESSMENT: 'critical', DELETE_ASSET: 'critical',
+  DELETE_SOA: 'critical', DELETE_SCOPE_ITEM: 'critical',
+  DISABLE_CONTROL: 'critical', CANCEL_ASSESSMENT: 'critical',
+  CANCEL_CHANGE: 'critical', REJECT_CHANGE: 'critical',
+  REJECT_CAP: 'critical',
+};
+
 // Executor registrars
 import { ExecutorMap } from './executors/types';
 import { registerControlExecutors } from './executors/control.executors';
@@ -177,7 +225,8 @@ export class McpApprovalExecutorService {
       return null;
     }
 
-    this.logger.log(`Executing action type: ${actionType}`);
+    const tier = TIER_MAP[actionType] || 'medium';
+    this.logger.log(`Executing ${tier} action: ${actionType}`);
 
     // Strip MCP-only metadata from the payload.
     // - `reason` is never a Prisma field — always strip it.

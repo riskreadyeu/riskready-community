@@ -5,6 +5,7 @@ import type { FullToolSchema } from '../agent/tool-schema-loader.js';
 import { McpToolExecutor, TOOL_NAME_PATTERN } from '../agent/mcp-tool-executor.js';
 import { logger } from '../logger.js';
 import { scanAndRedactCredentials } from '../agent/credential-scanner.js';
+import { trackToolCall } from '../middleware/tool-call-tracker.js';
 
 interface McpTransportOptions {
   toolSchemas: FullToolSchema[];
@@ -145,9 +146,14 @@ export function registerMcpTransport(server: FastifyInstance, options: McpTransp
               org: auth.organisationId,
               argKeys: Object.keys(toolParams?.arguments || {}),
               durationMs,
+              source: 'mcp_proxy',
             },
             'MCP tools/call',
           );
+
+          if (auth.userId) {
+            trackToolCall(auth.userId);
+          }
 
           const { text: safeContent, credentialsFound } = scanAndRedactCredentials(result.content);
           if (credentialsFound) {

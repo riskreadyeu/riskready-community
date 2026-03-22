@@ -138,7 +138,7 @@ export class SchedulerService {
 
     for (const schedule of dueSchedules) {
       try {
-        logger.info({ scheduleId: schedule.id, name: schedule.name }, 'Executing scheduled task');
+        logger.info({ scheduleId: schedule.id, name: schedule.name, source: 'scheduler' }, 'Executing scheduled task');
 
         // Create an AgentTask for tracking
         const task = await prisma.agentTask.create({
@@ -205,6 +205,7 @@ export class SchedulerService {
           scheduleId: schedule.id,
           taskId: task.id,
           nextRunAt,
+          source: 'scheduler',
         }, 'Scheduled task completed');
       } catch (err) {
         logger.error({ err, scheduleId: schedule.id }, 'Scheduled task failed');

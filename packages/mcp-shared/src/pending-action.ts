@@ -24,14 +24,21 @@ export async function createPendingAction(params: {
   mcpSessionId?: string;
   mcpToolName: string;
   organisationId?: string;
+  source?: string;
 }) {
   const orgId = params.organisationId || await getDefaultOrganisationId();
+
+  // Embed source in the JSON payload for audit trail (no schema migration needed)
+  const enrichedPayload = params.source
+    ? { ...(params.payload as Record<string, unknown>), _source: params.source }
+    : params.payload;
+
   const action = await prisma.mcpPendingAction.create({
     data: {
       actionType: params.actionType,
       summary: params.summary,
       reason: params.reason,
-      payload: params.payload as never,
+      payload: enrichedPayload as never,
       mcpSessionId: params.mcpSessionId,
       mcpToolName: params.mcpToolName,
       organisationId: orgId,

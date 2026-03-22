@@ -18,6 +18,7 @@ import { detectInjectionPatterns } from './injection-detector.js';
 import { McpToolExecutor } from './mcp-tool-executor.js';
 import { redactPII } from './pii-redactor.js';
 import { scanAndRedactCredentials } from './credential-scanner.js';
+import { trackToolCall } from '../middleware/tool-call-tracker.js';
 import { buildToolDefinitions } from './tool-builder.js';
 import { buildConversationMessages } from './conversation-builder.js';
 import type { FullToolSchema } from './tool-schema-loader.js';
@@ -100,6 +101,8 @@ export class AgentRunner {
     emit: (event: ChatEvent) => void,
     taskId?: string,
   ): Promise<{ messageId: string }> {
+    trackToolCall(msg.userId);
+
     const conversationId = (msg.metadata.conversationId as string) ?? msg.channelId;
 
     // If running with a task, update status to IN_PROGRESS
@@ -377,6 +380,7 @@ export class AgentRunner {
           outputTokens,
           totalTokens: inputTokens + outputTokens,
           toolCallCount: result?.toolCalls.length ?? 0,
+          source: 'web_ui',
         }, 'Token usage');
       }
 

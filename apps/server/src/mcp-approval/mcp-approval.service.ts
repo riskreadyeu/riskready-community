@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { McpActionStatus, McpActionType, Prisma } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -11,6 +12,13 @@ export class McpApprovalService {
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
   ) {}
+
+  @OnEvent('approval.created')
+  handleApprovalCreated(payload: { actionId: string; actionType: string; summary: string }) {
+    this.logger.warn(
+      `NEW PENDING ACTION — requires human approval: ${payload.actionId} (${payload.actionType}) — ${payload.summary}`,
+    );
+  }
 
   async create(params: {
     actionType: McpActionType;
