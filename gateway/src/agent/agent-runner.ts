@@ -17,6 +17,7 @@ import { runMessageLoop } from './message-loop.js';
 import { detectInjectionPatterns } from './injection-detector.js';
 import { McpToolExecutor } from './mcp-tool-executor.js';
 import { redactPII } from './pii-redactor.js';
+import { scanAndRedactCredentials } from './credential-scanner.js';
 import { buildToolDefinitions } from './tool-builder.js';
 import { buildConversationMessages } from './conversation-builder.js';
 import type { FullToolSchema } from './tool-schema-loader.js';
@@ -381,12 +382,18 @@ export class AgentRunner {
 
       const toolCalls = result?.toolCalls ?? [];
 
+      // Scan and redact any accidentally leaked credentials before saving
+      const { text: scannedText, credentialsFound } = scanAndRedactCredentials(fullText || 'I was unable to generate a response.');
+      if (credentialsFound) {
+        logger.warn({ conversationId }, 'Credentials detected and redacted from agent response');
+      }
+
       // Save assistant message
       const saved = await prisma.chatMessage.create({
         data: {
           conversationId,
           role: 'ASSISTANT',
-          content: redactPII(fullText || 'I was unable to generate a response.'),
+          content: redactPII(scannedText),
           toolCalls: toolCalls.length > 0 ? (toolCalls as any) : undefined,
           actionIds: actionIds.length > 0 ? actionIds : [],
           blocks: blocks.length > 0 ? (blocks as any) : undefined,
@@ -450,11 +457,12 @@ export class AgentRunner {
       }
 
       if (fullText) {
+        const { text: scannedErrText } = scanAndRedactCredentials(fullText);
         await prisma.chatMessage.create({
           data: {
             conversationId,
             role: 'ASSISTANT',
-            content: redactPII(fullText),
+            content: redactPII(scannedErrText),
             actionIds: [],
           },
         });

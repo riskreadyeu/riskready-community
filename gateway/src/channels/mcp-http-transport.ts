@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import type { FullToolSchema } from '../agent/tool-schema-loader.js';
 import { McpToolExecutor, TOOL_NAME_PATTERN } from '../agent/mcp-tool-executor.js';
 import { logger } from '../logger.js';
+import { scanAndRedactCredentials } from '../agent/credential-scanner.js';
 
 interface McpTransportOptions {
   toolSchemas: FullToolSchema[];
@@ -138,13 +139,24 @@ export function registerMcpTransport(server: FastifyInstance, options: McpTransp
           const durationMs = Date.now() - startMs;
 
           logger.info(
-            { userId: auth.userId, tool: toolName, org: auth.organisationId, durationMs },
+            {
+              userId: auth.userId,
+              tool: toolName,
+              org: auth.organisationId,
+              argKeys: Object.keys(toolParams?.arguments || {}),
+              durationMs,
+            },
             'MCP tools/call',
           );
 
+          const { text: safeContent, credentialsFound } = scanAndRedactCredentials(result.content);
+          if (credentialsFound) {
+            logger.warn({ tool: toolName, userId: auth.userId }, 'Credentials detected and redacted from MCP tool result');
+          }
+
           return reply.send(
             jsonRpcResult(id, {
-              content: [{ type: 'text', text: result.content }],
+              content: [{ type: 'text', text: safeContent }],
               isError: result.isError,
             }),
           );
