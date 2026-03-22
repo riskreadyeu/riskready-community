@@ -33,6 +33,7 @@ A proactive AI system that runs compliance workflows on schedules, responds to i
   - [Administration Guide](#administration-guide)
   - [MCP Server Reference](#mcp-server-reference)
   - [AI Council Benchmarks](#ai-council-benchmarks)
+  - [Agent Security Audit](#agent-security-audit)
   - [Claude Desktop & Code Integration](#claude-desktop--code-integration)
 - [Development Setup](#development-setup)
 - [Business Edition](#business-edition)
@@ -346,6 +347,12 @@ Detailed per-server documentation for all 9 MCP servers with complete tool listi
 **[documentation/AI_COUNCIL_BENCHMARKS.md](documentation/AI_COUNCIL_BENCHMARKS.md)**
 
 Real-world performance benchmarks for the AI Agents Council: token usage before and after the tool search refactor (96% reduction), cost comparison across models (Haiku at $0.19 vs Opus at $10 per council), tool call statistics, and architecture details.
+
+### Agent Security Audit
+
+**[documentation/AGENT_SECURITY_AUDIT.md](documentation/AGENT_SECURITY_AUDIT.md)**
+
+8-point agent security framework applied to both connection modes (Web App and Claude Desktop). Covers identity, memory, tool trust, blast radius, human checkpoints, output validation, cost controls, and observability — with per-point scores and specific controls implemented.
 
 ### Claude Desktop & Code Integration
 
