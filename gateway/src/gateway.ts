@@ -20,6 +20,7 @@ import { SearchService } from './memory/search.service.js';
 import { MemoryDistiller } from './memory/distiller.js';
 import { prisma, disconnectPrisma } from './prisma.js';
 import { join } from 'node:path';
+import { registerMcpTransport } from './channels/mcp-http-transport.js';
 import { RunManager } from './run/run-manager.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { loadDbConfig } from './db-config.js';
@@ -145,6 +146,27 @@ export class Gateway {
       this.councilOrchestrator.updateToolSchemas(this.toolSchemas);
     }
     logger.info({ tools: this.toolSchemas.length }, 'Tool schemas loaded');
+
+    // Register MCP HTTP transport for remote MCP clients (e.g. Claude Desktop)
+    registerMcpTransport(this.internalAdapter.getServer(), {
+      toolSchemas: this.toolSchemas,
+      getServerConfig: (serverName) => {
+        const configs = this.skillRegistry.getMcpServers([serverName], this.config.databaseUrl, join(this.projectRoot, 'apps'));
+        return configs[serverName];
+      },
+      validateApiKey: async (key) => {
+        const gatewaySecret = this.config.gatewaySecret;
+        const serverUrl = process.env.GATEWAY_URL?.replace(/:\d+/, ':3000') || 'http://localhost:3000';
+        const res = await fetch(`${serverUrl}/api/gateway-config/mcp-keys/validate`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-gateway-secret': gatewaySecret || '' },
+          body: JSON.stringify({ key }),
+        });
+        if (!res.ok) return { valid: false };
+        return res.json();
+      },
+      databaseUrl: this.config.databaseUrl,
+    });
 
     // Start skill watching for hot-reload
     if (this.hotReloadSkills) {

@@ -39,7 +39,7 @@ export class InternalAdapter implements ChannelAdapter {
 
     if (this.secret) {
       this.server.addHook('onRequest', async (request, reply) => {
-        if (request.url === '/health') return;
+        if (request.url === '/health' || request.url === '/mcp') return;
         const provided = request.headers['x-gateway-secret'];
         if (typeof provided !== 'string' ||
             provided.length !== this.secret!.length ||
@@ -141,6 +141,10 @@ export class InternalAdapter implements ChannelAdapter {
 
   setCancelHandler(handler: (runId: string) => void): void {
     this.cancelHandler = handler;
+  }
+
+  getServer(): FastifyInstance {
+    return this.server;
   }
 
   onMessage(handler: MessageHandler): void {
