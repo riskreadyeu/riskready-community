@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpActionType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '#src/prisma.js';
-import { createPendingAction, withErrorHandling } from '#mcp-shared';
+import { createPendingAction, withErrorHandling, zId, zSessionId, zOrgId, zReason } from '#mcp-shared';
 
 // ---------------------------------------------------------------------------
 // Risk mutations
@@ -20,11 +20,11 @@ function registerRiskMutations(server: McpServer) {
       status: z.enum(['IDENTIFIED', 'ASSESSED', 'TREATING', 'ACCEPTED', 'CLOSED', 'MONITORING']).optional().describe('Initial risk status'),
       source: z.string().max(200).optional().describe('Risk source (e.g. "ISRA", "Audit", "Incident")'),
       priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Risk priority'),
-      parentRiskId: z.string().optional().describe('Parent risk UUID'),
+      parentRiskId: zId.optional().describe('Parent risk UUID'),
       notes: z.string().max(2000).optional().describe('Additional notes'),
-      organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this risk should be created — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      organisationId: zOrgId,
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_risk', async (params) => {
       return createPendingAction({
@@ -43,7 +43,7 @@ function registerRiskMutations(server: McpServer) {
     'propose_update_risk',
     'Propose updating an existing risk. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      riskId: z.string().describe('Risk UUID'),
+      riskId: zId.describe('Risk UUID'),
       title: z.string().max(500).optional().describe('Updated title'),
       description: z.string().max(5000).optional().describe('Updated description'),
       status: z.enum(['IDENTIFIED', 'ASSESSED', 'TREATING', 'ACCEPTED', 'CLOSED', 'MONITORING']).optional().describe('Updated status'),
@@ -51,10 +51,10 @@ function registerRiskMutations(server: McpServer) {
       source: z.string().max(200).optional().describe('Risk source'),
       priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Updated priority'),
       framework: z.enum(['ISO', 'SOC2', 'NIS2', 'DORA']).optional().describe('Updated framework'),
-      parentRiskId: z.string().optional().describe('Parent risk UUID'),
+      parentRiskId: zId.optional().describe('Parent risk UUID'),
       notes: z.string().max(2000).optional().describe('Additional notes'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this change is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_update_risk', async (params) => {
       const risk = await prisma.risk.findUnique({
@@ -91,12 +91,11 @@ function registerRiskMutations(server: McpServer) {
       thresholdRed: z.string().max(200).optional().describe('Red threshold value'),
       breachThreshold: z.string().max(200).optional().describe('Breach threshold value'),
       notes: z.string().max(2000).optional().describe('Additional notes'),
-      riskId: z.string().describe('Parent risk UUID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this KRI should be created — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      riskId: zId.describe('Parent risk UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_kri', async (params) => {
-      // Validate parent risk exists and get organisationId
       const risk = await prisma.risk.findUnique({
         where: { id: params.riskId },
         select: { id: true, riskId: true, organisationId: true },
@@ -121,12 +120,12 @@ function registerRiskMutations(server: McpServer) {
     'propose_record_kri_value',
     'Propose recording a new KRI measurement value. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      kriId: z.string().describe('KeyRiskIndicator UUID'),
+      kriId: zId.describe('KeyRiskIndicator UUID'),
       value: z.string().max(200).describe('New measurement value (e.g. "95%", "3", "14 days")'),
       status: z.enum(['GREEN', 'AMBER', 'RED']).optional().describe('RAG status for this measurement'),
       notes: z.string().max(2000).optional().describe('Measurement notes'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this measurement is being recorded — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_record_kri_value', async (params) => {
       const kri = await prisma.keyRiskIndicator.findUnique({
@@ -160,9 +159,9 @@ function registerRiskMutations(server: McpServer) {
       domain: z.string().max(200).optional().describe('Risk domain'),
       proposedToleranceLevel: z.enum(['HIGH', 'MEDIUM', 'LOW']).optional().describe('Proposed tolerance level'),
       notes: z.string().max(2000).optional().describe('Additional notes'),
-      organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this RTS should be created — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      organisationId: zOrgId,
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_rts', async (params) => {
       return createPendingAction({
@@ -181,10 +180,10 @@ function registerRiskMutations(server: McpServer) {
     'propose_approve_rts',
     'Propose approving a Risk Tolerance Statement. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      rtsId: z.string().describe('RiskToleranceStatement UUID'),
+      rtsId: zId.describe('RiskToleranceStatement UUID'),
       approvalComments: z.string().max(1000).optional().describe('Approval comments'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this RTS should be approved — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_approve_rts', async (params) => {
       const rts = await prisma.riskToleranceStatement.findUnique({
@@ -221,14 +220,13 @@ function registerScenarioMutations(server: McpServer) {
       cause: z.string().max(1000).optional().describe('Cause description'),
       event: z.string().max(1000).optional().describe('Event description'),
       consequence: z.string().max(1000).optional().describe('Consequence description'),
-      status: z.enum(['DRAFT', 'ASSESSED', 'EVALUATED', 'TREATING', 'TREATED', 'ACCEPTED', 'MONITORING', 'ESCALATED', 'REVIEW', 'CLOSED', 'ARCHIVED']).optional().describe('Initial scenario status'),
+      status: z.string().max(200).optional().describe('Initial scenario status'),
       notes: z.string().max(2000).optional().describe('Additional notes'),
-      riskId: z.string().describe('Parent risk UUID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this scenario should be created — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      riskId: zId.describe('Parent risk UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_scenario', async (params) => {
-      // Validate parent risk exists and get organisationId
       const risk = await prisma.risk.findUnique({
         where: { id: params.riskId },
         select: { id: true, riskId: true, organisationId: true },
@@ -253,11 +251,11 @@ function registerScenarioMutations(server: McpServer) {
     'propose_transition_scenario',
     'Propose a status transition for a risk scenario. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      scenarioId: z.string().describe('RiskScenario UUID'),
-      targetStatus: z.enum(['DRAFT', 'ASSESSED', 'EVALUATED', 'TREATING', 'TREATED', 'ACCEPTED', 'MONITORING', 'ESCALATED', 'REVIEW', 'CLOSED', 'ARCHIVED']).describe('Target scenario status'),
+      scenarioId: zId.describe('RiskScenario UUID'),
+      targetStatus: z.string().max(200).describe('Target status (e.g. ASSESSED, EVALUATED, TREATING)'),
       justification: z.string().max(1000).optional().describe('Justification for the transition'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this transition is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_transition_scenario', async (params) => {
       const scenario = await prisma.riskScenario.findUnique({
@@ -284,13 +282,13 @@ function registerScenarioMutations(server: McpServer) {
     'propose_link_scenario_control',
     'Propose linking a control to a risk scenario as a mitigating control. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      scenarioId: z.string().describe('RiskScenario UUID'),
-      controlId: z.string().describe('Control UUID'),
+      scenarioId: zId.describe('RiskScenario UUID'),
+      controlId: zId.describe('Control UUID'),
       effectivenessWeight: z.number().min(0).max(100).optional().describe('Effectiveness contribution weight (0-100, default 100)'),
       isPrimaryControl: z.boolean().optional().describe('Is this the primary mitigating control?'),
       notes: z.string().max(2000).optional().describe('Notes about how this control mitigates the scenario'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this link is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_link_scenario_control', async (params) => {
       const [scenario, control] = await Promise.all([
@@ -310,7 +308,6 @@ function registerScenarioMutations(server: McpServer) {
         return { content: [{ type: 'text' as const, text: `Control ${params.controlId} not found` }], isError: true };
       }
 
-      // Check for existing link
       const existing = await prisma.riskScenarioControl.findUnique({
         where: { scenarioId_controlId: { scenarioId: params.scenarioId, controlId: params.controlId } },
       });
@@ -334,13 +331,13 @@ function registerScenarioMutations(server: McpServer) {
     'propose_assess_scenario',
     'Propose recording an inherent or residual assessment for a risk scenario. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
     {
-      scenarioId: z.string().describe('RiskScenario UUID'),
+      scenarioId: zId.describe('RiskScenario UUID'),
       assessmentType: z.enum(['inherent', 'residual']).describe('Assessment type'),
       likelihood: z.enum(['VERY_LOW', 'LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH']).describe('Likelihood level'),
       impact: z.enum(['VERY_LOW', 'LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH']).describe('Impact level'),
       notes: z.string().max(2000).optional().describe('Assessment notes'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this assessment is proposed — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_assess_scenario', async (params) => {
       const scenario = await prisma.riskScenario.findUnique({
@@ -377,17 +374,16 @@ function registerTreatmentMutations(server: McpServer) {
       description: z.string().max(5000).describe('Treatment plan description'),
       treatmentType: z.enum(['MITIGATE', 'TRANSFER', 'ACCEPT', 'AVOID', 'SHARE']).optional().describe('Treatment type'),
       priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Priority'),
-      status: z.enum(['DRAFT', 'PROPOSED', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD', 'CANCELLED']).optional().describe('Initial treatment plan status'),
+      status: z.string().max(200).optional().describe('Initial treatment plan status'),
       targetEndDate: z.string().datetime().optional().describe('Target completion date (ISO 8601)'),
-      estimatedCost: z.number().max(1_000_000_000).optional().describe('Estimated cost'),
+      estimatedCost: z.number().optional().describe('Estimated cost'),
       notes: z.string().max(2000).optional().describe('Additional notes'),
-      riskId: z.string().describe('Parent risk UUID'),
-      organisationId: z.string().optional().describe('Organisation UUID (uses default if omitted)'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this treatment plan should be created — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      riskId: zId.describe('Parent risk UUID'),
+      organisationId: zOrgId,
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_treatment_plan', async (params) => {
-      // Validate parent risk exists and get organisationId
       const risk = await prisma.risk.findUnique({
         where: { id: params.riskId },
         select: { id: true, riskId: true, organisationId: true },
@@ -415,17 +411,16 @@ function registerTreatmentMutations(server: McpServer) {
       actionId: z.string().describe('Action identifier (e.g. "TP-001-A01")'),
       title: z.string().max(500).describe('Action title'),
       description: z.string().max(5000).optional().describe('Action description'),
-      status: z.enum(['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED', 'CANCELLED']).optional().describe('Initial action status'),
+      status: z.string().max(200).optional().describe('Initial action status'),
       priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Action priority'),
       dueDate: z.string().datetime().optional().describe('Target completion date (ISO 8601)'),
-      estimatedHours: z.number().max(100_000).optional().describe('Estimated hours to complete'),
+      estimatedHours: z.number().optional().describe('Estimated hours to complete'),
       notes: z.string().max(2000).optional().describe('Additional notes'),
-      treatmentPlanId: z.string().describe('Parent treatment plan UUID'),
-      reason: z.string().max(1000).optional().describe('Explain WHY this action should be created — shown to human reviewers'),
-      mcpSessionId: z.string().optional().describe('MCP session identifier for tracking'),
+      treatmentPlanId: zId.describe('Parent treatment plan UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
     },
     withErrorHandling('propose_create_treatment_action', async (params) => {
-      // Validate parent treatment plan exists and get organisationId
       const plan = await prisma.treatmentPlan.findUnique({
         where: { id: params.treatmentPlanId },
         select: { id: true, treatmentId: true, title: true, organisationId: true },
