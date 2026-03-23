@@ -52,3 +52,6 @@ image.png
 *.png
 !screenshots/*.png
 packages/mcp-shared/tsconfig.tsbuildinfo
+2026-02-10-*.md
+LATTICE_CONTEXT.md
+documentation/AI_GUIDE.md
