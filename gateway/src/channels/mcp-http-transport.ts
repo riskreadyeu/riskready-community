@@ -74,17 +74,35 @@ export function isToolAllowed(toolName: string, scopes: string[]): boolean {
   if (parts.length !== 3) return false;
   const serverName = parts[1]; // riskready-risks
   const toolAction = parts[2]; // list_risks
+  const domain = serverName.replace('riskready-', '');
 
-  for (const scope of scopes) {
-    // Domain scopes
-    if (scope === serverName.replace('riskready-', '')) return true;
+  const isReadAction = toolAction.startsWith('list_') || toolAction.startsWith('get_') || toolAction.startsWith('search_');
+  const isWriteAction = toolAction.startsWith('propose_');
 
-    // Read scope
-    if (scope === 'read' && (toolAction.startsWith('list_') || toolAction.startsWith('get_') || toolAction.startsWith('search_'))) return true;
+  const hasDomainScopes = scopes.some(s => !['read', 'write', 'all'].includes(s));
+  const hasAccessScopes = scopes.includes('read') || scopes.includes('write');
 
-    // Write scope
-    if (scope === 'write' && toolAction.startsWith('propose_')) return true;
+  // When BOTH domain and access scopes exist, intersect them (AND logic):
+  //   ["read", "risks"] = read-only tools in risks domain only
+  //   ["write", "risks", "controls"] = write tools in risks and controls only
+  if (hasDomainScopes && hasAccessScopes) {
+    const domainMatch = scopes.includes(domain);
+    const accessMatch = (scopes.includes('read') && isReadAction) || (scopes.includes('write') && isWriteAction);
+    return domainMatch && accessMatch;
   }
+
+  // Domain-only scopes: full access to those domains (read + write)
+  //   ["risks"] = all risk tools
+  //   ["risks", "controls"] = all risk + control tools
+  if (hasDomainScopes) {
+    return scopes.includes(domain);
+  }
+
+  // Access-only scopes: that access level across all domains
+  //   ["read"] = read tools across all domains
+  //   ["write"] = write tools across all domains
+  if (scopes.includes('read') && isReadAction) return true;
+  if (scopes.includes('write') && isWriteAction) return true;
 
   return false;
 }
