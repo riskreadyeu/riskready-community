@@ -1,0 +1,9 @@
+node_modules
+.git
+.env
+*.spec.ts
+*.test.ts
+dist
+coverage
+.dockerignore
+Dockerfile

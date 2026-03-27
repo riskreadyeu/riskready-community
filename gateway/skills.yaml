@@ -1,0 +1,845 @@
+# gateway/skills.yaml
+# MCP Skill Registry — defines all available MCP servers for the Gateway
+# Tool metadata auto-extracted from MCP server source files
+
+skills:
+  - name: riskready-controls
+    description: "Security controls, SOA, assessments, metrics, gap analysis"
+    tags: [grc, controls, compliance, soa, iso27001]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-controls/src/index.ts]
+    requiresDb: true
+    tools:
+      - name: get_gap_analysis
+        description: Get gap analysis from assessment results — identifies controls with FAIL or PART
+        args: [assessmentId]
+      - name: get_overdue_tests
+        description: Get assessment tests that are past their due date.
+        args: [skip, take]
+      - name: get_assessment_completion_summary
+        description: "Get detailed completion summary for a specific assessment: test counts by status"
+        args: [assessmentId]
+      - name: get_control_coverage_matrix
+        description: Get each applicable control with its latest assessment test result and metric RA
+        args: [organisationId]
+      - name: get_tester_workload
+        description: "Get per-tester breakdown of assigned, pending, and completed tests across active"
+        args: []
+      - name: list_assessments
+        description: List control assessments with optional status filter.
+        args: [status, skip, take]
+      - name: get_assessment
+        description: "Get a single assessment with full details: controls in scope, scope items, test "
+        args: [id]
+      - name: get_assessment_tests
+        description: Get tests within an assessment with optional status/result filters.
+        args: [assessmentId, status, result]
+      - name: get_assessment_stats
+        description: "Get aggregate assessment statistics: total assessments, by status, completion ra"
+        args: []
+      - name: get_my_tests
+        description: Get tests assigned to a specific tester.
+        args: [testerId, status]
+      - name: get_my_tests_count
+        description: Get per-status test counts for a specific tester across active assessments.
+        args: [testerId]
+      - name: list_controls
+        description: List controls from the library with optional filters.
+        args: [framework, theme, implementationStatus, applicable, skip, take]
+      - name: get_control
+        description: "Get a single control with full details: metrics, evidence links, risk scenario l"
+        args: [id]
+      - name: get_control_stats
+        description: "Get aggregate statistics for the control library: total count, by theme, by fram"
+        args: []
+      - name: search_controls
+        description: Search controls by name or controlId pattern.
+        args: [query, framework]
+      - name: list_scope_items
+        description: "List scope items (applications, asset classes, locations, etc."
+        args: [scopeType, criticality, isActive, skip, take]
+      - name: get_effectiveness_report
+        description: Get a control implementation effectiveness report showing implementation rates a
+        args: [organisationId]
+      - name: find_controls_by_ids
+        description: Retrieve multiple controls by their UUIDs in a single query.
+        args: [ids]
+      - name: get_scope_item
+        description: Get a single scope item with full details including usage counts across assessme
+        args: [id]
+      - name: list_metrics
+        description: "List metrics for a control with RAG status, trend, and current value."
+        args: [controlId]
+      - name: get_metric
+        description: Get a single control metric with full details and measurement history.
+        args: [id]
+      - name: get_metric_dashboard
+        description: "Get an organisation-wide metric summary: total metrics, RAG distribution, trend "
+        args: []
+      - name: propose_assessment
+        description: Propose creating a new control assessment.
+        args: [organisationId, assessmentRef, title, description, leadTesterId, reviewerId, plannedStartDate, plannedEndDate, dueDate, periodStart, periodEnd, actualStartDate, actualEndDate, controlIds, scopeItemIds, status, reason, mcpSessionId]
+      - name: propose_update_assessment
+        description: "Propose updating assessment details (title, dates, team)."
+        args: [assessmentId, title, description, leadTesterId, reviewerId, plannedStartDate, plannedEndDate, dueDate, periodStart, periodEnd, actualStartDate, actualEndDate, status, reason, mcpSessionId]
+      - name: propose_delete_assessment
+        description: Propose deleting a draft assessment.
+        args: [assessmentId, reason, mcpSessionId]
+      - name: propose_start_assessment
+        description: Propose starting a draft assessment (DRAFT → IN_PROGRESS).
+        args: [assessmentId, reason, mcpSessionId]
+      - name: propose_submit_assessment_review
+        description: Propose submitting an assessment for review (IN_PROGRESS → UNDER_REVIEW).
+        args: [assessmentId, reason, mcpSessionId]
+      - name: propose_complete_assessment
+        description: Propose completing an assessment under review (UNDER_REVIEW → COMPLETED).
+        args: [assessmentId, reviewNotes, reason, mcpSessionId]
+      - name: propose_cancel_assessment
+        description: Propose cancelling an assessment.
+        args: [assessmentId, cancelReason, reason, mcpSessionId]
+      - name: propose_add_assessment_controls
+        description: Propose adding controls to an assessment scope.
+        args: [assessmentId, controlIds, reason, mcpSessionId]
+      - name: propose_remove_assessment_control
+        description: Propose removing a control from an assessment scope.
+        args: [assessmentId, controlId, reason, mcpSessionId]
+      - name: propose_add_assessment_scope_items
+        description: Propose adding scope items to an assessment.
+        args: [assessmentId, scopeItemIds, reason, mcpSessionId]
+      - name: propose_remove_assessment_scope_item
+        description: Propose removing a scope item from an assessment.
+        args: [assessmentId, scopeItemId, reason, mcpSessionId]
+      - name: propose_populate_tests
+        description: Propose auto-generating tests for an assessment based on its controls in scope.
+        args: [assessmentId, reason, mcpSessionId]
+      - name: propose_bulk_assign_tests
+        description: "Propose bulk-assigning tests to testers, owners, or assessors."
+        args: [testIds, assignedTesterId, ownerId, assessorId, testMethod, reason, mcpSessionId]
+      - name: propose_soa_entry_update
+        description: Propose updating an SOA entry — change applicability or implementation status.
+        args: [soaEntryId, applicable, implementationStatus, implementationDesc, justificationIfNa, controlRecordId, parentRiskId, scenarioIds, reason, mcpSessionId]
+      - name: propose_create_soa
+        description: Propose creating a new empty Statement of Applicability.
+        args: [version, name, notes, organisationId, reason, mcpSessionId]
+      - name: propose_create_soa_from_controls
+        description: Propose creating a new SOA pre-populated with entries from all applicable contro
+        args: [version, name, organisationId, reason, mcpSessionId]
+      - name: propose_create_soa_version
+        description: Propose creating a new SOA version by copying entries from an existing SOA.
+        args: [sourceSoaId, newVersion, name, notes, reason, mcpSessionId]
+      - name: propose_update_soa
+        description: "Propose updating SOA metadata (name, notes)."
+        args: [soaId, name, notes, reason, mcpSessionId]
+      - name: propose_submit_soa_review
+        description: Propose submitting an SOA for review (DRAFT → PENDING_REVIEW).
+        args: [soaId, reason, mcpSessionId]
+      - name: propose_approve_soa
+        description: Propose approving an SOA under review (PENDING_REVIEW → APPROVED).
+        args: [soaId, reason, mcpSessionId]
+      - name: propose_delete_soa
+        description: Propose deleting a draft SOA.
+        args: [soaId, reason, mcpSessionId]
+      - name: propose_scope_item
+        description: "Propose adding a new scope item (application, asset class, location, etc."
+        args: [organisationId, scopeType, code, name, description, criticality, isActive, reason, mcpSessionId]
+      - name: propose_update_scope_item
+        description: "Propose updating a scope item\\"
+        args: [scopeItemId, name, description, criticality, isActive, reason, mcpSessionId]
+      - name: propose_delete_scope_item
+        description: Propose deleting a scope item.
+        args: [scopeItemId, reason, mcpSessionId]
+      - name: propose_test_result
+        description: Propose recording a test result for an assessment test.
+        args: [assessmentTestId, result, findings, recommendations, testMethod, rootCause, rootCauseNotes, remediationEffort, estimatedHours, estimatedCost, assignedTesterId, reason, mcpSessionId]
+      - name: propose_remediation
+        description: Propose a remediation action for a failed assessment test.
+        args: [assessmentTestId, title, description, priority, estimatedHours, reason, mcpSessionId]
+      - name: propose_update_test
+        description: Propose updating test assignment or method details.
+        args: [assessmentTestId, testMethod, ownerId, assessorId, assignedTesterId, status, result, reason, mcpSessionId]
+      - name: propose_assign_tester
+        description: Propose assigning a specific tester to a test.
+        args: [assessmentTestId, testerId, reason, mcpSessionId]
+      - name: propose_update_root_cause
+        description: Propose updating root cause analysis for a failed or partial test.
+        args: [assessmentTestId, rootCause, rootCauseNotes, remediationEffort, estimatedHours, estimatedCost, reason, mcpSessionId]
+      - name: propose_skip_test
+        description: Propose skipping a test with justification.
+        args: [assessmentTestId, justification, reason, mcpSessionId]
+      - name: propose_control_status
+        description: "Propose changing a control\\"
+        args: [controlId, implementationStatus, implementationDesc, applicable, justificationIfNa, reason, mcpSessionId]
+      - name: propose_create_control
+        description: Propose creating a new control in the library.
+        args: [controlId, name, theme, description, framework, sourceStandard, soc2Criteria, tscCategory, applicable, justificationIfNa, implementationStatus, implementationDesc, organisationId, reason, mcpSessionId]
+      - name: propose_update_control
+        description: "Propose updating an existing control\\"
+        args: [controlId, name, description, theme, framework, sourceStandard, soc2Criteria, tscCategory, applicable, justificationIfNa, implementationStatus, implementationDesc, reason, mcpSessionId]
+      - name: propose_disable_control
+        description: Propose disabling a control (soft-delete).
+        args: [controlId, disableReason, reason, mcpSessionId]
+      - name: propose_enable_control
+        description: Propose re-enabling a disabled control.
+        args: [controlId, reason, mcpSessionId]
+      - name: propose_metric_value
+        description: Propose recording a new metric measurement value.
+        args: [metricId, value, status, notes, reason, mcpSessionId]
+      - name: list_soas
+        description: "List Statement of Applicability (SOA) versions with status, approval info, and e"
+        args: [status, skip, take]
+      - name: get_soa
+        description: Get a full Statement of Applicability with all entries showing control applicabi
+        args: [id]
+      - name: get_soa_entry
+        description: "Get a single SOA entry with applicability decision, implementation status, and l"
+        args: [id]
+      - name: get_soa_stats
+        description: "Get aggregate SOA statistics: total SOAs, by status, and latest SOA entry summar"
+        args: []
+      - name: get_latest_soa
+        description: Get the most recent Statement of Applicability with full entries and summary sta
+        args: [organisationId]
+      - name: get_test
+        description: "Get a full test definition (AssessmentTest) with procedure, evidence requirement"
+        args: [id]
+      - name: get_test_executions
+        description: Get execution history for an assessment test instance.
+        args: [assessmentTestId]
+      - name: list_test_templates
+        description: Browse test templates.
+        args: [layer, skip, take]
+
+  - name: riskready-risks
+    description: "Risk register, scenarios, KRIs, tolerance standards, treatments"
+    tags: [grc, risks, kri, risk-treatment]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-risks/src/index.ts]
+    requiresDb: true
+    tools:
+      - name: get_risk_heatmap
+        description: "Get risk heatmap data: likelihood x impact matrix for all scenarios with scores."
+        args: [organisationId]
+      - name: get_tolerance_breaches
+        description: Get scenarios exceeding their Risk Tolerance Statement thresholds.
+        args: []
+      - name: get_treatment_progress
+        description: Get overall treatment completion rates and overdue treatments.
+        args: []
+      - name: get_kri_alerts
+        description: Get KRIs in RED status or with DECLINING trend that need attention.
+        args: []
+      - name: get_risk_dashboard
+        description: "Get aggregate risk posture summary: risk counts, scenario distribution, toleranc"
+        args: [organisationId]
+      - name: get_overdue_treatments
+        description: Get treatment plans past their target end date.
+        args: [skip, take]
+      - name: list_kris
+        description: List Key Risk Indicators with optional filters.
+        args: [riskId, status, tier, skip, take]
+      - name: get_kri
+        description: Get a single Key Risk Indicator with full details and measurement history.
+        args: [id]
+      - name: get_kri_dashboard
+        description: "Get an organisation-wide KRI summary: total KRIs, RAG distribution, trend breakd"
+        args: []
+      - name: propose_create_risk
+        description: Propose creating a new risk.
+        args: [riskId, title, description, tier, framework, status, source, priority, parentRiskId, notes, organisationId, reason, mcpSessionId]
+      - name: propose_update_risk
+        description: Propose updating an existing risk.
+        args: [riskId, title, description, status, tier, source, priority, framework, parentRiskId, notes, reason, mcpSessionId]
+      - name: propose_create_kri
+        description: Propose creating a new Key Risk Indicator.
+        args: [kriId, name, description, unit, frequency, greenThreshold, amberThreshold, redThreshold, breachThreshold, notes, riskId, reason, mcpSessionId]
+      - name: propose_record_kri_value
+        description: Propose recording a new KRI measurement value.
+        args: [kriId, value, status, notes, reason, mcpSessionId]
+      - name: propose_create_rts
+        description: Propose creating a new Risk Tolerance Statement.
+        args: [rtsId, title, objective, proposedRTS, domain, proposedToleranceLevel, notes, organisationId, reason, mcpSessionId]
+      - name: propose_approve_rts
+        description: Propose approving a Risk Tolerance Statement.
+        args: [rtsId, approvalComments, reason, mcpSessionId]
+      - name: propose_create_scenario
+        description: Propose creating a new risk scenario.
+        args: [scenarioId, title, cause, event, consequence, status, notes, riskId, reason, mcpSessionId]
+      - name: propose_transition_scenario
+        description: Propose a status transition for a risk scenario.
+        args: [scenarioId, targetStatus, justification, reason, mcpSessionId]
+      - name: propose_assess_scenario
+        description: Propose recording an inherent or residual assessment for a risk scenario.
+        args: [scenarioId, assessmentType, likelihood, impact, notes, reason, mcpSessionId]
+      - name: propose_create_treatment_plan
+        description: Propose creating a new treatment plan.
+        args: [treatmentId, title, description, treatmentType, priority, status, targetDate, budget, estimatedCost, notes, riskId, organisationId, reason, mcpSessionId]
+      - name: propose_create_treatment_action
+        description: Propose creating a new treatment action.
+        args: [actionId, title, description, status, priority, targetDate, estimatedHours, notes, treatmentPlanId, reason, mcpSessionId]
+      - name: list_risks
+        description: List risks with optional filters.
+        args: [status, tier, framework, organisationId, skip, take]
+      - name: get_risk
+        description: "Get a single risk with full details: scenarios, KRIs, treatment plans, tolerance"
+        args: [id]
+      - name: search_risks
+        description: Search risks by title or riskId pattern.
+        args: [query]
+      - name: get_risk_stats
+        description: "Get aggregate risk statistics: total count, by status, by tier, by framework, sc"
+        args: [organisationId]
+      - name: list_rts
+        description: List Risk Tolerance Statements with optional status filter.
+        args: [status, organisationId, skip, take]
+      - name: get_rts
+        description: "Get a single Risk Tolerance Statement with full details: linked risks, evaluatio"
+        args: [id]
+      - name: get_rts_stats
+        description: "Get aggregate RTS statistics: total count, by status, by tolerance level."
+        args: [organisationId]
+      - name: list_scenarios
+        description: List risk scenarios with optional filters.
+        args: [riskId, status, toleranceStatus, skip, take]
+      - name: get_scenario
+        description: "Get a single risk scenario with full details: scores, controls, state history, a"
+        args: [id]
+      - name: get_scenario_scores
+        description: "Get likelihood, impact, inherent/residual scores, and override status for a scen"
+        args: [id]
+      - name: list_treatment_plans
+        description: List treatment plans with optional filters.
+        args: [status, type, priority, riskId, skip, take]
+      - name: get_treatment_plan
+        description: "Get a single treatment plan with full details: actions, dependencies, history, a"
+        args: [id]
+      - name: get_treatment_stats
+        description: "Get aggregate treatment plan statistics: total count, by status, by type, progre"
+        args: [organisationId]
+
+  - name: riskready-evidence
+    description: "Evidence records, requests, and links to controls, risks, incidents, assets, policies"
+    tags: [grc, evidence, compliance]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-evidence/src/index.ts]
+    requiresDb: true
+    tools:
+      - name: get_expiring_evidence
+        description: Get evidence records that are expiring within a specified number of days.
+        args: [days]
+      - name: get_evidence_coverage
+        description: "Get evidence coverage analysis: which controls have linked evidence and which do"
+        args: []
+      - name: get_request_aging
+        description: Get aging report for open evidence requests.
+        args: []
+      - name: list_evidence_requests
+        description: List evidence requests with optional status filter.
+        args: [status, priority, skip, take]
+      - name: get_evidence_request
+        description: Get a single evidence request with full details including fulfillment records.
+        args: [id]
+      - name: get_my_requests
+        description: Get evidence requests assigned to a specific user.
+        args: [userId, status]
+      - name: list_evidence
+        description: List evidence records with optional filters.
+        args: [status, evidenceType, classification, category, skip, take]
+      - name: get_evidence
+        description: Get a single evidence record with full details including all link counts and rev
+        args: [id]
+      - name: search_evidence
+        description: "Search evidence by reference, title, or description."
+        args: [query]
+      - name: get_evidence_stats
+        description: "Get aggregate evidence statistics: total count, by status, by type, by classific"
+        args: []
+      - name: propose_create_evidence
+        description: Propose creating a new evidence record.
+        args: []
+      - name: propose_update_evidence
+        description: Propose updating an existing evidence record.
+        args: [evidenceId, title, description, status, classification, validFrom, validUntil, tags, category, subcategory, renewalRequired, reason, mcpSessionId]
+      - name: propose_link_evidence
+        description: "Propose linking evidence to another entity (control, risk, incident, asset, poli"
+        args: [evidenceId, targetType, targetId, linkType, notes, reason, mcpSessionId]
+      - name: propose_create_request
+        description: Propose creating a new evidence request.
+        args: [requestRef, title, description, evidenceType, priority, dueDate, assignedToId, contextType, contextRef, status, requiredFormat, acceptanceCriteria, notes, organisationId, reason, mcpSessionId]
+      - name: propose_fulfill_request
+        description: Propose fulfilling an evidence request with an existing evidence record.
+        args: [requestId, evidenceId, notes, reason, mcpSessionId]
+      - name: propose_close_request
+        description: "Propose closing an evidence request (accepted, rejected, or cancelled)."
+        args: [requestId, action, notes, reason, mcpSessionId]
+
+  - name: riskready-policies
+    description: "Policy documents, versions, reviews, exceptions, approvals, acknowledgments"
+    tags: [grc, policies, governance]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-policies/src/index.ts]
+    requiresDb: true
+    tools:
+      - name: get_review_calendar
+        description: Get upcoming policy review calendar — documents due for review in the next 90 da
+        args: []
+      - name: get_policy_compliance_matrix
+        description: Get a compliance matrix showing policy coverage across controls — identifies gap
+        args: []
+      - name: get_exception_report
+        description: "Get a report on policy exceptions — active, expiring soon, and overdue for revie"
+        args: []
+      - name: propose_create_policy
+        description: Propose creating a new policy document.
+        args: []
+      - name: propose_update_policy
+        description: Propose updating an existing policy document.
+        args: [documentId, title, purpose, scope, content, classification, documentOwner, reviewFrequency, shortTitle, summary, effectiveDate, expiryDate, nextReviewDate, requiresAcknowledgment, tags, parentDocumentId, reason, mcpSessionId]
+      - name: propose_submit_review
+        description: Propose submitting a policy document for review.
+        args: [documentId, reviewType, findings, recommendations, nextReviewDate, reason, mcpSessionId]
+      - name: propose_approve_policy
+        description: Propose approving a policy document.
+        args: [documentId, approvalComments, reason, mcpSessionId]
+      - name: propose_publish_policy
+        description: Propose publishing an approved policy document.
+        args: [documentId, effectiveDate, reason, mcpSessionId]
+      - name: propose_retire_policy
+        description: Propose retiring a policy document.
+        args: [documentId, retirementReason, supersededById, reason, mcpSessionId]
+      - name: propose_create_exception
+        description: Propose creating a policy exception.
+        args: [documentId, exceptionId, title, description, justification, scope, riskAssessment, residualRisk, approvalLevel, startDate, expiryDate, compensatingControls, reviewFrequency, organisationId, reason, mcpSessionId]
+      - name: propose_approve_exception
+        description: Propose approving a policy exception.
+        args: [exceptionId, approvalComments, reason, mcpSessionId]
+      - name: propose_create_change_request
+        description: Propose creating a policy change request.
+        args: [documentId, changeRequestId, title, description, justification, changeType, priority, targetDate, impactAssessment, affectedDocuments, affectedProcesses, organisationId, reason, mcpSessionId]
+      - name: list_document_versions
+        description: List version history for a policy document.
+        args: [documentId]
+      - name: list_document_reviews
+        description: List review history for a policy document.
+        args: [documentId]
+      - name: list_document_exceptions
+        description: List exceptions for a policy document.
+        args: [documentId, status]
+      - name: get_acknowledgment_status
+        description: "Get acknowledgment status for a policy document — who has and hasn\\"
+        args: [documentId]
+      - name: get_policy_control_mappings
+        description: "Get control mappings for a policy document — shows which ISO 27001 controls the "
+        args: [documentId]
+      - name: get_policy_risk_mappings
+        description: Get risk mappings for a policy document — shows which risks the policy mitigates
+        args: [documentId]
+      - name: list_policy_documents
+        description: List policy documents with optional filters.
+        args: [status, documentType, classification, skip, take]
+      - name: get_policy_document
+        description: Get a single policy document with full details.
+        args: [id]
+      - name: search_policy_documents
+        description: "Search policy documents by document ID, title, or purpose."
+        args: [query]
+      - name: get_policy_stats
+        description: "Get aggregate policy statistics: total count, by status, by type, review status,"
+        args: []
+      - name: get_policy_hierarchy
+        description: Get the policy document hierarchy showing parent-child relationships.
+        args: []
+
+  - name: riskready-organisation
+    description: "Organisation profiles, departments, locations, business processes, committees, regulators"
+    tags: [grc, organisation, governance]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-organisation/src/index.ts]
+    requiresDb: true
+    tools:
+      - name: get_org_dashboard
+        description: "Get an organisation dashboard summary — departments, locations, processes, commi"
+        args: []
+      - name: get_bia_summary
+        description: "Get Business Impact Analysis summary — process BIA completion rates, criticality"
+        args: []
+      - name: get_governance_activity_report
+        description: "Get governance activity report — recent committee meetings, open action items, u"
+        args: []
+      - name: list_committees
+        description: List security committees with optional filters.
+        args: [isActive, committeeType]
+      - name: get_committee
+        description: Get a single committee with full details including members.
+        args: [id]
+      - name: list_committee_meetings
+        description: List meetings for a committee with optional status filter.
+        args: [committeeId, status, skip, take]
+      - name: get_committee_meeting
+        description: "Get a single committee meeting with full details including attendees, decisions,"
+        args: [id]
+      - name: list_meeting_action_items
+        description: List action items across all committee meetings with optional status filter.
+        args: [status, assignedToId, skip, take]
+      - name: propose_update_org_profile
+        description: Propose updating the organisation profile.
+        args: []
+      - name: propose_create_department
+        description: Propose creating a new department.
+        args: [name, departmentCode, description, departmentCategory, criticalityLevel, parentId, functionType, departmentHeadId, deputyHeadId, headcount, costCenter, contactEmail, contactPhone, handlesPersonalData, handlesFinancialData, establishedDate, reason, mcpSessionId]
+      - name: propose_update_department
+        description: Propose updating an existing department.
+        args: [departmentId, name, description, departmentCategory, criticalityLevel, isActive, functionType, departmentHeadId, deputyHeadId, headcount, costCenter, contactEmail, contactPhone, handlesPersonalData, reason, mcpSessionId]
+      - name: propose_create_location
+        description: Propose creating a new location.
+        args: [name, locationCode, locationType, address, city, country, inIsmsScope, isDataCenter, state, postalCode, region, timezone, employeeCount, physicalSecurityLevel, accessControlType, hasServerRoom, backupPower, networkType, isActive, scopeJustification, reason, mcpSessionId]
+      - name: propose_update_location
+        description: Propose updating an existing location.
+        args: [locationId, name, locationType, address, city, country, inIsmsScope, isActive, state, postalCode, region, timezone, physicalSecurityLevel, hasServerRoom, backupPower, scopeJustification, reason, mcpSessionId]
+      - name: propose_create_business_process
+        description: Propose creating a new business process.
+        args: [name, processCode, processType, description, criticalityLevel, departmentId, processOwnerId, processManagerId, frequency, automationLevel, isActive, biaStatus, bcpEnabled, bcpCriticality, recoveryTimeObjectiveMinutes, recoveryPointObjectiveMinutes, maximumTolerableDowntimeMinutes, parentProcessId, reason, mcpSessionId]
+      - name: propose_update_business_process
+        description: Propose updating an existing business process.
+        args: [processId, name, description, criticalityLevel, processType, isActive, processOwnerId, processManagerId, frequency, automationLevel, biaStatus, bcpEnabled, bcpCriticality, parentProcessId, reason, mcpSessionId]
+      - name: propose_create_external_dependency
+        description: Propose creating a new external dependency (vendor/supplier).
+        args: [name, dependencyType, description, criticalityLevel, contractStart, contractEnd, contactEmail, singlePointOfFailure, vendorWebsite, contractReference, annualCost, dataLocation, riskRating, primaryContact, contactPhone, exitStrategy, reason, mcpSessionId]
+      - name: propose_update_external_dependency
+        description: Propose updating an existing external dependency.
+        args: [dependencyId, name, description, criticalityLevel, dependencyType, contractEnd, contractReference, annualCost, dataLocation, primaryContact, riskRating, reason, mcpSessionId]
+      - name: propose_create_committee
+        description: Propose creating a new security committee.
+        args: [name, committeeType, description, meetingFrequency, establishedDate, chairId, authorityLevel, isActive, reason, mcpSessionId]
+      - name: propose_update_committee
+        description: Propose updating an existing committee.
+        args: [committeeId, name, description, meetingFrequency, isActive, chairId, authorityLevel, committeeType, reason, mcpSessionId]
+      - name: propose_create_meeting
+        description: Propose scheduling a new committee meeting.
+        args: [committeeId, title, meetingDate, startTime, endTime, locationType, agenda, meetingType, physicalLocation, virtualMeetingLink, objectives, status, quorumRequirement, reason, mcpSessionId]
+      - name: get_organisation_profile
+        description: Get the organisation profile with full details including ISMS scope and regulato
+        args: [id]
+      - name: get_regulatory_profile
+        description: "Get the regulatory profile for an organisation — DORA and NIS2 applicability, su"
+        args: [id]
+      - name: list_business_processes
+        description: "List business processes with optional filters for criticality, BIA status, and B"
+        args: [isActive, criticalityLevel, bcpEnabled, biaStatus, skip, take]
+      - name: get_business_process
+        description: "Get a single business process with full details including BIA, BCP, and dependen"
+        args: [id]
+      - name: list_external_dependencies
+        description: "List external dependencies (vendors, suppliers, service providers)."
+        args: [dependencyType, criticalityLevel, skip, take]
+      - name: get_external_dependency
+        description: Get a single external dependency with full details.
+        args: [id]
+      - name: list_regulators
+        description: List regulators with optional filters.
+        args: [isActive, regulatorType, jurisdiction]
+      - name: list_applicable_frameworks
+        description: List applicable regulatory and compliance frameworks.
+        args: [isApplicable, frameworkType, complianceStatus]
+      - name: list_context_issues
+        description: List context issues (ISO 27001 Clause 4.
+        args: [issueType, category, status]
+      - name: list_interested_parties
+        description: List interested parties (ISO 27001 Clause 4.
+        args: [partyType, isActive]
+      - name: list_departments
+        description: List departments with optional filters for active status.
+        args: [isActive, skip, take]
+      - name: get_department
+        description: Get a single department with full details including members and hierarchy.
+        args: [id]
+      - name: list_locations
+        description: List organisation locations with optional filters.
+        args: [isActive, country, skip, take]
+      - name: get_location
+        description: Get a single location with full details.
+        args: [id]
+      - name: list_key_personnel
+        description: List key ISMS personnel and their roles.
+        args: [isActive, ismsRole]
+
+  - name: riskready-itsm
+    description: "CMDB assets, change management, capacity management, software inventory"
+    tags: [itsm, cmdb, change-management]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-itsm/src/index.ts]
+    requiresDb: true
+    tools:
+      - name: get_itsm_stats
+        description: "Get aggregate ITSM statistics: asset counts by type, status, and criticality; ch"
+        args: []
+      - name: get_itsm_dashboard
+        description: "Comprehensive ITSM dashboard: asset counts, change counts, capacity alerts, and "
+        args: []
+      - name: get_asset_risk_summary
+        description: "For each business criticality level, count assets and calculate average risk sco"
+        args: []
+      - name: get_asset_relationships
+        description: Get asset relationships with direction filter.
+        args: [assetId, direction]
+      - name: get_asset_controls
+        description: List control linkages for an asset.
+        args: [assetId]
+      - name: get_asset_risks
+        description: List risk linkages for an asset.
+        args: [assetId]
+      - name: get_asset_business_processes
+        description: List business process linkages for an asset.
+        args: [assetId]
+      - name: list_assets
+        description: List assets from the CMDB with optional filters.
+        args: [assetType, status, businessCriticality, dataClassification, departmentId, inIsmsScope, skip, take]
+      - name: get_asset
+        description: "Get a single asset with full details including relationships, controls, risks, i"
+        args: [id]
+      - name: search_assets
+        description: "Search assets by name, asset tag, or FQDN."
+        args: [query, assetType]
+      - name: get_asset_security_posture
+        description: "Get asset security posture including encryption, backup, monitoring, vulnerabili"
+        args: [id]
+      - name: get_capacity_records
+        description: List capacity utilization records for an asset with optional date range filter.
+        args: [assetId, fromDate, toDate, skip, take]
+      - name: list_capacity_plans
+        description: List capacity plans with optional filters.
+        args: [status, assetId, skip, take]
+      - name: get_capacity_plan
+        description: Get a single capacity plan with full details including associated asset.
+        args: [id]
+      - name: get_capacity_alerts
+        description: Find assets where resource utilization exceeds configured thresholds.
+        args: []
+      - name: get_change_approvals
+        description: List approvals for a specific change request.
+        args: [changeId]
+      - name: get_pending_change_approvals
+        description: Find all pending approvals across all change requests.
+        args: []
+      - name: get_change_history
+        description: List audit history for a specific change request.
+        args: [changeId]
+      - name: list_change_templates
+        description: List change templates for standard/pre-approved changes.
+        args: [isActive, category, skip, take]
+      - name: get_change_template
+        description: "Get a single change template with full details including instructions, backout p"
+        args: [id]
+      - name: list_changes
+        description: List change requests with optional filters.
+        args: [status, changeType, category, priority, securityImpact, skip, take]
+      - name: get_change
+        description: "Get a single change request with full details including approvals, affected asse"
+        args: [id]
+      - name: search_changes
+        description: "Search change requests by title, change reference, or description."
+        args: [query]
+      - name: propose_asset
+        description: Propose creating a new asset in the CMDB.
+        args: []
+      - name: propose_asset_update
+        description: Propose updating an existing asset.
+        args: []
+      - name: propose_asset_relationship
+        description: "Propose creating a relationship between two assets (dependency, hosting, network"
+        args: [fromAssetId, toAssetId, relationshipType, isCritical, description, notes, reason, mcpSessionId]
+      - name: propose_link_asset_control
+        description: Propose linking an asset to a security control.
+        args: [assetId, controlId, status, implementationNotes, implementedDate, evidenceUrl, lastVerified, reason, mcpSessionId]
+      - name: propose_link_asset_risk
+        description: Propose linking an asset to a risk.
+        args: [assetId, riskId, impactLevel, notes, reason, mcpSessionId]
+      - name: propose_delete_asset
+        description: Propose deleting/disposing an asset from the CMDB.
+        args: [assetId, disposalReason, reason, mcpSessionId]
+      - name: propose_change
+        description: Propose creating a new change request.
+        args: []
+      - name: propose_update_change
+        description: Propose updating a change request.
+        args: []
+      - name: propose_approve_change
+        description: Propose approving a change request.
+        args: [changeId, comments, reason, mcpSessionId]
+      - name: propose_reject_change
+        description: Propose rejecting a change request.
+        args: [changeId, rejectionReason, reason, mcpSessionId]
+      - name: propose_implement_change
+        description: Propose marking a change request as implementing.
+        args: [changeId, implementationNotes, actualStart, reason, mcpSessionId]
+      - name: propose_complete_change
+        description: Propose completing a change request.
+        args: [changeId, successful, completionNotes, testResults, lessonsLearned, pirRequired, pirNotes, reason, mcpSessionId]
+      - name: propose_cancel_change
+        description: Propose cancelling a change request.
+        args: [changeId, cancellationReason, reason, mcpSessionId]
+      - name: propose_capacity_plan
+        description: Propose creating a new capacity plan for an asset.
+        args: [title, assetId, assetGroup, description, currentCapacity, currentUtilizationPercent, projectedGrowthPercent, projectionPeriodMonths, recommendedAction, estimatedCost, projectedExhaustionDate, recommendedDate, costCurrency, reviewDate, organisationId, reason, mcpSessionId]
+      - name: propose_update_capacity_plan
+        description: Propose updating a capacity plan.
+        args: [capacityPlanId, title, description, status, currentCapacity, currentUtilizationPercent, projectedGrowthPercent, projectionPeriodMonths, projectedExhaustionDate, recommendedAction, estimatedCost, costCurrency, reviewDate, reason, mcpSessionId]
+      - name: list_asset_software
+        description: List software installed on a specific asset.
+        args: [assetId]
+      - name: search_software
+        description: Search for software by name across all assets.
+        args: [query]
+
+  - name: riskready-audits
+    description: "Audits, findings, nonconformities, and compliance tracking"
+    tags: [grc, audits, nonconformity, compliance]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-audits/src/index.ts]
+    requiresDb: true
+    tools:
+      - name: get_nc_aging_report
+        description: Get an aging report for open nonconformities.
+        args: []
+      - name: get_cap_status_report
+        description: Get a CAP pipeline breakdown for nonconformities that require corrective action.
+        args: []
+      - name: get_nc_by_control
+        description: "Group nonconformities by control, showing count per control."
+        args: []
+      - name: propose_create_nc
+        description: Propose creating a new nonconformity.
+        args: [ncId, title, description, source, severity, category, controlId, isoClause, findings, rootCause, impact, targetClosureDate, reason, mcpSessionId, organisationId]
+      - name: propose_update_nc
+        description: Propose updating an existing nonconformity.
+        args: [ncId, title, description, severity, category, findings, source, isoClause, rootCause, impact, correctiveAction, targetClosureDate, reason, mcpSessionId]
+      - name: propose_transition_nc
+        description: Propose transitioning a nonconformity to a new status.
+        args: [ncId, targetStatus, justification, reason, mcpSessionId]
+      - name: propose_close_nc
+        description: Propose closing a nonconformity after verification.
+        args: [ncId, verificationMethod, verificationResult, verificationNotes, verificationDate, reason, mcpSessionId]
+      - name: propose_submit_cap
+        description: Propose submitting a corrective action plan (CAP) for approval.
+        args: [ncId, correctiveAction, targetClosureDate, responsibleUserId, reason, mcpSessionId]
+      - name: propose_approve_cap
+        description: Propose approving a corrective action plan (CAP).
+        args: [ncId, approvalComments, reason, mcpSessionId]
+      - name: propose_reject_cap
+        description: Propose rejecting a corrective action plan (CAP).
+        args: [ncId, rejectionReason, reason, mcpSessionId]
+      - name: list_nonconformities
+        description: "List nonconformities with optional filters for status, severity, source, and CAP"
+        args: [status, severity, source, capStatus, skip, take]
+      - name: get_nonconformity
+        description: "Get a single nonconformity with full details including CAP fields, verification "
+        args: [id]
+      - name: search_nonconformities
+        description: "Search nonconformities by query matching against ncId, title, and description."
+        args: [query]
+      - name: get_nc_stats
+        description: "Get aggregate nonconformity statistics: count by status, severity, CAP status, s"
+        args: []
+
+  - name: riskready-incidents
+    description: "Security incidents, timelines, evidence, affected assets, lessons learned"
+    tags: [incidents, security, response]
+    capabilities: [query, mutation]
+    command: npx
+    args: [tsx, ../mcp-server-incidents/src/index.ts]
+    requiresDb: true
+    tools:
+      - name: get_incident_trending
+        description: "Get incident trending data: counts by month for the last 12 months, broken down "
+        args: []
+      - name: get_mttr_report
+        description: Get Mean Time To Respond/Resolve report.
+        args: []
+      - name: get_incident_control_gaps
+        description: Identify controls that were linked to incidents as failed or bypassed.
+        args: []
+      - name: list_incident_timeline
+        description: "List timeline entries for an incident, ordered chronologically."
+        args: [incidentId, skip, take]
+      - name: list_incident_lessons
+        description: List lessons learned for an incident.
+        args: [incidentId]
+      - name: get_incident_assets
+        description: Get affected assets for an incident.
+        args: [incidentId]
+      - name: get_incident_controls
+        description: "Get control links for an incident (failed, bypassed, effective controls)."
+        args: [incidentId]
+      - name: list_incidents
+        description: List incidents with optional filters.
+        args: [status, severity, category, skip, take]
+      - name: get_incident
+        description: "Get a single incident with full details including timeline count, affected asset"
+        args: [id]
+      - name: search_incidents
+        description: "Search incidents by reference number, title, or description."
+        args: [query]
+      - name: get_incident_stats
+        description: "Get aggregate incident statistics: total count, by status, by severity, by categ"
+        args: []
+      - name: propose_create_incident
+        description: Propose creating a new security incident.
+        args: [referenceNumber, title, description, severity, category, source, detectedAt, isConfirmed, reporterId, handlerId, incidentManagerId, sourceRef, organisationId, reason, mcpSessionId]
+      - name: propose_update_incident
+        description: Propose updating an existing incident.
+        args: [incidentId, title, description, severity, category, confidentialityBreach, integrityBreach, availabilityBreach, isConfirmed, handlerId, incidentManagerId, sourceRef, source, status, reason, mcpSessionId]
+      - name: propose_transition_incident
+        description: Propose a status transition for an incident.
+        args: [incidentId, targetStatus, resolutionType, reason, mcpSessionId]
+      - name: propose_add_incident_asset
+        description: Propose linking an affected asset to an incident.
+        args: [incidentId, assetId, impactType, notes, reason, mcpSessionId]
+      - name: propose_link_incident_control
+        description: "Propose linking a control to an incident (failed, bypassed, effective, or not ap"
+        args: [incidentId, controlId, linkType, notes, reason, mcpSessionId]
+      - name: propose_close_incident
+        description: Propose closing an incident with resolution details.
+        args: [incidentId, resolutionType, rootCauseIdentified, lessonsLearnedCompleted, correctiveActionsIdentified, resolutionSummary, reason, mcpSessionId]
+      - name: propose_add_timeline_entry
+        description: Propose adding a timeline entry to an incident.
+        args: [incidentId, timestamp, entryType, title, description, visibility, sourceSystem, reason, mcpSessionId]
+      - name: propose_create_lesson
+        description: Propose creating a lessons learned entry for an incident.
+        args: [incidentId, category, observation, recommendation, priority, targetDate, status, assignedToId, completedDate, reason, mcpSessionId]
+
+  - name: riskready-agent-ops
+    description: "Agent self-awareness: check proposal statuses, list pending actions, manage tasks"
+    tags: [agent, approval, status, task]
+    capabilities: [query]
+    command: npx
+    args: [tsx, ../mcp-server-agent-ops/src/index.ts]
+    requiresDb: true
+    tools:
+      - name: check_action_status
+        description: Check the status of a previously proposed action by its ID.
+        args: [actionId]
+      - name: list_pending_actions
+        description: List pending actions for an organisation with optional status filter.
+        args: [organisationId, status, limit]
+      - name: list_recent_actions
+        description: List recent actions since a given date.
+        args: [organisationId, since, limit]
+      - name: create_agent_task
+        description: Create a new agent task to track multi-step work.
+        args: [organisationId, title, instruction, parentTaskId, workflowId, stepIndex]
+      - name: update_agent_task
+        description: Update the status or result of an agent task.
+        args: [taskId, status, result, errorMessage, actionIds]
+      - name: get_agent_task
+        description: Get full details of an agent task including child tasks and linked action IDs.
+        args: [taskId]
+      - name: list_agent_tasks
+        description: List agent tasks for an organisation with optional status filter.
+        args: [organisationId, status, limit]
+

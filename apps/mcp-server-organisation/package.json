@@ -1,0 +1,29 @@
+{
+  "name": "riskready-mcp-server-organisation",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "postinstall": "rm -rf node_modules/.prisma/client && mkdir -p node_modules/.prisma && test -d ../server/node_modules/.prisma/client && ln -sfn \"$(cd ../server/node_modules/.prisma/client && pwd)\" node_modules/.prisma/client || true",
+    "test": "vitest run"
+  },
+  "imports": {
+    "#src/*": "./src/*",
+    "#mcp-shared": "./_mcp-shared/src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.27.1",
+    "@prisma/client": "5.22.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "25.3.0",
+    "tsx": "4.19.4",
+    "typescript": "5.7.3",
+    "vitest": "3.0.5"
+  }
+}

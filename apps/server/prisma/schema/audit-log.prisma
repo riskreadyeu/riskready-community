@@ -1,0 +1,42 @@
+// ============================================
+// AUDIT LOG
+// Global database change audit trail
+// ============================================
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+
+  // Who
+  userId    String?
+  userEmail String?
+
+  // What
+  action   AuditAction
+  model    String
+  recordId String
+
+  // Changes
+  oldData       Json?
+  newData       Json?
+  changedFields String[] @default([])
+
+  // Context
+  organisationId String?
+  ipAddress      String?
+  userAgent      String?
+  requestId      String?
+  source         String? @default("api")
+
+  @@index([model, recordId])
+  @@index([userId])
+  @@index([organisationId, timestamp])
+  @@index([timestamp])
+  @@index([action])
+}

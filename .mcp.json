@@ -1,0 +1,76 @@
+{
+  "mcpServers": {
+    "riskready-risks": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "apps/mcp-server-risks/src/index.ts"],
+      "env": {
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
+      }
+    },
+    "riskready-controls": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "apps/mcp-server-controls/src/index.ts"],
+      "env": {
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
+      }
+    },
+    "riskready-incidents": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "apps/mcp-server-incidents/src/index.ts"],
+      "env": {
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
+      }
+    },
+    "riskready-policies": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "apps/mcp-server-policies/src/index.ts"],
+      "env": {
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
+      }
+    },
+    "riskready-evidence": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "apps/mcp-server-evidence/src/index.ts"],
+      "env": {
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
+      }
+    },
+    "riskready-audits": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "apps/mcp-server-audits/src/index.ts"],
+      "env": {
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
+      }
+    },
+    "riskready-itsm": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "apps/mcp-server-itsm/src/index.ts"],
+      "env": {
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
+      }
+    },
+    "riskready-organisation": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "apps/mcp-server-organisation/src/index.ts"],
+      "env": {
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
+      }
+    },
+    "riskready-agent-ops": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "apps/mcp-server-agent-ops/src/index.ts"],
+      "env": {
+        "DATABASE_URL": "postgresql://riskready:riskready@localhost:5434/riskready"
+      }
+    }
+  }
+}

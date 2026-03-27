@@ -1,0 +1,540 @@
+// ============================================
+// EVIDENCE MODULE
+// Central Evidence Repository
+// Single Source of Truth for all evidence across RiskReady
+// ============================================
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum EvidenceType {
+  // Documents
+  DOCUMENT
+  CERTIFICATE
+  REPORT
+  POLICY
+  PROCEDURE
+  SCREENSHOT
+
+  // Technical
+  LOG
+  CONFIGURATION
+  NETWORK_CAPTURE
+  MEMORY_DUMP
+  DISK_IMAGE
+  MALWARE_SAMPLE
+
+  // Communications
+  EMAIL
+  MEETING_NOTES
+  APPROVAL_RECORD
+
+  // Assessments
+  AUDIT_REPORT
+  ASSESSMENT_RESULT
+  TEST_RESULT
+  SCAN_RESULT
+
+  // Other
+  VIDEO
+  AUDIO
+  OTHER
+}
+
+enum EvidenceStatus {
+  PENDING // Uploaded, awaiting review
+  UNDER_REVIEW // Being reviewed
+  APPROVED // Reviewed and approved
+  REJECTED // Reviewed and rejected
+  EXPIRED // Past validity date
+  ARCHIVED // No longer active but retained
+}
+
+enum EvidenceClassification {
+  PUBLIC
+  INTERNAL
+  CONFIDENTIAL
+  RESTRICTED
+}
+
+enum EvidenceSourceType {
+  MANUAL_UPLOAD // User uploaded
+  AUTOMATED // System generated
+  EXTERNAL_SYSTEM // From integrated system
+  VENDOR_PROVIDED // From third party
+}
+
+enum EvidenceRequestStatus {
+  OPEN
+  IN_PROGRESS
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  OVERDUE
+}
+
+enum EvidenceRequestPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// ============================================
+// EVIDENCE - Core Entity
+// ============================================
+
+model Evidence {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // ============================================
+  // IDENTIFICATION
+  // ============================================
+
+  evidenceRef  String         @unique // EVD-YYYY-NNNN format
+  title        String
+  description  String?        @db.Text
+  evidenceType EvidenceType
+  status       EvidenceStatus @default(PENDING)
+
+  // ============================================
+  // CLASSIFICATION
+  // ============================================
+
+  classification EvidenceClassification @default(INTERNAL)
+  tags           Json?                  @default("[]") // Array of tags for filtering
+  category       String? // Optional category grouping
+  subcategory    String? // Optional subcategory
+
+  // ============================================
+  // FILE INFORMATION
+  // ============================================
+
+  fileName         String?
+  originalFileName String?
+  fileUrl          String?
+  fileSizeBytes    Int?
+  mimeType         String?
+
+  // Storage
+  storagePath     String?
+  storageProvider String  @default("local") // local, s3, azure, etc.
+  isEncrypted     Boolean @default(false)
+
+  // ============================================
+  // INTEGRITY & CHAIN OF CUSTODY
+  // ============================================
+
+  hashSha256          String?
+  hashMd5             String?
+  isForensicallySound Boolean @default(false)
+  chainOfCustodyNotes String? @db.Text
+
+  // ============================================
+  // SOURCE & COLLECTION
+  // ============================================
+
+  sourceType      EvidenceSourceType @default(MANUAL_UPLOAD)
+  sourceSystem    String? // Name of source system if automated
+  sourceReference String? // External reference ID
+
+  collectedAt      DateTime @default(now())
+  collectedById    String?
+  collectedBy      User?    @relation("EvidenceCollectedBy", fields: [collectedById], references: [id], onDelete: SetNull)
+  collectionMethod String? // How evidence was collected
+
+  // ============================================
+  // VALIDITY & RETENTION
+  // ============================================
+
+  validFrom   DateTime?
+  validUntil  DateTime? // Expiry date
+  retainUntil DateTime? // Retention requirement
+
+  // Renewal tracking
+  renewalRequired     Boolean @default(false)
+  renewalReminderDays Int?    @default(30)
+
+  // ============================================
+  // REVIEW & APPROVAL
+  // ============================================
+
+  reviewedAt   DateTime?
+  reviewedById String?
+  reviewedBy   User?     @relation("EvidenceReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewNotes  String?   @db.Text
+
+  approvedAt    DateTime?
+  approvedById  String?
+  approvedBy    User?     @relation("EvidenceApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvalNotes String?   @db.Text
+
+  rejectedAt      DateTime?
+  rejectedById    String?
+  rejectedBy      User?     @relation("EvidenceRejectedBy", fields: [rejectedById], references: [id], onDelete: SetNull)
+  rejectionReason String?   @db.Text
+
+  // ============================================
+  // METADATA
+  // ============================================
+
+  metadata Json?   @default("{}") // Flexible metadata
+  notes    String? @db.Text
+
+  // Version tracking (for evidence that gets updated)
+  version           Int        @default(1)
+  previousVersionId String?
+  previousVersion   Evidence?  @relation("EvidenceVersions", fields: [previousVersionId], references: [id], onDelete: SetNull)
+  newerVersions     Evidence[] @relation("EvidenceVersions")
+
+  // ============================================
+  // AUDIT TRAIL
+  // ============================================
+
+  createdBy User? @relation("EvidenceCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("EvidenceUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  // ============================================
+  // RELATIONSHIPS - Links to other modules
+  // ============================================
+
+  // Control links
+  controlLinks EvidenceControl[]
+
+  // Audit & Nonconformity links
+  nonconformityLinks EvidenceNonconformity[]
+
+  // Incident links
+  incidentLinks EvidenceIncident[]
+
+  // Risk links
+  riskLinks      EvidenceRisk[]
+  treatmentLinks EvidenceTreatment[]
+
+  // Policy links
+  policyLinks EvidencePolicy[]
+
+  // Supply Chain links
+
+  // Asset links
+  assetLinks EvidenceAsset[]
+
+  // Change links
+  changeLinks EvidenceChange[]
+
+  // Evidence request fulfillment
+  requestFulfillments EvidenceRequestFulfillment[]
+
+  // ============================================
+  // INDEXES
+  // ============================================
+
+  @@index([evidenceRef])
+  @@index([evidenceType])
+  @@index([status])
+  @@index([classification])
+  @@index([validUntil])
+  @@index([collectedById])
+  @@index([createdAt])
+  @@index([category])
+}
+
+// ============================================
+// EVIDENCE REQUESTS
+// Request evidence from stakeholders
+// ============================================
+
+model EvidenceRequest {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+
+  // ============================================
+  // IDENTIFICATION
+  // ============================================
+
+  requestRef  String @unique // REQ-YYYY-NNNN format
+  title       String
+  description String @db.Text
+
+  // ============================================
+  // REQUEST DETAILS
+  // ============================================
+
+  evidenceType       EvidenceType?
+  requiredFormat     String? // PDF, screenshot, log export, etc.
+  acceptanceCriteria String?       @db.Text
+
+  priority EvidenceRequestPriority @default(MEDIUM)
+  status   EvidenceRequestStatus   @default(OPEN)
+
+  // ============================================
+  // ASSIGNMENT
+  // ============================================
+
+  requestedById String?
+  requestedBy   User?   @relation("RequestCreatedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+
+  assignedToId String?
+  assignedTo   User?   @relation("RequestAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  // Alternative: assign to a department
+  assignedDepartmentId String?
+  assignedDepartment   Department? @relation("RequestDepartment", fields: [assignedDepartmentId], references: [id], onDelete: SetNull)
+
+  // ============================================
+  // DATES
+  // ============================================
+
+  dueDate     DateTime
+  submittedAt DateTime?
+  acceptedAt  DateTime?
+  rejectedAt  DateTime?
+  cancelledAt DateTime?
+
+  // ============================================
+  // CONTEXT - What is this evidence for?
+  // ============================================
+
+  // Link to the entity that needs evidence
+  contextType String? // "Control", "Test", "Audit", "Incident", etc.
+  contextId   String? // ID of the related entity
+  contextRef  String? // Human-readable reference (e.g., "A.5.1", "NC-2025-001")
+
+  // ============================================
+  // RESPONSE
+  // ============================================
+
+  rejectionReason String? @db.Text
+  notes           String? @db.Text
+
+  // ============================================
+  // FULFILLMENT
+  // ============================================
+
+  fulfillments EvidenceRequestFulfillment[]
+
+  // ============================================
+  // AUDIT
+  // ============================================
+
+  createdBy User? @relation("EvidenceRequestCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([requestRef])
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+  @@index([assignedToId])
+  @@index([contextType, contextId])
+}
+
+// ============================================
+// EVIDENCE REQUEST FULFILLMENT
+// Links evidence to requests
+// ============================================
+
+model EvidenceRequestFulfillment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  requestId String
+  request   EvidenceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  evidenceId String
+  evidence   Evidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+
+  notes         String? @db.Text
+  submittedById String?
+  submittedBy   User?   @relation("FulfillmentSubmittedBy", fields: [submittedById], references: [id], onDelete: SetNull)
+
+  @@unique([requestId, evidenceId])
+  @@index([requestId])
+  @@index([evidenceId])
+}
+
+// ============================================
+// JUNCTION TABLES - Links to other modules
+// ============================================
+
+// Evidence <-> Control
+model EvidenceControl {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  evidenceId String
+  evidence   Evidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+
+  controlId String
+  control   Control @relation(fields: [controlId], references: [id], onDelete: Cascade)
+
+  linkType String? // "design", "implementation", "operating", "general"
+  notes    String? @db.Text
+
+  createdBy User? @relation("EvidenceControlCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([evidenceId, controlId])
+  @@index([evidenceId])
+  @@index([controlId])
+}
+
+// Evidence <-> Nonconformity
+model EvidenceNonconformity {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  evidenceId String
+  evidence   Evidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+
+  nonconformityId String
+  nonconformity   Nonconformity @relation(fields: [nonconformityId], references: [id], onDelete: Cascade)
+
+  linkType String? // "finding", "root_cause", "cap_implementation", "verification"
+  notes    String? @db.Text
+
+  createdBy User? @relation("EvidenceNCCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([evidenceId, nonconformityId])
+  @@index([evidenceId])
+  @@index([nonconformityId])
+}
+
+// Evidence <-> Incident
+model EvidenceIncident {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  evidenceId String
+  evidence   Evidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  linkType String? // "forensic", "communication", "notification", "lessons_learned"
+  notes    String? @db.Text
+
+  createdBy User? @relation("EvidenceIncidentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([evidenceId, incidentId])
+  @@index([evidenceId])
+  @@index([incidentId])
+}
+
+// Evidence <-> Risk
+model EvidenceRisk {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  evidenceId String
+  evidence   Evidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+
+  riskId String
+  risk   Risk   @relation(fields: [riskId], references: [id], onDelete: Cascade)
+
+  linkType String? // "assessment", "acceptance", "monitoring"
+  notes    String? @db.Text
+
+  createdBy User? @relation("EvidenceRiskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([evidenceId, riskId])
+  @@index([evidenceId])
+  @@index([riskId])
+}
+
+// Evidence <-> TreatmentPlan
+model EvidenceTreatment {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  evidenceId String
+  evidence   Evidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+
+  treatmentId String
+  treatment   TreatmentPlan @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+
+  linkType String? // "implementation", "approval", "progress"
+  notes    String? @db.Text
+
+  createdBy User? @relation("EvidenceTreatmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([evidenceId, treatmentId])
+  @@index([evidenceId])
+  @@index([treatmentId])
+}
+
+// Evidence <-> PolicyDocument
+model EvidencePolicy {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  evidenceId String
+  evidence   Evidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+
+  policyId String
+  policy   PolicyDocument @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  linkType String? // "supporting", "appendix", "acknowledgment"
+  notes    String? @db.Text
+
+  createdBy User? @relation("EvidencePolicyCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([evidenceId, policyId])
+  @@index([evidenceId])
+  @@index([policyId])
+}
+
+// Evidence <-> Asset
+model EvidenceAsset {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  evidenceId String
+  evidence   Evidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  linkType String? // "configuration", "vulnerability_scan", "backup_verification"
+  notes    String? @db.Text
+
+  createdBy User? @relation("EvidenceAssetCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([evidenceId, assetId])
+  @@index([evidenceId])
+  @@index([assetId])
+}
+
+// Evidence <-> Change
+model EvidenceChange {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  evidenceId String
+  evidence   Evidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+
+  changeId String
+  change   Change @relation(fields: [changeId], references: [id], onDelete: Cascade)
+
+  linkType String? // "approval", "test_result", "pir"
+  notes    String? @db.Text
+
+  createdBy User? @relation("EvidenceChangeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([evidenceId, changeId])
+  @@index([evidenceId])
+  @@index([changeId])
+}

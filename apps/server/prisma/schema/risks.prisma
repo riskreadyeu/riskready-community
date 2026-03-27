@@ -1,0 +1,269 @@
+// ============================================
+// RISK MODULE EXTENSIONS
+// Risk Calculation Service, Lifecycle Management
+// 5x5 Risk Scoring (Likelihood x Impact)
+// State Machine, Permissions, Notifications
+// ============================================
+
+// ============================================
+// ENUMS
+// Note: ReviewFrequency is defined in policies.prisma
+// ============================================
+
+// ============================================
+// SCENARIO STATE MACHINE
+// 10 states per Risk_Lifecycle_Workflow_Spec.xlsx
+// ============================================
+
+enum ScenarioStatus {
+  DRAFT // Scenario created but not assessed
+  ASSESSED // All factors scored, awaiting evaluation
+  EVALUATED // Compared to tolerance, decision pending
+  TREATING // Treatment plan in progress
+  TREATED // Treatment complete, awaiting re-assessment
+  ACCEPTED // Risk accepted with formal sign-off
+  MONITORING // Ongoing monitoring of accepted risk
+  ESCALATED // Exceeds tolerance, escalated to authority
+  REVIEW // Scheduled or triggered reassessment
+  CLOSED // Risk no longer applicable
+  ARCHIVED // Inactive, retained for history
+}
+
+// Derived parent risk status (from worst child scenario)
+enum DerivedRiskStatus {
+  ESCALATED // Priority 1 - At least one scenario escalated
+  REVIEW // Priority 2 - At least one scenario under review
+  TREATING // Priority 3 - At least one scenario has active treatment
+  TREATED // Priority 4 - Treatment complete, awaiting re-assessment
+  EVALUATED // Priority 5 - Decision pending
+  ASSESSED // Priority 6 - Recently assessed
+  MONITORING // Priority 7 - All scenarios monitored
+  ACCEPTED // Priority 8 - All scenarios accepted
+  DRAFT // Priority 9 - All scenarios in draft
+  CLOSED // Priority 10 - All terminal
+}
+
+// Tolerance status for quick filtering
+enum ToleranceStatus {
+  WITHIN // Score <= threshold
+  EXCEEDS // Score > threshold AND <= threshold + 4
+  CRITICAL // Score > threshold + 4
+}
+
+enum CalculationTrigger {
+  MANUAL
+  SCHEDULED
+  ASSET_UPDATED
+  CONTROL_TESTED
+  VENDOR_ASSESSED
+  INCIDENT_CREATED
+  POLICY_CHANGED
+  ISRA_COMPLETED
+  KRI_RECORDED
+  TREATMENT_COMPLETED
+  STATE_TRANSITION
+  KRI_BREACH
+  ACCEPTANCE_EXPIRY
+}
+
+// ============================================
+// RISK SCENARIO - ASSET JUNCTION TABLE
+// Links scenarios to assets
+// ============================================
+
+model RiskScenarioAsset {
+  id         String       @id @default(cuid())
+  scenarioId String
+  scenario   RiskScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  assetId    String
+  asset      Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  // Role in the scenario
+  isPrimaryTarget Boolean @default(false)
+  impactLevel     String? // Override impact if this asset compromised
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([scenarioId, assetId])
+  @@index([assetId])
+  @@index([scenarioId])
+}
+
+// ============================================
+// RISK SCENARIO - CONTROL JUNCTION TABLE
+// Links scenarios to controls for residual calculation
+// ============================================
+
+model RiskScenarioControl {
+  id         String       @id @default(cuid())
+  scenarioId String
+  scenario   RiskScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  controlId  String
+  control    Control      @relation(fields: [controlId], references: [id], onDelete: Cascade)
+
+  // Effectiveness contribution weight (0-100)
+  effectivenessWeight Int @default(100)
+
+  // Is this a primary mitigating control?
+  isPrimaryControl Boolean @default(false)
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@unique([scenarioId, controlId])
+  @@index([controlId])
+  @@index([scenarioId])
+}
+
+// RISK SCENARIO - KRI JUNCTION TABLE
+// Links scenarios to KRIs for monitoring
+// ============================================
+// RISK CALCULATION HISTORY
+// Immutable audit trail of all calculations
+// ============================================
+
+model RiskCalculationHistory {
+  id         String       @id @default(cuid())
+  scenarioId String
+  scenario   RiskScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  calculatedAt   DateTime @default(now())
+  calculatedById String?
+  calculatedBy   User?    @relation("CalcHistoryCalculatedBy", fields: [calculatedById], references: [id], onDelete: SetNull)
+
+  // What triggered this calculation
+  trigger         CalculationTrigger @default(MANUAL)
+  triggerEntityId String? // ID of entity that triggered (asset, control, etc.)
+  triggerDetails  String?            @db.Text
+
+  // Aggregated scores
+  likelihood    Int?
+  impact        Int?
+  inherentScore Int?
+  residualScore Int?
+
+  // Full calculation trace for audit
+  calculationTrace Json?
+
+  // Previous values (for change tracking)
+  previousResidualScore Int?
+  scoreChange           Int? // +/- change
+
+  @@index([scenarioId, calculatedAt])
+  @@index([trigger])
+  @@index([calculatedAt])
+}
+
+// ============================================
+// RISK EVENT LOG
+// Event sourcing for risk state changes
+// ============================================
+
+model RiskEventLog {
+  id     String @id @default(cuid())
+  riskId String
+  risk   Risk   @relation(fields: [riskId], references: [id], onDelete: Cascade)
+
+  // Event details
+  eventType String // SCENARIO_UPDATED, CONTROL_LINKED, KRI_RECORDED, etc.
+  eventData Json // Event-specific payload
+
+  // Source information
+  sourceEntityType String? // 'scenario', 'control', 'kri', 'treatment', 'asset'
+  sourceEntityId   String?
+
+  // Resulting actions
+  triggeredActions Json? @default("[]") // Actions taken in response
+
+  // Actor
+  actorId       String?
+  actor         User?   @relation("EventActor", fields: [actorId], references: [id], onDelete: SetNull)
+  isSystemEvent Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([riskId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([sourceEntityType, sourceEntityId])
+}
+
+// ============================================
+// TOLERANCE EVALUATION RESULT
+// Cached results of tolerance evaluations
+// ============================================
+
+model ToleranceEvaluation {
+  id     String @id @default(cuid())
+  riskId String
+  risk   Risk   @relation(fields: [riskId], references: [id], onDelete: Cascade)
+
+  // Linked RTS (if any)
+  rtsId String?
+  rts   RiskToleranceStatement? @relation(fields: [rtsId], references: [id], onDelete: SetNull)
+
+  // Evaluation result
+  status             String // 'WITHIN', 'EXCEEDS', 'NO_RTS_LINKED'
+  riskScore          Float
+  toleranceThreshold Float?
+  gap                Float? // How much over/under threshold
+
+  // Recommended actions
+  recommendedActions Json @default("[]")
+
+  // Evaluation metadata
+  evaluatedAt   DateTime @default(now())
+  evaluatedById String?
+  evaluatedBy   User?    @relation("ToleranceEvaluatedBy", fields: [evaluatedById], references: [id], onDelete: SetNull)
+  isStale       Boolean  @default(false)
+
+  // Auto-generated alert (if exceeds)
+  alertId String?
+
+  @@index([riskId])
+  @@index([status])
+  @@index([evaluatedAt])
+}
+
+// ============================================
+// SCENARIO STATE HISTORY
+// Immutable log of all state transitions
+// ============================================
+
+model ScenarioStateHistory {
+  id         String       @id @default(cuid())
+  scenarioId String
+  scenario   RiskScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  // Transition details
+  fromStatus     ScenarioStatus?
+  toStatus       ScenarioStatus
+  transitionCode String? // T01, T02, etc. from spec
+
+  // Trigger information
+  triggeredBy    String // USER, SYSTEM, TIMEOUT, KRI_BREACH, etc.
+  triggerDetails String? @db.Text
+
+  // Actor
+  actorId        String?
+  actor          User?   @relation("StateHistoryActor", fields: [actorId], references: [id], onDelete: SetNull)
+  isSystemAction Boolean @default(false)
+
+  // Validation
+  guardsPassed    Json? // Guards that were checked
+  actionsExecuted Json? // Actions taken during transition
+
+  // Notes
+  reason String? @db.Text
+  notes  String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([scenarioId])
+  @@index([toStatus])
+  @@index([createdAt])
+}

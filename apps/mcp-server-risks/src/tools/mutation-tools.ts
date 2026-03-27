@@ -1,0 +1,452 @@
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpActionType } from '@prisma/client';
+import { z } from 'zod';
+import { prisma } from '#src/prisma.js';
+import { createPendingAction, withErrorHandling, zId, zSessionId, zOrgId, zReason } from '#mcp-shared';
+
+// ---------------------------------------------------------------------------
+// Risk mutations
+// ---------------------------------------------------------------------------
+function registerRiskMutations(server: McpServer) {
+  server.tool(
+    'propose_create_risk',
+    'Propose creating a new risk. The proposal goes into an approval queue for human review. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
+    {
+      riskId: z.string().describe('Risk identifier (e.g. "R-01")'),
+      title: z.string().max(500).describe('Risk title'),
+      description: z.string().max(5000).optional().describe('Risk description'),
+      tier: z.enum(['CORE', 'EXTENDED', 'ADVANCED']).optional().describe('Risk tier'),
+      framework: z.enum(['ISO', 'SOC2', 'NIS2', 'DORA']).optional().describe('Framework'),
+      status: z.enum(['IDENTIFIED', 'ASSESSED', 'TREATING', 'ACCEPTED', 'CLOSED', 'MONITORING']).optional().describe('Initial risk status'),
+      source: z.string().max(200).optional().describe('Risk source (e.g. "ISRA", "Audit", "Incident")'),
+      priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Risk priority'),
+      parentRiskId: zId.optional().describe('Parent risk UUID'),
+      notes: z.string().max(2000).optional().describe('Additional notes'),
+      organisationId: zOrgId,
+      reason: zReason,
+      mcpSessionId: zSessionId,
+    },
+    withErrorHandling('propose_create_risk', async (params) => {
+      return createPendingAction({
+        actionType: McpActionType.CREATE_RISK,
+        summary: `Create risk "${params.title}" (${params.riskId})`,
+        reason: params.reason,
+        payload: params,
+        mcpSessionId: params.mcpSessionId,
+        mcpToolName: 'propose_create_risk',
+        organisationId: params.organisationId,
+      });
+    }),
+  );
+
+  server.tool(
+    'propose_update_risk',
+    'Propose updating an existing risk. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
+    {
+      riskId: zId.describe('Risk UUID'),
+      title: z.string().max(500).optional().describe('Updated title'),
+      description: z.string().max(5000).optional().describe('Updated description'),
+      status: z.enum(['IDENTIFIED', 'ASSESSED', 'TREATING', 'ACCEPTED', 'CLOSED', 'MONITORING']).optional().describe('Updated status'),
+      tier: z.enum(['CORE', 'EXTENDED', 'ADVANCED']).optional().describe('Updated tier'),
+      source: z.string().max(200).optional().describe('Risk source'),
+      priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Updated priority'),
+      framework: z.enum(['ISO', 'SOC2', 'NIS2', 'DORA']).optional().describe('Updated framework'),
+      parentRiskId: zId.optional().describe('Parent risk UUID'),
+      notes: z.string().max(2000).optional().describe('Additional notes'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
+    },
+    withErrorHandling('propose_update_risk', async (params) => {
+      const risk = await prisma.risk.findUnique({
+        where: { id: params.riskId },
+        select: { id: true, riskId: true, title: true, organisationId: true },
+      });
+      if (!risk) {
+        return { content: [{ type: 'text' as const, text: `Risk with ID ${params.riskId} not found` }], isError: true };
+      }
+
+      return createPendingAction({
+        actionType: McpActionType.UPDATE_RISK,
+        summary: `Update risk "${risk.riskId}" (${risk.title})`,
+        reason: params.reason,
+        payload: params,
+        mcpSessionId: params.mcpSessionId,
+        mcpToolName: 'propose_update_risk',
+        organisationId: risk.organisationId,
+      });
+    }),
+  );
+
+  server.tool(
+    'propose_create_kri',
+    'Propose creating a new Key Risk Indicator. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
+    {
+      kriId: z.string().describe('KRI identifier (e.g. "KRI-001")'),
+      name: z.string().max(500).describe('KRI name'),
+      description: z.string().max(5000).optional().describe('KRI description'),
+      unit: z.string().max(200).optional().describe('Measurement unit (e.g. "%", "Count", "Days")'),
+      frequency: z.string().max(200).optional().describe('Collection frequency (e.g. "DAILY", "WEEKLY", "MONTHLY")'),
+      thresholdGreen: z.string().max(200).optional().describe('Green threshold value'),
+      thresholdAmber: z.string().max(200).optional().describe('Amber threshold value'),
+      thresholdRed: z.string().max(200).optional().describe('Red threshold value'),
+      breachThreshold: z.string().max(200).optional().describe('Breach threshold value'),
+      notes: z.string().max(2000).optional().describe('Additional notes'),
+      riskId: zId.describe('Parent risk UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
+    },
+    withErrorHandling('propose_create_kri', async (params) => {
+      const risk = await prisma.risk.findUnique({
+        where: { id: params.riskId },
+        select: { id: true, riskId: true, organisationId: true },
+      });
+      if (!risk) {
+        return { content: [{ type: 'text' as const, text: `Parent risk with ID ${params.riskId} not found` }], isError: true };
+      }
+
+      return createPendingAction({
+        actionType: McpActionType.CREATE_KRI,
+        summary: `Create KRI "${params.name}" (${params.kriId}) for risk ${risk.riskId}`,
+        reason: params.reason,
+        payload: params,
+        mcpSessionId: params.mcpSessionId,
+        mcpToolName: 'propose_create_kri',
+        organisationId: risk.organisationId,
+      });
+    }),
+  );
+
+  server.tool(
+    'propose_record_kri_value',
+    'Propose recording a new KRI measurement value. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
+    {
+      kriId: zId.describe('KeyRiskIndicator UUID'),
+      value: z.string().max(200).describe('New measurement value (e.g. "95%", "3", "14 days")'),
+      status: z.enum(['GREEN', 'AMBER', 'RED']).optional().describe('RAG status for this measurement'),
+      notes: z.string().max(2000).optional().describe('Measurement notes'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
+    },
+    withErrorHandling('propose_record_kri_value', async (params) => {
+      const kri = await prisma.keyRiskIndicator.findUnique({
+        where: { id: params.kriId },
+        select: { id: true, kriId: true, name: true, risk: { select: { organisationId: true } } },
+      });
+      if (!kri) {
+        return { content: [{ type: 'text' as const, text: `KRI with ID ${params.kriId} not found` }], isError: true };
+      }
+
+      return createPendingAction({
+        actionType: McpActionType.RECORD_KRI_VALUE,
+        summary: `Record value "${params.value}" for KRI "${kri.kriId}" (${kri.name})`,
+        reason: params.reason,
+        payload: params,
+        mcpSessionId: params.mcpSessionId,
+        mcpToolName: 'propose_record_kri_value',
+        organisationId: kri.risk.organisationId,
+      });
+    }),
+  );
+
+  server.tool(
+    'propose_create_rts',
+    'Propose creating a new Risk Tolerance Statement. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
+    {
+      rtsId: z.string().describe('RTS identifier (e.g. "RTS-001")'),
+      title: z.string().max(500).describe('RTS title'),
+      objective: z.string().max(1000).describe('RTS objective'),
+      proposedRTS: z.string().max(5000).describe('Full text of the tolerance statement'),
+      domain: z.string().max(200).optional().describe('Risk domain'),
+      proposedToleranceLevel: z.enum(['HIGH', 'MEDIUM', 'LOW']).optional().describe('Proposed tolerance level'),
+      notes: z.string().max(2000).optional().describe('Additional notes'),
+      organisationId: zOrgId,
+      reason: zReason,
+      mcpSessionId: zSessionId,
+    },
+    withErrorHandling('propose_create_rts', async (params) => {
+      return createPendingAction({
+        actionType: McpActionType.CREATE_RTS,
+        summary: `Create RTS "${params.title}" (${params.rtsId})`,
+        reason: params.reason,
+        payload: params,
+        mcpSessionId: params.mcpSessionId,
+        mcpToolName: 'propose_create_rts',
+        organisationId: params.organisationId,
+      });
+    }),
+  );
+
+  server.tool(
+    'propose_approve_rts',
+    'Propose approving a Risk Tolerance Statement. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
+    {
+      rtsId: zId.describe('RiskToleranceStatement UUID'),
+      approvalComments: z.string().max(1000).optional().describe('Approval comments'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
+    },
+    withErrorHandling('propose_approve_rts', async (params) => {
+      const rts = await prisma.riskToleranceStatement.findUnique({
+        where: { id: params.rtsId },
+        select: { id: true, rtsId: true, title: true, status: true, organisationId: true },
+      });
+      if (!rts) {
+        return { content: [{ type: 'text' as const, text: `RTS with ID ${params.rtsId} not found` }], isError: true };
+      }
+
+      return createPendingAction({
+        actionType: McpActionType.APPROVE_RTS,
+        summary: `Approve RTS "${rts.rtsId}" (${rts.title}) — current status: ${rts.status}`,
+        reason: params.reason,
+        payload: { ...params, currentStatus: rts.status },
+        mcpSessionId: params.mcpSessionId,
+        mcpToolName: 'propose_approve_rts',
+        organisationId: rts.organisationId,
+      });
+    }),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Scenario mutations
+// ---------------------------------------------------------------------------
+function registerScenarioMutations(server: McpServer) {
+  server.tool(
+    'propose_create_scenario',
+    'Propose creating a new risk scenario. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
+    {
+      scenarioId: z.string().describe('Scenario identifier (e.g. "R-01-S01")'),
+      title: z.string().max(500).describe('Scenario title'),
+      cause: z.string().max(1000).optional().describe('Cause description'),
+      event: z.string().max(1000).optional().describe('Event description'),
+      consequence: z.string().max(1000).optional().describe('Consequence description'),
+      status: z.string().max(200).optional().describe('Initial scenario status'),
+      notes: z.string().max(2000).optional().describe('Additional notes'),
+      riskId: zId.describe('Parent risk UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
+    },
+    withErrorHandling('propose_create_scenario', async (params) => {
+      const risk = await prisma.risk.findUnique({
+        where: { id: params.riskId },
+        select: { id: true, riskId: true, organisationId: true },
+      });
+      if (!risk) {
+        return { content: [{ type: 'text' as const, text: `Parent risk with ID ${params.riskId} not found` }], isError: true };
+      }
+
+      return createPendingAction({
+        actionType: McpActionType.CREATE_SCENARIO,
+        summary: `Create scenario "${params.title}" (${params.scenarioId}) under risk ${risk.riskId}`,
+        reason: params.reason,
+        payload: params,
+        mcpSessionId: params.mcpSessionId,
+        mcpToolName: 'propose_create_scenario',
+        organisationId: risk.organisationId,
+      });
+    }),
+  );
+
+  server.tool(
+    'propose_transition_scenario',
+    'Propose a status transition for a risk scenario. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
+    {
+      scenarioId: zId.describe('RiskScenario UUID'),
+      targetStatus: z.string().max(200).describe('Target status (e.g. ASSESSED, EVALUATED, TREATING)'),
+      justification: z.string().max(1000).optional().describe('Justification for the transition'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
+    },
+    withErrorHandling('propose_transition_scenario', async (params) => {
+      const scenario = await prisma.riskScenario.findUnique({
+        where: { id: params.scenarioId },
+        select: { id: true, scenarioId: true, status: true, risk: { select: { organisationId: true } } },
+      });
+      if (!scenario) {
+        return { content: [{ type: 'text' as const, text: `Scenario with ID ${params.scenarioId} not found` }], isError: true };
+      }
+
+      return createPendingAction({
+        actionType: McpActionType.TRANSITION_SCENARIO,
+        summary: `Transition scenario "${scenario.scenarioId}" from ${scenario.status} to ${params.targetStatus}`,
+        reason: params.reason,
+        payload: { ...params, currentStatus: scenario.status },
+        mcpSessionId: params.mcpSessionId,
+        mcpToolName: 'propose_transition_scenario',
+        organisationId: scenario.risk.organisationId,
+      });
+    }),
+  );
+
+  server.tool(
+    'propose_link_scenario_control',
+    'Propose linking a control to a risk scenario as a mitigating control. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
+    {
+      scenarioId: zId.describe('RiskScenario UUID'),
+      controlId: zId.describe('Control UUID'),
+      effectivenessWeight: z.number().min(0).max(100).optional().describe('Effectiveness contribution weight (0-100, default 100)'),
+      isPrimaryControl: z.boolean().optional().describe('Is this the primary mitigating control?'),
+      notes: z.string().max(2000).optional().describe('Notes about how this control mitigates the scenario'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
+    },
+    withErrorHandling('propose_link_scenario_control', async (params) => {
+      const [scenario, control] = await Promise.all([
+        prisma.riskScenario.findUnique({
+          where: { id: params.scenarioId },
+          select: { id: true, scenarioId: true, risk: { select: { riskId: true, organisationId: true } } },
+        }),
+        prisma.control.findUnique({
+          where: { id: params.controlId },
+          select: { id: true, controlId: true, name: true },
+        }),
+      ]);
+      if (!scenario) {
+        return { content: [{ type: 'text' as const, text: `Scenario ${params.scenarioId} not found` }], isError: true };
+      }
+      if (!control) {
+        return { content: [{ type: 'text' as const, text: `Control ${params.controlId} not found` }], isError: true };
+      }
+
+      const existing = await prisma.riskScenarioControl.findUnique({
+        where: { scenarioId_controlId: { scenarioId: params.scenarioId, controlId: params.controlId } },
+      });
+      if (existing) {
+        return { content: [{ type: 'text' as const, text: `Control ${control.controlId} is already linked to scenario ${scenario.scenarioId}` }], isError: true };
+      }
+
+      return createPendingAction({
+        actionType: McpActionType.LINK_SCENARIO_CONTROL,
+        summary: `Link control ${control.controlId} (${control.name}) to scenario ${scenario.scenarioId} under risk ${scenario.risk.riskId}`,
+        reason: params.reason,
+        payload: params,
+        mcpSessionId: params.mcpSessionId,
+        mcpToolName: 'propose_link_scenario_control',
+        organisationId: scenario.risk.organisationId,
+      });
+    }),
+  );
+
+  server.tool(
+    'propose_assess_scenario',
+    'Propose recording an inherent or residual assessment for a risk scenario. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
+    {
+      scenarioId: zId.describe('RiskScenario UUID'),
+      assessmentType: z.enum(['inherent', 'residual']).describe('Assessment type'),
+      likelihood: z.enum(['VERY_LOW', 'LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH']).describe('Likelihood level'),
+      impact: z.enum(['VERY_LOW', 'LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH']).describe('Impact level'),
+      notes: z.string().max(2000).optional().describe('Assessment notes'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
+    },
+    withErrorHandling('propose_assess_scenario', async (params) => {
+      const scenario = await prisma.riskScenario.findUnique({
+        where: { id: params.scenarioId },
+        select: { id: true, scenarioId: true, risk: { select: { organisationId: true } } },
+      });
+      if (!scenario) {
+        return { content: [{ type: 'text' as const, text: `Scenario with ID ${params.scenarioId} not found` }], isError: true };
+      }
+
+      return createPendingAction({
+        actionType: McpActionType.ASSESS_SCENARIO,
+        summary: `Record ${params.assessmentType} assessment for scenario "${scenario.scenarioId}" — likelihood: ${params.likelihood}, impact: ${params.impact}`,
+        reason: params.reason,
+        payload: params,
+        mcpSessionId: params.mcpSessionId,
+        mcpToolName: 'propose_assess_scenario',
+        organisationId: scenario.risk.organisationId,
+      });
+    }),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Treatment mutations
+// ---------------------------------------------------------------------------
+function registerTreatmentMutations(server: McpServer) {
+  server.tool(
+    'propose_create_treatment_plan',
+    'Propose creating a new treatment plan. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
+    {
+      treatmentId: z.string().describe('Treatment plan identifier (e.g. "TP-001")'),
+      title: z.string().max(500).describe('Treatment plan title'),
+      description: z.string().max(5000).describe('Treatment plan description'),
+      treatmentType: z.enum(['MITIGATE', 'TRANSFER', 'ACCEPT', 'AVOID', 'SHARE']).optional().describe('Treatment type'),
+      priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Priority'),
+      status: z.string().max(200).optional().describe('Initial treatment plan status'),
+      targetEndDate: z.string().datetime().optional().describe('Target completion date (ISO 8601)'),
+      estimatedCost: z.number().optional().describe('Estimated cost'),
+      notes: z.string().max(2000).optional().describe('Additional notes'),
+      riskId: zId.describe('Parent risk UUID'),
+      organisationId: zOrgId,
+      reason: zReason,
+      mcpSessionId: zSessionId,
+    },
+    withErrorHandling('propose_create_treatment_plan', async (params) => {
+      const risk = await prisma.risk.findUnique({
+        where: { id: params.riskId },
+        select: { id: true, riskId: true, organisationId: true },
+      });
+      if (!risk) {
+        return { content: [{ type: 'text' as const, text: `Parent risk with ID ${params.riskId} not found` }], isError: true };
+      }
+
+      return createPendingAction({
+        actionType: McpActionType.CREATE_TREATMENT_PLAN,
+        summary: `Create treatment plan "${params.title}" (${params.treatmentId}) for risk ${risk.riskId}`,
+        reason: params.reason,
+        payload: params,
+        mcpSessionId: params.mcpSessionId,
+        mcpToolName: 'propose_create_treatment_plan',
+        organisationId: params.organisationId || risk.organisationId,
+      });
+    }),
+  );
+
+  server.tool(
+    'propose_create_treatment_action',
+    'Propose creating a new treatment action. Requires human approval. The reason field is shown to human reviewers. Only cite facts retrieved from tools.',
+    {
+      actionId: z.string().describe('Action identifier (e.g. "TP-001-A01")'),
+      title: z.string().max(500).describe('Action title'),
+      description: z.string().max(5000).optional().describe('Action description'),
+      status: z.string().max(200).optional().describe('Initial action status'),
+      priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Action priority'),
+      dueDate: z.string().datetime().optional().describe('Target completion date (ISO 8601)'),
+      estimatedHours: z.number().optional().describe('Estimated hours to complete'),
+      notes: z.string().max(2000).optional().describe('Additional notes'),
+      treatmentPlanId: zId.describe('Parent treatment plan UUID'),
+      reason: zReason,
+      mcpSessionId: zSessionId,
+    },
+    withErrorHandling('propose_create_treatment_action', async (params) => {
+      const plan = await prisma.treatmentPlan.findUnique({
+        where: { id: params.treatmentPlanId },
+        select: { id: true, treatmentId: true, title: true, organisationId: true },
+      });
+      if (!plan) {
+        return { content: [{ type: 'text' as const, text: `Treatment plan with ID ${params.treatmentPlanId} not found` }], isError: true };
+      }
+
+      return createPendingAction({
+        actionType: McpActionType.CREATE_TREATMENT_ACTION,
+        summary: `Create treatment action "${params.title}" (${params.actionId}) under plan ${plan.treatmentId}`,
+        reason: params.reason,
+        payload: params,
+        mcpSessionId: params.mcpSessionId,
+        mcpToolName: 'propose_create_treatment_action',
+        organisationId: plan.organisationId,
+      });
+    }),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Orchestrator
+// ---------------------------------------------------------------------------
+export function registerMutationTools(server: McpServer) {
+  registerRiskMutations(server);
+  registerScenarioMutations(server);
+  registerTreatmentMutations(server);
+}

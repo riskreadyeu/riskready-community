@@ -1,0 +1,37 @@
+:80 {
+  encode gzip
+
+  log {
+    output stdout
+  }
+
+  # Security headers are set by nginx (frontend) and Helmet (API).
+  # Caddy only strips its own Via header to avoid leaking proxy stack info.
+  header -Via
+
+  handle /api/* {
+    reverse_proxy server:3000
+  }
+
+  handle /mcp {
+    reverse_proxy gateway:3100
+  }
+
+  handle {
+    reverse_proxy {$WEB_UPSTREAM:web:80}
+  }
+}
+
+# Production HTTPS example (uncomment and replace the :80 block above):
+#
+# yourdomain.com {
+#   encode gzip
+#
+#   handle /api/* {
+#     reverse_proxy server:3000
+#   }
+#
+#   handle {
+#     reverse_proxy {$WEB_UPSTREAM:web:80}
+#   }
+# }

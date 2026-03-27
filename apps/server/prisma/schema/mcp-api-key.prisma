@@ -1,0 +1,18 @@
+// MCP API key management — per-user keys for gateway authentication
+
+model McpApiKey {
+  id             String    @id @default(cuid())
+  prefix         String    // First 8 chars: "rr_sk_ab"
+  keyHash        String    // bcrypt hash
+  name           String    // User label
+  scopes         String[]  @default(["all"])
+  userId         String
+  organisationId String
+  lastUsedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  revokedAt      DateTime?
+
+  @@index([prefix])
+  @@index([userId])
+  @@index([organisationId])
+}

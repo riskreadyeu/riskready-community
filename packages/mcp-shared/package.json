@@ -1,0 +1,25 @@
+{
+  "name": "@riskready/mcp-shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "postinstall": "rm -rf node_modules/.prisma/client && mkdir -p node_modules/.prisma && test -d ../../apps/server/node_modules/.prisma/client && ln -sfn \"$(cd ../../apps/server/node_modules/.prisma/client && pwd)\" node_modules/.prisma/client || true"
+  },
+  "imports": {
+    "#src/*": "./src/*"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.27.1",
+    "@prisma/client": "5.19.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.33",
+    "typescript": "5.5.4",
+    "vitest": "3.0.0"
+  }
+}

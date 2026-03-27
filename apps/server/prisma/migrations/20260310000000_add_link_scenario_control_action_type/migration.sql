@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "McpActionType" ADD VALUE 'LINK_SCENARIO_CONTROL';

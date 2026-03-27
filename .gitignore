@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+.vite/
+
+# Environment files
+.env
+.env.*
+!.env.example
+.prisma/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temp
+_temp/
+.temp/
+.venv/
+
+# Local dev database
+dev.db
+
+# Internal dev files
+INVENTORY.md
+apps/server/scripts/
+apps/server/*.md
+apps/server/*.ts
+apps/server/prisma/*.ts
+
+# Worktrees
+.worktrees/
+
+# Agent Artifacts
+.claude/
+.playwright-mcp/
+image.png
+*.png
+!screenshots/*.png
+packages/mcp-shared/tsconfig.tsbuildinfo
+2026-02-10-*.md
+LATTICE_CONTEXT.md
+documentation/plans/
+documentation/specs/

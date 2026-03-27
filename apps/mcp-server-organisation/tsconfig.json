@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.mcp-base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "paths": {
+      "#src/*": ["./src/*"],
+      "#mcp-shared": ["../../packages/mcp-shared/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../../packages/mcp-shared" }
+  ]
+}

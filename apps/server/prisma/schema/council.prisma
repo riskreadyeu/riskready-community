@@ -1,0 +1,38 @@
+// AI Agents Council audit trail
+
+model CouncilSession {
+  id                  String           @id @default(cuid())
+  conversationId      String
+  question            String           @db.Text
+  pattern             String
+  participatingAgents String[]
+  consensusSummary    String?          @db.Text
+  deliberation        Json?
+  confidenceLevel     String?
+  inputTokens         Int?
+  outputTokens        Int?
+  organisationId      String
+  startedAt           DateTime         @default(now())
+  completedAt         DateTime?
+  opinions            CouncilOpinion[]
+
+  @@index([conversationId])
+  @@index([organisationId])
+}
+
+model CouncilOpinion {
+  id              String         @id @default(cuid())
+  sessionId       String
+  session         CouncilSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  agentRole       String
+  findings        Json
+  recommendations Json
+  dissents        Json?
+  dataSources     Json?
+  confidence      String
+  inputTokens     Int?
+  outputTokens    Int?
+  createdAt       DateTime       @default(now())
+
+  @@index([sessionId])
+}
