@@ -6,7 +6,7 @@ If you discover a security vulnerability in RiskReady Community Edition, please 
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Instead, please email: **security@riskready.io**
+Instead, please email: **security@riskready.dev**
 
 Include the following in your report:
 
