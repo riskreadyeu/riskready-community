@@ -1,0 +1,182 @@
+// ============================================
+// MCP PENDING ACTION MODEL
+// Human-in-the-loop approval queue for MCP mutations
+// ============================================
+
+enum McpActionType {
+  CREATE_ASSESSMENT
+  UPDATE_SOA_ENTRY
+  RECORD_TEST_RESULT
+  CREATE_REMEDIATION
+  UPDATE_METRIC_VALUE
+  UPDATE_CONTROL_STATUS
+  CREATE_SCOPE_ITEM
+  CREATE_CONTROL_LAYER
+  CREATE_LAYER_TEST
+  CREATE_CONTROL_ACTIVITY
+  CREATE_CONTROL_METRIC
+  CREATE_CONTROL
+  UPDATE_CONTROL
+  DISABLE_CONTROL
+  ENABLE_CONTROL
+  UPDATE_ASSESSMENT
+  DELETE_ASSESSMENT
+  START_ASSESSMENT
+  SUBMIT_ASSESSMENT_REVIEW
+  COMPLETE_ASSESSMENT
+  CANCEL_ASSESSMENT
+  ADD_ASSESSMENT_CONTROLS
+  REMOVE_ASSESSMENT_CONTROL
+  ADD_ASSESSMENT_SCOPE_ITEMS
+  REMOVE_ASSESSMENT_SCOPE_ITEM
+  POPULATE_ASSESSMENT_TESTS
+  BULK_ASSIGN_TESTS
+  UPDATE_TEST
+  ASSIGN_TESTER
+  UPDATE_ROOT_CAUSE
+  SKIP_TEST
+  CREATE_SOA
+  CREATE_SOA_FROM_CONTROLS
+  CREATE_SOA_VERSION
+  UPDATE_SOA
+  SUBMIT_SOA_REVIEW
+  APPROVE_SOA
+  DELETE_SOA
+  UPDATE_SCOPE_ITEM
+  DELETE_SCOPE_ITEM
+
+  // Risks Module
+  CREATE_RISK
+  UPDATE_RISK
+  CREATE_SCENARIO
+  TRANSITION_SCENARIO
+  ASSESS_SCENARIO
+  LINK_SCENARIO_CONTROL
+  CREATE_KRI
+  RECORD_KRI_VALUE
+  CREATE_RTS
+  APPROVE_RTS
+  CREATE_TREATMENT_PLAN
+  CREATE_TREATMENT_ACTION
+
+  // ITSM Module
+  CREATE_ASSET
+  UPDATE_ASSET
+  CREATE_ASSET_RELATIONSHIP
+  LINK_ASSET_CONTROL
+  LINK_ASSET_RISK
+  CREATE_CHANGE
+  CREATE_CAPACITY_PLAN
+  UPDATE_CHANGE
+  APPROVE_CHANGE
+  REJECT_CHANGE
+  IMPLEMENT_CHANGE
+  COMPLETE_CHANGE
+  CANCEL_CHANGE
+  UPDATE_CAPACITY_PLAN
+  DELETE_ASSET
+
+  // Audits Module
+  CREATE_NONCONFORMITY
+  UPDATE_NONCONFORMITY
+  TRANSITION_NONCONFORMITY
+  SUBMIT_CAP
+  APPROVE_CAP
+  REJECT_CAP
+  CLOSE_NONCONFORMITY
+
+  // Incidents Module
+  CREATE_INCIDENT
+  UPDATE_INCIDENT
+  TRANSITION_INCIDENT
+  ADD_TIMELINE_ENTRY
+  ADD_INCIDENT_ASSET
+  LINK_INCIDENT_CONTROL
+  CREATE_LESSON_LEARNED
+  CLOSE_INCIDENT
+
+  // Evidence Module
+  CREATE_EVIDENCE
+  UPDATE_EVIDENCE
+  LINK_EVIDENCE
+  CREATE_EVIDENCE_REQUEST
+  FULFILL_EVIDENCE_REQUEST
+  CLOSE_EVIDENCE_REQUEST
+
+  // Policies Module
+  CREATE_POLICY
+  UPDATE_POLICY
+  SUBMIT_POLICY_REVIEW
+  APPROVE_POLICY
+  PUBLISH_POLICY
+  RETIRE_POLICY
+  CREATE_POLICY_EXCEPTION
+  APPROVE_POLICY_EXCEPTION
+  CREATE_POLICY_CHANGE_REQUEST
+
+  // Organisation Module
+  UPDATE_ORG_PROFILE
+  CREATE_DEPARTMENT
+  UPDATE_DEPARTMENT
+  CREATE_LOCATION
+  UPDATE_LOCATION
+  CREATE_BUSINESS_PROCESS
+  UPDATE_BUSINESS_PROCESS
+  CREATE_COMMITTEE
+  UPDATE_COMMITTEE
+  CREATE_COMMITTEE_MEETING
+  CREATE_EXTERNAL_DEPENDENCY
+  UPDATE_EXTERNAL_DEPENDENCY
+
+  // Agent Ops Module
+  CREATE_AGENT_TASK
+  UPDATE_AGENT_TASK
+}
+
+enum McpActionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXECUTED
+  FAILED
+}
+
+model McpPendingAction {
+  id         String          @id @default(cuid())
+  actionType McpActionType
+  status     McpActionStatus @default(PENDING)
+
+  // What and why
+  summary String  @db.Text
+  reason  String? @db.Text
+  payload Json
+
+  // MCP session tracking
+  mcpSessionId String?
+  mcpToolName  String?
+
+  // Review workflow
+  reviewedById String?
+  reviewedBy   User?     @relation("McpActionReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  reviewNotes  String?   @db.Text
+
+  // Execution tracking
+  executedAt   DateTime?
+  resultData   Json?
+  errorMessage String?   @db.Text
+
+  // Organisation scope
+  organisationId String
+  organisation   OrganisationProfile @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([actionType])
+  @@index([organisationId])
+  @@index([mcpSessionId])
+  @@index([createdAt])
+}

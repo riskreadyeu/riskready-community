@@ -1,0 +1,22 @@
+-- ============================================
+-- Update ImpactCategory Enum
+-- Add STRATEGIC and rename REPUTATION to REPUTATIONAL
+-- ============================================
+
+-- IMPORTANT: This migration was applied manually in separate transactions
+-- because PostgreSQL requires enum additions to be committed before use.
+--
+-- The following steps were executed:
+--
+-- Transaction 1: Add REPUTATIONAL enum value
+-- Transaction 2: Add STRATEGIC enum value
+-- Transaction 3: Migrate all data from REPUTATION to REPUTATIONAL
+-- Transaction 4: Verify no REPUTATION values remain
+--
+-- Manual execution commands used:
+-- 1. ALTER TYPE "ImpactCategory" ADD VALUE IF NOT EXISTS 'REPUTATIONAL';
+-- 2. ALTER TYPE "ImpactCategory" ADD VALUE IF NOT EXISTS 'STRATEGIC';
+-- 3. UPDATE statements for all tables using ImpactCategory
+-- 4. Verification query
+--
+-- This file serves as documentation of the migration that was performed.

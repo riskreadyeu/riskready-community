@@ -1,0 +1,15 @@
+// Gateway configuration — per-organisation AI assistant settings
+
+model GatewayConfig {
+  id              String   @id @default(cuid())
+  organisationId  String   @unique
+  anthropicApiKey String?  @db.Text
+  agentModel      String   @default("claude-haiku-4-5-20251001")
+  gatewayUrl      String   @default("http://localhost:3100")
+  maxAgentTurns   Int      @default(25)
+  updatedById     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organisationId])
+}

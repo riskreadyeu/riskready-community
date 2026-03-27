@@ -1,0 +1,296 @@
+// ============================================
+// AUTHENTICATION & CORE MODELS
+// ============================================
+
+model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  passwordHash        String
+  firstName           String?
+  lastName            String?
+  isActive            Boolean   @default(true)
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  refreshSessions RefreshSession[]
+  auditEvents     AuditEvent[]     @relation("AuditActor")
+
+  // Organisation Module Relations
+  orgProfilesCreated OrganisationProfile[] @relation("OrgProfileCreatedBy")
+  orgProfilesUpdated OrganisationProfile[] @relation("OrgProfileUpdatedBy")
+
+  departmentsCreated    Department[]       @relation("DeptCreatedBy")
+  departmentsUpdated    Department[]       @relation("DeptUpdatedBy")
+  headedDepartments     Department[]       @relation("DepartmentHead")
+  deputyDepartments     Department[]       @relation("DepartmentDeputy")
+  departmentMemberships DepartmentMember[]
+
+  unitsCreated OrganisationalUnit[] @relation("UnitCreatedBy")
+  unitsUpdated OrganisationalUnit[] @relation("UnitUpdatedBy")
+  headedUnits  OrganisationalUnit[] @relation("UnitHead")
+
+  locationsCreated Location[] @relation("LocationCreatedBy")
+  locationsUpdated Location[] @relation("LocationUpdatedBy")
+
+  executivePositionsCreated ExecutivePosition[] @relation("ExecCreatedBy")
+  executivePositionsUpdated ExecutivePosition[] @relation("ExecUpdatedBy")
+  executivePositions        ExecutivePosition[] @relation("ExecutivePositionPerson")
+
+  securityChampionsCreated SecurityChampion[] @relation("ChampionCreatedBy")
+  securityChampionsUpdated SecurityChampion[] @relation("ChampionUpdatedBy")
+  securityChampionRoles    SecurityChampion[] @relation("SecurityChampionUser")
+
+  processesCreated     BusinessProcess[] @relation("ProcessCreatedBy")
+  processesUpdated     BusinessProcess[] @relation("ProcessUpdatedBy")
+  ownedProcesses       BusinessProcess[] @relation("ProcessOwner")
+  managedProcesses     BusinessProcess[] @relation("ProcessManager")
+  backupOwnedProcesses BusinessProcess[] @relation("ProcessBackupOwner")
+
+  dependenciesCreated ExternalDependency[] @relation("DependencyCreatedBy")
+  dependenciesUpdated ExternalDependency[] @relation("DependencyUpdatedBy")
+
+  regulatorsCreated Regulator[] @relation("RegulatorCreatedBy")
+  regulatorsUpdated Regulator[] @relation("RegulatorUpdatedBy")
+
+  committeesCreated SecurityCommittee[] @relation("CommitteeCreatedBy")
+  committeesUpdated SecurityCommittee[] @relation("CommitteeUpdatedBy")
+  chairedCommittees SecurityCommittee[] @relation("CommitteeChair")
+
+  membershipsCreated   CommitteeMembership[] @relation("MembershipCreatedBy")
+  membershipsUpdated   CommitteeMembership[] @relation("MembershipUpdatedBy")
+  committeeMemberships CommitteeMembership[] @relation("CommitteeMember")
+
+  meetingsCreated   CommitteeMeeting[] @relation("MeetingCreatedBy")
+  meetingsUpdated   CommitteeMeeting[] @relation("MeetingUpdatedBy")
+  chairedMeetings   CommitteeMeeting[] @relation("MeetingChair")
+  secretaryMeetings CommitteeMeeting[] @relation("MeetingSecretary")
+
+  attendancesCreated MeetingAttendance[] @relation("AttendanceCreatedBy")
+  attendancesUpdated MeetingAttendance[] @relation("AttendanceUpdatedBy")
+  meetingAttendances MeetingAttendance[] @relation("AttendanceMember")
+  proxyAttendances   MeetingAttendance[] @relation("ProxyAttendee")
+
+  decisionsCreated     MeetingDecision[] @relation("DecisionCreatedBy")
+  decisionsUpdated     MeetingDecision[] @relation("DecisionUpdatedBy")
+  responsibleDecisions MeetingDecision[] @relation("DecisionResponsible")
+
+  actionItemsCreated   MeetingActionItem[] @relation("ActionCreatedBy")
+  actionItemsUpdated   MeetingActionItem[] @relation("ActionUpdatedBy")
+  assignedActionItems  MeetingActionItem[] @relation("ActionAssignedTo")
+  delegatedActionItems MeetingActionItem[] @relation("ActionAssignedBy")
+
+  surveysCreated RegulatoryEligibilitySurvey[] @relation("SurveyCreatedBy")
+  surveysUpdated RegulatoryEligibilitySurvey[] @relation("SurveyUpdatedBy")
+
+  keyPersonnelCreated KeyPersonnel[] @relation("KeyPersonnelCreatedBy")
+  keyPersonnelUpdated KeyPersonnel[] @relation("KeyPersonnelUpdatedBy")
+  keyPersonnelRoles   KeyPersonnel[] @relation("KeyPersonnelUser")
+
+  frameworksCreated ApplicableFramework[] @relation("FrameworkCreatedBy")
+  frameworksUpdated ApplicableFramework[] @relation("FrameworkUpdatedBy")
+
+  // Controls Module Relations
+  controlsCreated  Control[] @relation("ControlCreatedBy")
+  controlsUpdated  Control[] @relation("ControlUpdatedBy")
+  controlsDisabled Control[] @relation("ControlDisabledBy")
+
+  // Assessment Module Relations
+  assessmentsLead         Assessment[]          @relation("AssessmentLead")
+  assessmentsReviewer     Assessment[]          @relation("AssessmentReviewer")
+  assessmentsCreated      Assessment[]          @relation("AssessmentCreatedBy")
+  assessmentTestsAssigned AssessmentTest[]      @relation("AssessmentTestAssignee")
+  assessmentTestsOwned    AssessmentTest[]      @relation("AssessmentTestOwner")
+  assessmentTestsAssessor AssessmentTest[]      @relation("AssessmentTestAssessor")
+  assessmentExecutions    AssessmentExecution[] @relation("AssessmentExecutor")
+
+  // SOA Relations
+  soasCreated  StatementOfApplicability[] @relation("SOACreatedBy")
+  soasUpdated  StatementOfApplicability[] @relation("SOAUpdatedBy")
+  soasApproved StatementOfApplicability[] @relation("SOAApprovedBy")
+
+  // Risk Module Relations
+  risksCreated                Risk[]             @relation("RiskCreatedBy")
+  risksUpdated                Risk[]             @relation("RiskUpdatedBy")
+  risksDisabled               Risk[]             @relation("RiskDisabledBy")
+  scenariosCreated            RiskScenario[]     @relation("ScenarioCreatedBy")
+  scenariosUpdated            RiskScenario[]     @relation("ScenarioUpdatedBy")
+  scenariosResidualOverridden RiskScenario[]     @relation("ScenarioResidualOverriddenBy")
+  krisCreated                 KeyRiskIndicator[] @relation("KRICreatedBy")
+  krisUpdated                 KeyRiskIndicator[] @relation("KRIUpdatedBy")
+
+  // Risk Lifecycle Relations
+  riskCalculationsPerformed     RiskCalculationHistory[] @relation("CalcHistoryCalculatedBy")
+  riskEventsLogged              RiskEventLog[]           @relation("EventActor")
+  toleranceEvaluationsPerformed ToleranceEvaluation[]    @relation("ToleranceEvaluatedBy")
+
+  // State Machine Relations
+  scenarioStatusChanges RiskScenario[]         @relation("ScenarioStatusChangedBy")
+  stateHistoryActions   ScenarioStateHistory[] @relation("StateHistoryActor")
+
+  // Risk Tolerance Statement Relations
+  rtsCreated  RiskToleranceStatement[] @relation("RTSCreatedBy")
+  rtsUpdated  RiskToleranceStatement[] @relation("RTSUpdatedBy")
+  rtsApproved RiskToleranceStatement[] @relation("RTSApprovedBy")
+
+  // Treatment Plan Relations
+  treatmentPlansCreated     TreatmentPlan[] @relation("TreatmentCreatedBy")
+  treatmentPlansUpdated     TreatmentPlan[] @relation("TreatmentUpdatedBy")
+  treatmentPlansOwned       TreatmentPlan[] @relation("TreatmentRiskOwner")
+  treatmentPlansImplemented TreatmentPlan[] @relation("TreatmentImplementer")
+  treatmentPlansApproved    TreatmentPlan[] @relation("TreatmentApprovedBy")
+
+  // Treatment Action Relations
+  treatmentActionsCreated  TreatmentAction[] @relation("ActionCreatedBy")
+  treatmentActionsAssigned TreatmentAction[] @relation("ActionAssignee")
+
+  // Audit Module Relations (Nonconformities)
+  nonconformitiesRaised      Nonconformity[] @relation("NCRaisedBy")
+  nonconformitiesResponsible Nonconformity[] @relation("NCResponsible")
+  nonconformitiesVerified    Nonconformity[] @relation("NCVerifiedBy")
+  nonconformitiesClosed      Nonconformity[] @relation("NCClosedBy")
+
+  // CAP Workflow Relations
+  capsDrafted  Nonconformity[] @relation("CAPDraftedBy")
+  capsApproved Nonconformity[] @relation("CAPApprovedBy")
+  capsRejected Nonconformity[] @relation("CAPRejectedBy")
+
+  // Policy Module Relations
+  policyDocumentsOwned    PolicyDocument[] @relation("PolicyDocumentOwner")
+  policyDocumentsAuthored PolicyDocument[] @relation("PolicyDocumentAuthor")
+  policyDocumentsApproved PolicyDocument[] @relation("PolicyDocumentApprover")
+  policyDocumentsCreated  PolicyDocument[] @relation("PolicyDocumentCreatedBy")
+  policyDocumentsUpdated  PolicyDocument[] @relation("PolicyDocumentUpdatedBy")
+
+  documentVersionsCreated DocumentVersion[] @relation("DocumentVersionCreatedBy")
+  documentReviews         DocumentReview[]  @relation("DocumentReviewedBy")
+
+  workflowsInitiated     DocumentApprovalWorkflow[] @relation("WorkflowInitiatedBy")
+  approvalStepsApprover  ApprovalStep[]             @relation("ApprovalStepApprover")
+  approvalStepsDelegated ApprovalStep[]             @relation("ApprovalStepDelegatedTo")
+
+  changeRequestsRequested   DocumentChangeRequest[] @relation("ChangeRequestedBy")
+  changeRequestsApproved    DocumentChangeRequest[] @relation("ChangeApprovedBy")
+  changeRequestsImplemented DocumentChangeRequest[] @relation("ChangeImplementedBy")
+
+  exceptionsRequested DocumentException[] @relation("ExceptionRequestedBy")
+  exceptionsApproved  DocumentException[] @relation("ExceptionApprovedBy")
+
+  documentAcknowledgments DocumentAcknowledgment[] @relation("DocumentAcknowledgmentUser")
+
+  controlMappingsCreated   DocumentControlMapping[] @relation("ControlMappingCreatedBy")
+  riskMappingsCreated      DocumentRiskMapping[]    @relation("RiskMappingCreatedBy")
+  documentRelationsCreated DocumentRelation[]       @relation("DocumentRelationCreatedBy")
+  attachmentsUploaded      DocumentAttachment[]     @relation("AttachmentUploadedBy")
+  policyAuditLogsPerformed PolicyDocumentAuditLog[] @relation("PolicyAuditPerformedBy")
+  documentSectionsCreated  DocumentSection[]        @relation("SectionCreatedBy")
+
+  // ITSM Module Relations
+  assetsOwned               Asset[]             @relation("AssetOwner")
+  assetsCustodian           Asset[]             @relation("AssetCustodian")
+  assetsCreated             Asset[]             @relation("AssetCreatedBy")
+  assetsUpdated             Asset[]             @relation("AssetUpdatedBy")
+  assetRelationshipsCreated AssetRelationship[] @relation("AssetRelCreatedBy")
+  capacityPlansCreated      CapacityPlan[]      @relation("CapPlanCreatedBy")
+
+  changesRequested       Change[]         @relation("ChangeRequester")
+  changesImplemented     Change[]         @relation("ChangeImplementer")
+  changesCreated         Change[]         @relation("ChangeCreatedBy")
+  changesUpdated         Change[]         @relation("ChangeUpdatedBy")
+  changeApprovalsGiven   ChangeApproval[] @relation("ChangeApprover")
+  changeHistoryEntries   ChangeHistory[]  @relation("ChangeHistoryBy")
+  changeTemplatesCreated ChangeTemplate[] @relation("ChangeTemplateCreatedBy")
+
+  // Incident Module Relations
+  incidentsReported Incident[] @relation("IncidentReporter")
+  incidentsHandled  Incident[] @relation("IncidentHandler")
+  incidentsManaged  Incident[] @relation("IncidentManager")
+  incidentsCreated  Incident[] @relation("IncidentCreatedBy")
+  incidentsUpdated  Incident[] @relation("IncidentUpdatedBy")
+
+  incidentTypesCreated IncidentType[] @relation("IncidentTypeCreatedBy")
+
+  evidenceCollected IncidentEvidence[] @relation("EvidenceCollectedBy")
+  evidenceCreated   IncidentEvidence[] @relation("EvidenceCreatedBy")
+
+  timelineEntriesCreated IncidentTimelineEntry[] @relation("TimelineCreatedBy")
+
+  lessonsLearnedAssigned IncidentLessonsLearned[] @relation("LessonsAssignedTo")
+  lessonsLearnedCreated  IncidentLessonsLearned[] @relation("LessonsCreatedBy")
+
+  incidentRelationsCreated IncidentRelation[] @relation("RelationCreatedBy")
+
+  // Incident-Scenario Junction Relations
+  incidentScenariosCreated IncidentScenario[] @relation("IncidentScenarioCreatedBy")
+
+  // Risk Scenario Entity Link Relations
+
+  // Evidence Module Relations
+  evidenceCentralCollected Evidence[] @relation("EvidenceCollectedBy")
+  evidenceCentralReviewed  Evidence[] @relation("EvidenceReviewedBy")
+  evidenceCentralApproved  Evidence[] @relation("EvidenceApprovedBy")
+  evidenceCentralRejected  Evidence[] @relation("EvidenceRejectedBy")
+  evidenceCentralCreated   Evidence[] @relation("EvidenceCreatedBy")
+  evidenceCentralUpdated   Evidence[] @relation("EvidenceUpdatedBy")
+
+  evidenceRequestsCreatedBy EvidenceRequest[] @relation("EvidenceRequestCreatedBy")
+  evidenceRequestsRequested EvidenceRequest[] @relation("RequestCreatedBy")
+  evidenceRequestsAssigned  EvidenceRequest[] @relation("RequestAssignedTo")
+
+  evidenceFulfillmentsSubmitted EvidenceRequestFulfillment[] @relation("FulfillmentSubmittedBy")
+
+  evidenceControlLinksCreated   EvidenceControl[]       @relation("EvidenceControlCreatedBy")
+  evidenceNCLinksCreated        EvidenceNonconformity[] @relation("EvidenceNCCreatedBy")
+  evidenceIncidentLinksCreated  EvidenceIncident[]      @relation("EvidenceIncidentCreatedBy")
+  evidenceRiskLinksCreated      EvidenceRisk[]          @relation("EvidenceRiskCreatedBy")
+  evidenceTreatmentLinksCreated EvidenceTreatment[]     @relation("EvidenceTreatmentCreatedBy")
+  evidencePolicyLinksCreated    EvidencePolicy[]        @relation("EvidencePolicyCreatedBy")
+  evidenceAssetLinksCreated     EvidenceAsset[]         @relation("EvidenceAssetCreatedBy")
+  evidenceChangeLinksCreated    EvidenceChange[]        @relation("EvidenceChangeCreatedBy")
+
+  // Treatment Enhancement Relations
+  treatmentTemplatesCreated    TreatmentTemplate[]    @relation("TemplateCreatedBy")
+  treatmentDependenciesCreated TreatmentDependency[]  @relation("DependencyCreatedBy")
+  treatmentHistoryEntries      TreatmentPlanHistory[] @relation("TreatmentHistoryUser")
+
+  // Control Evidence (Automated compliance)
+
+  metricsCreated    ControlMetric[] @relation("MetricCreatedBy")
+  metricsUpdated    ControlMetric[] @relation("MetricUpdatedBy")
+  scopeItemsCreated ScopeItem[]     @relation("ScopeItemCreatedBy")
+
+  // MCP Pending Action Relations
+  mcpActionsReviewed McpPendingAction[] @relation("McpActionReviewedBy")
+}
+
+model RefreshSession {
+  id        String    @id
+  userId    String
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+  userAgent String?
+  ip        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AuditEvent {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String?
+  data        Json?
+  createdAt   DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([createdAt])
+  @@index([entityType, entityId])
+}

@@ -1,0 +1,9 @@
+# .gitleaks.toml
+title = "RiskReady Gitleaks Config"
+
+[allowlist]
+description = "Allowlisted files and patterns"
+paths = [
+  '''\.env\.example''',
+  '''package-lock\.json''',
+]

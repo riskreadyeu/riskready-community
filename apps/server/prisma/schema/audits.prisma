@@ -1,0 +1,184 @@
+// ============================================
+// AUDITS MODULE
+// ISO 27001:2022 Audit & Nonconformity Management
+// ============================================
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum NonconformitySource {
+  TEST // From effectiveness test failure
+  INTERNAL_AUDIT // Internal audit finding
+  EXTERNAL_AUDIT // External audit finding
+  CERTIFICATION_AUDIT // Certification body audit
+  INCIDENT // From security incident
+  SELF_ASSESSMENT // Self-identified issue
+  MANAGEMENT_REVIEW // From management review
+  SURVEILLANCE_AUDIT // Ongoing certification surveillance
+  ISRA_GAP // From ISRA SRL gap analysis
+}
+
+enum NCSeverity {
+  MAJOR // Absence or total breakdown of control
+  MINOR // Isolated or occasional failure
+  OBSERVATION // Opportunity for improvement (not a failure)
+}
+
+enum NCCategory {
+  CONTROL_FAILURE // Control not working as designed
+  DOCUMENTATION // Missing or inadequate documentation
+  PROCESS // Process not followed
+  TECHNICAL // Technical system issue
+  ORGANIZATIONAL // Organizational structure issue
+  TRAINING // Training or awareness gap
+  RESOURCE // Insufficient resources
+}
+
+enum NCStatus {
+  DRAFT // Auto-created, pending manual review
+  OPEN // Reviewed and confirmed
+  IN_PROGRESS // Corrective action underway
+  AWAITING_VERIFICATION // CAP complete, awaiting verification
+  VERIFIED_EFFECTIVE // Verification shows it's fixed
+  VERIFIED_INEFFECTIVE // Verification shows it's not fixed (reopen)
+  CLOSED // Verified and closed
+  REJECTED // Reviewed but determined not to be a real NC
+}
+
+enum CAPStatus {
+  NOT_REQUIRED // Observation - no formal CAP needed
+  NOT_DEFINED // NC opened but CAP not yet defined
+  DRAFT // CAP being written, can be edited freely
+  PENDING_APPROVAL // CAP submitted, awaiting manager review
+  APPROVED // CAP approved, work can begin
+  REJECTED // CAP rejected, needs revision
+}
+
+// ============================================
+// NONCONFORMITY MODEL
+// ISO 10.1 - Nonconformity and Corrective Action
+// ============================================
+
+model Nonconformity {
+  id   String @id @default(cuid())
+  ncId String @unique // NC-2025-001, NC-2025-002, etc.
+
+  // ============================================
+  // IDENTIFICATION
+  // ============================================
+
+  dateRaised        DateTime            @default(now())
+  source            NonconformitySource
+  sourceReferenceId String? // Link to test ID, audit ID, incident ID, etc.
+  isoClause         String? // e.g., "A.5.2", "A.8.1", "Clause 6.1"
+
+  // ============================================
+  // CLASSIFICATION
+  // ============================================
+
+  severity NCSeverity
+  category NCCategory
+
+  // ============================================
+  // DESCRIPTION
+  // ============================================
+
+  title       String
+  description String  @db.Text // Detailed description of the nonconformity
+  findings    String? @db.Text // Evidence/what was found during test/audit
+  rootCause   String? @db.Text // Root cause analysis (why it happened)
+  impact      String? @db.Text // Business/security impact
+
+  // ============================================
+  // RELATED ENTITIES
+  // ============================================
+
+  // Link to Controls Module
+  controlId String?
+  control   Control? @relation(fields: [controlId], references: [id], onDelete: SetNull)
+
+  // Link to Risks (affected risks)
+  risks Risk[]
+
+  // Link to Application (for ISRA_GAP source)
+  applicationId String?
+
+  // Link to Incidents
+  incidentLinks IncidentNonconformity[]
+
+  // Evidence Module Relations
+  evidenceLinks EvidenceNonconformity[]
+
+  // ============================================
+  // CORRECTIVE ACTION PLAN (CAP)
+  // ============================================
+
+  correctiveAction  String?   @db.Text
+  responsibleUserId String?
+  responsibleUser   User?     @relation("NCResponsible", fields: [responsibleUserId], references: [id], onDelete: SetNull)
+  targetClosureDate DateTime?
+  status            NCStatus  @default(OPEN)
+
+  // CAP Approval Workflow
+  capStatus CAPStatus @default(NOT_DEFINED)
+
+  // CAP Draft tracking
+  capDraftedAt   DateTime?
+  capDraftedById String?
+  capDraftedBy   User?     @relation("CAPDraftedBy", fields: [capDraftedById], references: [id], onDelete: SetNull)
+
+  // CAP Submission tracking
+  capSubmittedAt DateTime?
+
+  // CAP Approval tracking
+  capApprovedAt       DateTime?
+  capApprovedById     String?
+  capApprovedBy       User?     @relation("CAPApprovedBy", fields: [capApprovedById], references: [id], onDelete: SetNull)
+  capApprovalComments String?   @db.Text
+
+  // CAP Rejection tracking
+  capRejectedAt      DateTime?
+  capRejectedById    String?
+  capRejectedBy      User?     @relation("CAPRejectedBy", fields: [capRejectedById], references: [id], onDelete: SetNull)
+  capRejectionReason String?   @db.Text
+
+  // ============================================
+  // VERIFICATION
+  // ============================================
+
+  verificationMethod String? // "RE_TEST", "RE_AUDIT", "DOCUMENT_REVIEW", "WALKTHROUGH"
+  verificationDate   DateTime?
+  verifiedById       String?
+  verifiedBy         User?     @relation("NCVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  verificationResult String? // "EFFECTIVE", "INEFFECTIVE"
+  verificationNotes  String?   @db.Text
+
+  // ============================================
+  // AUDIT TRAIL
+  // ============================================
+
+  raisedById String
+  raisedBy   User   @relation("NCRaisedBy", fields: [raisedById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  closedAt   DateTime?
+  closedById String?
+  closedBy   User?     @relation("NCClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+
+  @@index([ncId])
+  @@index([status])
+  @@index([capStatus])
+  @@index([severity])
+  @@index([source])
+  @@index([dateRaised])
+  @@index([targetClosureDate])
+  @@index([responsibleUserId])
+  @@index([controlId])
+  @@index([sourceReferenceId])
+  @@index([verifiedById])
+  @@index([closedById])
+  @@index([raisedById])
+}

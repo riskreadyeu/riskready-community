@@ -1,0 +1,499 @@
+// gateway/src/agent/agent-runner.ts
+
+import Anthropic from '@anthropic-ai/sdk';
+import { prisma } from '../prisma.js';
+import { logger } from '../logger.js';
+import { SYSTEM_PROMPT } from './system-prompt.js';
+import type { UnifiedMessage, ChatEvent } from '../channels/types.js';
+import { MemoryService } from '../memory/memory.service.js';
+import { SearchService } from '../memory/search.service.js';
+import { MemoryDistiller } from '../memory/distiller.js';
+import { extractBlock } from './block-extractor.js';
+import { extractActionIdsFromToolResults } from './action-id-extractor.js';
+import { resolveConversationModel } from '../model-resolution.js';
+import { applyGroundingGuard, type GuardToolResult, withFallbackGroundingToolResults } from '../grounding-guard.js';
+import { wrapMemoryContext, wrapTaskContext, isValidUUID } from '../shared/prompt-helpers.js';
+import { runMessageLoop } from './message-loop.js';
+import { detectInjectionPatterns } from './injection-detector.js';
+import { McpToolExecutor } from './mcp-tool-executor.js';
+import { redactPII } from './pii-redactor.js';
+import { scanAndRedactCredentials } from './credential-scanner.js';
+import { trackToolCall } from '../middleware/tool-call-tracker.js';
+import { buildToolDefinitions } from './tool-builder.js';
+import { buildConversationMessages } from './conversation-builder.js';
+import type { FullToolSchema } from './tool-schema-loader.js';
+import type { SkillRegistry } from './skill-registry.js';
+
+interface HistoryMessage {
+  role: 'USER' | 'ASSISTANT';
+  content: string;
+}
+
+export interface AgentRunnerDeps {
+  databaseUrl: string;
+  getMcpServers: (messageText?: string) => Record<string, { command: string; args: string[]; env?: Record<string, string> }>;
+  memoryService?: MemoryService;
+  searchService?: SearchService;
+  distiller?: MemoryDistiller;
+  getDbConfig?: (organisationId: string) => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>;
+  toolSchemas?: FullToolSchema[];
+  skillRegistry?: SkillRegistry;
+  basePath?: string;
+  maxTokenBudget?: number;
+}
+
+export interface CouncilHook {
+  shouldConvene(message: string): boolean;
+  deliberate(
+    question: string,
+    organisationId: string,
+    conversationId: string,
+    signal: AbortSignal,
+    emit: (event: ChatEvent) => void,
+    mcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>,
+    getDbConfig?: (organisationId: string) => Promise<{ anthropicApiKey?: string; agentModel: string; maxAgentTurns: number } | null>,
+  ): Promise<{ text: string; sessionId: string }>;
+}
+
+// Council rate limiting — max 5 sessions per user per hour
+const COUNCIL_LIMIT_PER_HOUR = 5;
+const COUNCIL_WINDOW_MS = 60 * 60 * 1000;
+
+export class AgentRunner {
+  private deps: AgentRunnerDeps;
+  private councilHook: CouncilHook | null = null;
+  private councilInvocations = new Map<string, { count: number; windowStart: number }>();
+
+  constructor(deps: AgentRunnerDeps) {
+    this.deps = deps;
+  }
+
+  setCouncilHook(hook: CouncilHook): void {
+    this.councilHook = hook;
+  }
+
+  updateToolSchemas(schemas: FullToolSchema[]): void {
+    this.deps.toolSchemas = schemas;
+  }
+
+  private async ensureConversation(
+    conversationId: string,
+    msg: UnifiedMessage,
+  ) {
+    const existing = await prisma.chatConversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (existing) {
+      if (existing.userId !== msg.userId || existing.organisationId !== msg.organisationId) {
+        throw new Error('Conversation does not belong to the supplied user and organisation.');
+      }
+      return existing;
+    }
+
+    return prisma.chatConversation.create({
+      data: {
+        id: conversationId,
+        userId: msg.userId,
+        organisationId: msg.organisationId,
+      },
+    });
+  }
+
+  async execute(
+    msg: UnifiedMessage,
+    signal: AbortSignal,
+    emit: (event: ChatEvent) => void,
+    taskId?: string,
+  ): Promise<{ messageId: string }> {
+    trackToolCall(msg.userId);
+
+    const conversationId = (msg.metadata.conversationId as string) ?? msg.channelId;
+
+    // If running with a task, update status to IN_PROGRESS
+    if (taskId) {
+      try {
+        await prisma.agentTask.update({
+          where: { id: taskId },
+          data: { status: 'IN_PROGRESS', conversationId },
+        });
+      } catch (err) {
+        logger.warn({ err, taskId }, 'Failed to update task status to IN_PROGRESS');
+      }
+    }
+
+    const conversation = await this.ensureConversation(conversationId, msg);
+
+    // Save user message
+    const userMessage = await prisma.chatMessage.create({
+      data: {
+        conversationId,
+        role: 'USER',
+        content: msg.text,
+        actionIds: [],
+      },
+    });
+
+    // Auto-title conversation from first user message
+    if (conversation && !conversation.title) {
+      const title = msg.text.length > 80 ? msg.text.slice(0, 77) + '...' : msg.text;
+      await prisma.chatConversation.update({
+        where: { id: conversationId },
+        data: { title },
+      });
+    }
+
+    // Touch updatedAt
+    await prisma.chatConversation.update({
+      where: { id: conversationId },
+      data: { updatedAt: new Date() },
+    });
+
+    // Build conversation history
+    const history = await prisma.chatMessage.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Recall relevant memories
+    let memoryContext = '';
+    if (this.deps.searchService) {
+      try {
+        const memories = await this.deps.searchService.hybridSearch({
+          query: msg.text,
+          organisationId: msg.organisationId,
+          userId: msg.userId,
+          limit: 10,
+        });
+        if (memories.length > 0) {
+          memoryContext = '\n\n' + wrapMemoryContext(memories);
+        }
+      } catch (err) {
+        logger.error({ err }, 'Memory recall failed');
+      }
+    }
+
+    // Load task context if running with a task
+    let taskContext = '';
+    if (taskId) {
+      try {
+        const task = await prisma.agentTask.findUnique({
+          where: { id: taskId },
+          include: {
+            childTasks: {
+              select: { id: true, title: true, status: true, stepIndex: true },
+              orderBy: { stepIndex: 'asc' },
+            },
+          },
+        });
+        if (task) {
+          taskContext = '\n\n' + wrapTaskContext({
+            id: task.id,
+            title: task.title,
+            instruction: task.instruction,
+            status: task.status,
+            trigger: task.trigger,
+          });
+          if (task.result) taskContext = taskContext.replace('</TASK_CONTEXT>', `Previous result: ${task.result}\n</TASK_CONTEXT>`);
+          if (task.childTasks.length > 0) {
+            const subtasks = task.childTasks.map((ct: any) => `  - [${ct.status}] ${ct.title}`).join('\n');
+            taskContext = taskContext.replace('</TASK_CONTEXT>', `Sub-tasks:\n${subtasks}\n</TASK_CONTEXT>`);
+          }
+        }
+      } catch (err) {
+        logger.warn({ err, taskId }, 'Failed to load task context');
+      }
+    }
+
+    // Resolve per-org config
+    let dbModel: string | undefined;
+    let maxTurns = 25;
+    let apiKey = process.env.ANTHROPIC_API_KEY;
+    if (this.deps.getDbConfig) {
+      const dbConfig = await this.deps.getDbConfig(msg.organisationId);
+      if (dbConfig) {
+        dbModel = dbConfig.agentModel || undefined;
+        maxTurns = dbConfig.maxAgentTurns || maxTurns;
+        if (dbConfig.anthropicApiKey) {
+          apiKey = dbConfig.anthropicApiKey;
+        }
+      }
+    }
+    const model = resolveConversationModel({
+      envModel: process.env.AGENT_MODEL,
+      dbModel,
+      conversationModel: conversation.model,
+    });
+
+    if (!apiKey) {
+      throw new Error('No Anthropic API key configured');
+    }
+
+    if (!this.deps.toolSchemas?.length) {
+      throw new Error('No tool schemas loaded — cannot run agent without tool definitions');
+    }
+
+    const client = new Anthropic({ apiKey });
+
+    // Build server config accessor for the McpToolExecutor
+    const executor = new McpToolExecutor({
+      organisationId: msg.organisationId,
+      getServerConfig: (serverName: string) => {
+        if (!this.deps.skillRegistry || !this.deps.basePath) return undefined;
+        const configs = this.deps.skillRegistry.getMcpServers(
+          [serverName],
+          this.deps.databaseUrl,
+          this.deps.basePath,
+        );
+        return configs[serverName];
+      },
+    });
+
+    let fullText = '';
+
+    try {
+      // Prompt injection telemetry
+      const injectionCheck = detectInjectionPatterns(msg.text);
+      if (injectionCheck.suspicious) {
+        logger.warn({ patterns: injectionCheck.patterns, userId: msg.userId }, 'Potential prompt injection detected');
+      }
+
+      // Council decision: check if multi-agent deliberation is needed
+      if (this.councilHook && this.councilHook.shouldConvene(msg.text)) {
+        // Apply per-user council rate limit
+        const councilStats = this.councilInvocations.get(msg.userId) || { count: 0, windowStart: Date.now() };
+        if (Date.now() - councilStats.windowStart > COUNCIL_WINDOW_MS) {
+          councilStats.count = 0;
+          councilStats.windowStart = Date.now();
+        }
+
+        if (councilStats.count >= COUNCIL_LIMIT_PER_HOUR) {
+          logger.warn({ userId: msg.userId, count: councilStats.count }, 'Council rate limit exceeded — using single agent');
+          // Skip council, fall through to single-agent path
+        } else {
+          councilStats.count++;
+          this.councilInvocations.set(msg.userId, councilStats);
+
+          // Council needs ALL servers — each member filters to their own domain.
+          // Don't use BM25-filtered subset here (that's for single-agent path).
+          const allMcpServers = this.deps.getMcpServers();
+          emit({ type: 'council_start' as ChatEvent['type'], message: 'Convening AI Agents Council for multi-perspective analysis...' });
+
+          try {
+            const result = await this.councilHook.deliberate(
+              msg.text,
+              msg.organisationId,
+              conversationId,
+              signal,
+              emit,
+              allMcpServers,
+              this.deps.getDbConfig,
+            );
+
+            fullText = result.text;
+
+            // Emit text as delta for streaming
+            emit({ type: 'text_delta', text: fullText });
+            emit({ type: 'council_done' as ChatEvent['type'], message: 'Council deliberation complete' });
+          } catch (err) {
+            logger.error({ err }, 'Council deliberation failed, falling back to single agent');
+            emit({ type: 'error', message: 'Council deliberation failed, using single agent...' });
+            // Fall through to single-agent path below
+          }
+        }
+      }
+
+      // Single-agent path (also fallback from council failure)
+      let result: Awaited<ReturnType<typeof runMessageLoop>> | undefined;
+
+      if (!fullText) {
+        // Build conversation messages from history
+        const pastMessages = (history as HistoryMessage[]).slice(0, -1); // exclude current user message
+        if (!isValidUUID(msg.organisationId)) {
+          throw new Error(`Invalid organisationId: ${msg.organisationId}`);
+        }
+
+        const systemPromptWithContext = SYSTEM_PROMPT +
+          (memoryContext ? `\n${memoryContext}` : '') +
+          (taskContext ? `\n${taskContext}` : '') +
+          `\n\nOrganisation ID: ${msg.organisationId}`;
+
+        const messages = buildConversationMessages(pastMessages, msg.text);
+
+        // Build tool definitions from loaded schemas
+        const { supportsToolSearch } = await import('./model-capabilities.js');
+        const tools = buildToolDefinitions(this.deps.toolSchemas, {
+          allowCodeExecution: false,
+          disableToolSearch: !supportsToolSearch(model),
+        });
+
+        // Run the message loop
+        result = await runMessageLoop({
+          client,
+          model,
+          systemPrompt: systemPromptWithContext,
+          messages,
+          tools,
+          maxTurns,
+          signal,
+          onEvent: emit,
+          executeTool: (name, input) => executor.execute(name, input),
+          maxTokenBudget: this.deps.maxTokenBudget,
+        });
+
+        // Apply grounding guard
+        const grounded = applyGroundingGuard({
+          text: result.text || 'I was unable to generate a response.',
+          toolResults: withFallbackGroundingToolResults(
+            result.toolResults as GuardToolResult[],
+            result.toolCalls,
+          ),
+        });
+        fullText = grounded.text;
+      }
+
+      // Extract action IDs from tool results
+      const collectedToolResults = result
+        ? result.toolResults.map((tr) => ({
+            content: tr.rawResult as string | Array<{ type?: string; text?: string }>,
+          }))
+        : [];
+      const structuredIds = extractActionIdsFromToolResults(collectedToolResults);
+      const regexIds: string[] = [];
+      const regexPattern = /"actionId"\s*:\s*"([^"]+)"/g;
+      let regexMatch;
+      while ((regexMatch = regexPattern.exec(fullText)) !== null) {
+        if (isValidUUID(regexMatch[1])) {
+          regexIds.push(regexMatch[1]);
+        }
+      }
+      const actionIds = [...new Set([...structuredIds, ...regexIds])];
+
+      for (const actionId of actionIds) {
+        emit({
+          type: 'action_proposed',
+          actionId,
+          summary: 'Action proposed — check AI Approvals queue',
+        });
+      }
+
+      // Extract blocks from tool results
+      const blocks: Array<{ type: string; [key: string]: unknown }> = [];
+      if (result) {
+        for (const tr of result.toolResults) {
+          const rawText = typeof tr.rawResult === 'string' ? tr.rawResult : JSON.stringify(tr.rawResult);
+          const block = extractBlock(tr.toolName, rawText);
+          if (block) {
+            blocks.push(block);
+            emit({ type: 'block', block });
+          }
+        }
+      }
+
+      // Log token usage
+      const inputTokens = result?.usage.inputTokens ?? 0;
+      const outputTokens = result?.usage.outputTokens ?? 0;
+      if (inputTokens > 0 || outputTokens > 0) {
+        logger.info({
+          conversationId,
+          inputTokens,
+          outputTokens,
+          totalTokens: inputTokens + outputTokens,
+          toolCallCount: result?.toolCalls.length ?? 0,
+          source: 'web_ui',
+        }, 'Token usage');
+      }
+
+      const toolCalls = result?.toolCalls ?? [];
+
+      // Scan and redact any accidentally leaked credentials before saving
+      const { text: scannedText, credentialsFound } = scanAndRedactCredentials(fullText || 'I was unable to generate a response.');
+      if (credentialsFound) {
+        logger.warn({ conversationId }, 'Credentials detected and redacted from agent response');
+      }
+
+      // Save assistant message
+      const saved = await prisma.chatMessage.create({
+        data: {
+          conversationId,
+          role: 'ASSISTANT',
+          content: redactPII(scannedText),
+          toolCalls: toolCalls.length > 0 ? (toolCalls as any) : undefined,
+          actionIds: actionIds.length > 0 ? actionIds : [],
+          blocks: blocks.length > 0 ? (blocks as any) : undefined,
+          inputTokens: inputTokens || undefined,
+          outputTokens: outputTokens || undefined,
+          model: model || undefined,
+        },
+      });
+
+      await prisma.chatConversation.update({
+        where: { id: conversationId },
+        data: { updatedAt: new Date() },
+      });
+
+      emit({ type: 'done', messageId: saved.id });
+
+      // Update task with results if running with a task
+      if (taskId) {
+        try {
+          const hasPendingActions = actionIds.length > 0;
+          await prisma.agentTask.update({
+            where: { id: taskId },
+            data: {
+              status: hasPendingActions ? 'AWAITING_APPROVAL' : 'COMPLETED',
+              result: fullText.slice(0, 10000),
+              actionIds: { push: actionIds },
+              completedAt: hasPendingActions ? undefined : new Date(),
+            },
+          });
+        } catch (err) {
+          logger.warn({ err, taskId }, 'Failed to update task after execution');
+        }
+      }
+
+      // Non-blocking: distill memories after conversation
+      if (this.deps.distiller) {
+        const allMessages = await prisma.chatMessage.findMany({
+          where: { conversationId },
+          orderBy: { createdAt: 'asc' },
+        });
+        this.deps.distiller.distillConversation(allMessages, msg.organisationId, msg.userId)
+          .catch((err) => logger.error({ err }, 'Memory distillation failed'));
+      }
+
+      return { messageId: saved.id };
+    } catch (err) {
+      // Update task as FAILED if running with a task
+      if (taskId) {
+        try {
+          await prisma.agentTask.update({
+            where: { id: taskId },
+            data: {
+              status: 'FAILED',
+              errorMessage: err instanceof Error ? err.message : String(err),
+              completedAt: new Date(),
+            },
+          });
+        } catch (taskErr) {
+          logger.warn({ err: taskErr, taskId }, 'Failed to mark task as FAILED');
+        }
+      }
+
+      if (fullText) {
+        const { text: scannedErrText } = scanAndRedactCredentials(fullText);
+        await prisma.chatMessage.create({
+          data: {
+            conversationId,
+            role: 'ASSISTANT',
+            content: redactPII(scannedErrText),
+            actionIds: [],
+          },
+        });
+      }
+      throw err;
+    } finally {
+      await executor.shutdown();
+    }
+  }
+}

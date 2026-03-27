@@ -1,0 +1,963 @@
+// ============================================
+// ITSM MODULE
+// Configuration Management Database (CMDB) & Change Management
+// Supports ISO 27001, NIS2, DORA compliance
+// ============================================
+
+// ============================================
+// ENUMS - Asset Management
+// ============================================
+
+enum AssetType {
+  // Hardware
+  SERVER
+  WORKSTATION
+  LAPTOP
+  MOBILE_DEVICE
+  NETWORK_DEVICE
+  STORAGE_DEVICE
+  SECURITY_APPLIANCE
+  IOT_DEVICE
+  PRINTER
+  OTHER_HARDWARE
+
+  // Software
+  OPERATING_SYSTEM
+  APPLICATION
+  DATABASE
+  MIDDLEWARE
+
+  // Cloud
+  CLOUD_VM
+  CLOUD_CONTAINER
+  CLOUD_DATABASE
+  CLOUD_STORAGE
+  CLOUD_NETWORK
+  CLOUD_SERVERLESS
+  CLOUD_KUBERNETES
+
+  // Services
+  INTERNAL_SERVICE
+  EXTERNAL_SERVICE
+  SAAS_APPLICATION
+  API_ENDPOINT
+
+  // Data
+  DATA_STORE
+  DATA_FLOW
+
+  // Other
+  OTHER
+}
+
+enum AssetStatus {
+  PLANNED
+  PROCUREMENT
+  DEVELOPMENT
+  STAGING
+  ACTIVE
+  MAINTENANCE
+  RETIRING
+  DISPOSED
+}
+
+enum BusinessCriticality {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum DataClassification {
+  PUBLIC
+  INTERNAL
+  CONFIDENTIAL
+  RESTRICTED
+}
+
+// We reuse it here for consistency
+
+enum CloudProvider {
+  AWS
+  AZURE
+  GCP
+  ORACLE_CLOUD
+  IBM_CLOUD
+  ALIBABA_CLOUD
+  DIGITAL_OCEAN
+  PRIVATE_CLOUD
+  ON_PREMISES
+}
+
+enum CapacityStatus {
+  NORMAL
+  WARNING
+  CRITICAL
+  EXHAUSTED
+  UNKNOWN
+}
+
+enum RelationshipType {
+  // Dependency
+  DEPENDS_ON
+
+  // Hosting
+  RUNS_ON
+  HOSTED_ON
+  DEPLOYED_TO
+
+  // Network
+  CONNECTS_TO
+
+  // Data
+  STORES_DATA_ON
+  READS_FROM
+  WRITES_TO
+  REPLICATES_TO
+
+  // Management
+  MANAGED_BY
+  MONITORED_BY
+
+  // Backup & DR
+  BACKED_UP_TO
+  FAILS_OVER_TO
+
+  // Security
+  PROTECTED_BY
+  AUTHENTICATES_VIA
+
+  // Logical
+  MEMBER_OF
+  CONTAINS
+}
+
+// ============================================
+// ENUMS - Change Management
+// ============================================
+
+enum ITSMChangeType {
+  STANDARD // Pre-approved, low-risk
+  NORMAL // Requires approval
+  EMERGENCY // Urgent, expedited approval
+}
+
+// Note: ChangePriority enum is defined in policies.prisma
+// We reuse it here for consistency (CRITICAL, HIGH, MEDIUM, LOW)
+
+enum ChangeCategory {
+  ACCESS_CONTROL
+  CONFIGURATION
+  INFRASTRUCTURE
+  APPLICATION
+  DATABASE
+  SECURITY
+  NETWORK
+  BACKUP_DR
+  MONITORING
+  VENDOR
+  DOCUMENTATION
+  OTHER
+}
+
+enum ChangeStatus {
+  DRAFTED
+  SUBMITTED
+  PENDING_APPROVAL
+  NEEDS_INFO
+  APPROVED
+  REJECTED
+  SCHEDULED
+  IMPLEMENTING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  ROLLED_BACK
+  CANCELLED
+  REVIEWED
+}
+
+enum SecurityImpact {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  NONE
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ABSTAINED
+  EXPIRED
+}
+
+enum CapacityPlanStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================
+// ASSET MODEL (Core CMDB)
+// ============================================
+
+model Asset {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // ============================================
+  // IDENTIFICATION
+  // ============================================
+
+  assetTag    String  @unique // e.g., AST-SRV-001
+  name        String
+  displayName String?
+  description String? @db.Text
+
+  assetType    AssetType
+  assetSubtype String?
+
+  // ============================================
+  // CLASSIFICATION (Security Focus)
+  // ============================================
+
+  businessCriticality BusinessCriticality @default(MEDIUM)
+  dataClassification  DataClassification  @default(INTERNAL)
+
+  handlesPersonalData     Boolean @default(false)
+  handlesFinancialData    Boolean @default(false)
+  handlesHealthData       Boolean @default(false)
+  handlesConfidentialData Boolean @default(false)
+
+  // ============================================
+  // COMPLIANCE SCOPE
+  // ============================================
+
+  inIsmsScope Boolean @default(true)
+  inPciScope  Boolean @default(false)
+  inDoraScope Boolean @default(false)
+  inGdprScope Boolean @default(false)
+  inNis2Scope Boolean @default(false)
+  inSoc2Scope Boolean @default(false)
+  scopeNotes  String?
+
+  // ============================================
+  // OWNERSHIP & RESPONSIBILITY
+  // ============================================
+
+  ownerId String?
+  owner   User?   @relation("AssetOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  custodianId String?
+  custodian   User?   @relation("AssetCustodian", fields: [custodianId], references: [id], onDelete: SetNull)
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  // ============================================
+  // LOCATION
+  // ============================================
+
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  // Cloud location
+  cloudProvider   CloudProvider?
+  cloudRegion     String?
+  cloudAccountId  String?
+  cloudResourceId String?
+
+  // Physical location
+  datacenter   String?
+  rack         String?
+  rackPosition Int?
+
+  // ============================================
+  // LIFECYCLE
+  // ============================================
+
+  status AssetStatus @default(ACTIVE)
+
+  purchaseDate   DateTime?
+  deploymentDate DateTime?
+  warrantyExpiry DateTime?
+  endOfLife      DateTime?
+  endOfSupport   DateTime?
+  disposalDate   DateTime?
+  lifecycleNotes String?
+
+  // ============================================
+  // TECHNICAL DETAILS
+  // ============================================
+
+  ipAddresses  Json?   @default("[]")
+  fqdn         String?
+  macAddresses Json?   @default("[]")
+
+  operatingSystem String?
+  osVersion       String?
+  version         String?
+  patchLevel      String?
+
+  // ============================================
+  // VENDOR & SUPPORT
+  // ============================================
+
+  manufacturer String?
+  model        String?
+  serialNumber String?
+
+  supportContract String?
+  supportExpiry   DateTime?
+  supportTier     String?
+
+  vendorId String?
+  vendor   ExternalDependency? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  // ============================================
+  // FINANCIAL
+  // ============================================
+
+  purchaseCost Decimal? @db.Decimal(15, 2)
+  costCurrency String   @default("USD")
+  annualCost   Decimal? @db.Decimal(15, 2)
+  costCenter   String?
+
+  // ============================================
+  // SECURITY POSTURE
+  // ============================================
+
+  encryptionAtRest    Boolean @default(false)
+  encryptionInTransit Boolean @default(false)
+  encryptionMethod    String?
+
+  backupEnabled   Boolean   @default(false)
+  backupFrequency String?
+  backupRetention String?
+  lastBackupDate  DateTime?
+
+  monitoringEnabled Boolean @default(false)
+  loggingEnabled    Boolean @default(false)
+
+  lastVulnScan       DateTime?
+  vulnerabilityCount Int?
+  criticalVulnCount  Int?
+
+  // ============================================
+  // CAPACITY MANAGEMENT (NIS2)
+  // ============================================
+
+  cpuCapacity          Int?
+  cpuUsagePercent      Int?
+  memoryCapacityGB     Decimal? @db.Decimal(10, 2)
+  memoryUsagePercent   Int?
+  storageCapacityGB    Decimal? @db.Decimal(15, 2)
+  storageUsagePercent  Int?
+  networkBandwidthMbps Int?
+
+  cpuThresholdPercent     Int? @default(80)
+  memoryThresholdPercent  Int? @default(80)
+  storageThresholdPercent Int? @default(80)
+
+  capacityStatus CapacityStatus @default(UNKNOWN)
+  capacityNotes  String?
+
+  lastCapacityReview      DateTime?
+  nextCapacityReview      DateTime?
+  capacityTrend           String?
+  growthRatePercent       Decimal?  @db.Decimal(5, 2)
+  projectedExhaustionDate DateTime?
+
+  // ============================================
+  // RESILIENCE & AVAILABILITY (NIS2)
+  // ============================================
+
+  rtoMinutes  Int?
+  rpoMinutes  Int?
+  mtpdMinutes Int?
+
+  targetAvailability Decimal? @db.Decimal(5, 2)
+  actualAvailability Decimal? @db.Decimal(5, 2)
+
+  hasRedundancy   Boolean @default(false)
+  redundancyType  String?
+  failoverAssetId String?
+
+  lastOutageDate        DateTime?
+  lastOutageDurationMin Int?
+  outageCount12Months   Int?      @default(0)
+
+  // ============================================
+  // TYPE-SPECIFIC & METADATA
+  // ============================================
+
+  typeAttributes Json? @default("{}")
+  tags           Json? @default("[]")
+
+  discoverySource String?
+  lastVerified    DateTime?
+  verifiedById    String?
+
+  // ============================================
+  // RISK SCORING (Calculated)
+  // ============================================
+
+  inherentRiskScore     Int? // 0-100, before controls
+  riskScore             Int? // 0-100, residual risk after controls
+  controlEffectiveness  Float? // 0-1, control effectiveness factor
+  riskScoreCalculatedAt DateTime?
+  complianceScore       Int? // 0-100, higher = better compliance
+
+  // Vulnerability counts (synced from VulnerabilityAsset)
+  openVulnsCritical   Int  @default(0)
+  openVulnsHigh       Int  @default(0)
+  openVulnsMedium     Int  @default(0)
+  openVulnsLow        Int  @default(0)
+  slaBreachedVulns    Int  @default(0)
+  oldestUnpatchedDays Int? // Days since oldest unpatched vuln
+
+  // ============================================
+  // WAZUH AGENT DATA (Synced from Wazuh)
+  // ============================================
+
+  wazuhAgentId      String? // Wazuh agent ID
+  wazuhAgentStatus  String? // active, disconnected, never_connected
+  wazuhLastCheckIn  DateTime? // Last keep-alive from agent
+  wazuhAgentVersion String? // Wazuh agent version
+
+  // SCA Compliance Data (from Wazuh)
+  scaScore          Int? // SCA policy compliance score (0-100)
+  scaPolicyName     String? // Name of the SCA policy
+  scaPassCount      Int? // Number of passed SCA checks
+  scaFailCount      Int? // Number of failed SCA checks
+  scaTotalChecks    Int? // Total SCA checks evaluated
+  scaLastAssessment DateTime? // Last SCA assessment timestamp
+
+  // User Account Summary (from Wazuh)
+  humanUserCount       Int? // Count of interactive user accounts
+  privilegedUserCount  Int? // Count of privileged/admin accounts
+  serviceAccountCount  Int? // Count of service accounts
+  lastAuthFailureCount Int? // Auth failures in last 24h
+  lastAuthFailureDate  DateTime? // Most recent auth failure timestamp
+
+  // Network Exposure (from Wazuh)
+  openPortsCount    Int? // Total open ports
+  criticalPortsOpen Json? // List of critical ports open [22, 3389, etc.]
+
+  // Wazuh Sync Metadata
+  wazuhAgentGroups  Json? // Wazuh agent groups []
+  lastWazuhSync     DateTime? // Last sync from our system (not agent checkin)
+  wazuhDashboardUrl String? // Direct link to Wazuh dashboard for this agent
+
+  // ============================================
+  // AUDIT
+  // ============================================
+
+  createdBy User? @relation("AssetCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("AssetUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  // ============================================
+  // RELATIONSHIPS
+  // ============================================
+
+  outgoingRelationships AssetRelationship[] @relation("AssetFrom")
+  incomingRelationships AssetRelationship[] @relation("AssetTo")
+
+  businessProcessLinks AssetBusinessProcess[]
+  controlLinks         AssetControl[]
+  riskLinks            AssetRisk[]
+  changeLinks          ChangeAsset[]
+  installedSoftware    AssetSoftware[]
+  capacityRecords      CapacityRecord[]
+  capacityPlans        CapacityPlan[]
+
+  // Incident Module Relations
+  incidentAssets IncidentAsset[]
+
+  // Evidence Module Relations
+  evidenceLinks EvidenceAsset[]
+
+  // Risk Scenario Links (for F3, F5, I1, I2 calculation)
+  scenarioLinks RiskScenarioAsset[]
+
+  // Risk Score History (for trending and audit)
+
+  // Control Evidence (for compliance automation)
+
+  @@index([assetTag])
+  @@index([assetType])
+  @@index([status])
+  @@index([businessCriticality])
+  @@index([dataClassification])
+  @@index([departmentId])
+  @@index([ownerId])
+  @@index([locationId])
+  @@index([cloudProvider])
+  @@index([inIsmsScope])
+  @@index([capacityStatus])
+}
+
+// ============================================
+// ASSET RELATIONSHIPS
+// ============================================
+
+model AssetRelationship {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+
+  fromAssetId String
+  fromAsset   Asset  @relation("AssetFrom", fields: [fromAssetId], references: [id], onDelete: Cascade)
+
+  toAssetId String
+  toAsset   Asset  @relation("AssetTo", fields: [toAssetId], references: [id], onDelete: Cascade)
+
+  relationshipType RelationshipType
+
+  description String?
+  isCritical  Boolean @default(false)
+  notes       String?
+
+  createdBy User? @relation("AssetRelCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([fromAssetId, toAssetId, relationshipType])
+  @@index([fromAssetId])
+  @@index([toAssetId])
+  @@index([relationshipType])
+}
+
+// ============================================
+// ASSET - BUSINESS PROCESS LINK
+// ============================================
+
+model AssetBusinessProcess {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  businessProcessId String
+  businessProcess   BusinessProcess @relation(fields: [businessProcessId], references: [id], onDelete: Cascade)
+
+  criticality String  @default("medium")
+  role        String?
+  notes       String?
+
+  @@unique([assetId, businessProcessId])
+  @@index([businessProcessId])
+}
+
+// ============================================
+// ASSET - CONTROL LINK
+// ============================================
+
+model AssetControl {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  controlId String
+  control   Control @relation(fields: [controlId], references: [id], onDelete: Cascade)
+
+  status              String    @default("planned")
+  implementationNotes String?
+  implementedDate     DateTime?
+  evidenceUrl         String?
+  lastVerified        DateTime?
+
+  @@unique([assetId, controlId])
+  @@index([controlId])
+  @@index([status])
+}
+
+// ============================================
+// ASSET - RISK LINK
+// ============================================
+
+model AssetRisk {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  riskId String
+  risk   Risk   @relation(fields: [riskId], references: [id], onDelete: Cascade)
+
+  // Impact if this asset is compromised
+  impactLevel String? // critical, high, medium, low
+
+  notes String?
+
+  @@unique([assetId, riskId])
+  @@index([riskId])
+  @@index([assetId])
+}
+
+// ============================================
+// ASSET - SOFTWARE INSTALLED
+// ============================================
+
+model AssetSoftware {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  hardwareAssetId String
+  hardwareAsset   Asset  @relation(fields: [hardwareAssetId], references: [id], onDelete: Cascade)
+
+  softwareName    String
+  softwareVersion String?
+  vendor          String?
+
+  installDate DateTime?
+  installPath String?
+
+  licenseType   String?
+  licenseKey    String?
+  licenseExpiry DateTime?
+
+  isApproved Boolean @default(true)
+
+  @@index([hardwareAssetId])
+  @@index([softwareName])
+}
+
+// ============================================
+// CAPACITY MANAGEMENT
+// ============================================
+
+model CapacityRecord {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  recordedAt DateTime @default(now())
+
+  cpuUsagePercent     Int?
+  memoryUsagePercent  Int?
+  storageUsagePercent Int?
+  networkUsagePercent Int?
+
+  customMetrics Json?   @default("{}")
+  source        String?
+
+  @@index([assetId])
+  @@index([recordedAt])
+  @@index([assetId, recordedAt])
+}
+
+model CapacityPlan {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+
+  assetId    String?
+  asset      Asset?  @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  assetGroup String?
+
+  title       String
+  description String? @db.Text
+
+  currentCapacity           String @db.Text
+  currentUtilizationPercent Int?
+
+  projectedGrowthPercent  Decimal?  @db.Decimal(5, 2)
+  projectionPeriodMonths  Int?
+  projectedExhaustionDate DateTime?
+
+  recommendedAction String?   @db.Text
+  recommendedDate   DateTime?
+  estimatedCost     Decimal?  @db.Decimal(15, 2)
+  costCurrency      String    @default("USD")
+
+  status        CapacityPlanStatus @default(DRAFT)
+  approvedById  String?
+  approvedAt    DateTime?
+  implementedAt DateTime?
+
+  reviewDate     DateTime?
+  nextReviewDate DateTime?
+
+  createdBy User? @relation("CapPlanCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([assetId])
+  @@index([status])
+}
+
+// ============================================
+// CHANGE MANAGEMENT
+// ============================================
+
+model Change {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  // ============================================
+  // IDENTIFICATION
+  // ============================================
+
+  changeRef   String @unique
+  title       String
+  description String @db.Text
+
+  // ============================================
+  // CLASSIFICATION
+  // ============================================
+
+  changeType     ITSMChangeType
+  category       ChangeCategory
+  priority       ChangePriority @default(MEDIUM)
+  securityImpact SecurityImpact @default(LOW)
+
+  // ============================================
+  // LIFECYCLE
+  // ============================================
+
+  status ChangeStatus @default(DRAFTED)
+
+  // ============================================
+  // REQUESTER & OWNERSHIP
+  // ============================================
+
+  requesterId String
+  requester   User   @relation("ChangeRequester", fields: [requesterId], references: [id])
+
+  implementerId String?
+  implementer   User?   @relation("ChangeImplementer", fields: [implementerId], references: [id], onDelete: SetNull)
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  // ============================================
+  // PLANNING
+  // ============================================
+
+  businessJustification String? @db.Text
+
+  impactAssessment String? @db.Text
+  affectedServices Json?   @default("[]")
+  userImpact       String?
+
+  riskLevel      String  @default("medium")
+  riskAssessment String? @db.Text
+
+  backoutPlan  String? @db.Text
+  rollbackTime Int?
+
+  testPlan    String? @db.Text
+  testResults String? @db.Text
+
+  // ============================================
+  // SCHEDULING
+  // ============================================
+
+  plannedStart DateTime?
+  plannedEnd   DateTime?
+  actualStart  DateTime?
+  actualEnd    DateTime?
+
+  maintenanceWindow Boolean @default(false)
+  outageRequired    Boolean @default(false)
+  estimatedDowntime Int?
+
+  // ============================================
+  // APPROVAL
+  // ============================================
+
+  cabRequired    Boolean   @default(false)
+  cabMeetingDate DateTime?
+  cabDecision    String?
+  cabNotes       String?   @db.Text
+
+  // ============================================
+  // IMPLEMENTATION
+  // ============================================
+
+  implementationNotes String?  @db.Text
+  successCriteria     String?  @db.Text
+  successful          Boolean?
+  failureReason       String?  @db.Text
+
+  // ============================================
+  // POST-IMPLEMENTATION
+  // ============================================
+
+  pirRequired    Boolean   @default(false)
+  pirCompleted   Boolean   @default(false)
+  pirDate        DateTime?
+  pirNotes       String?   @db.Text
+  lessonsLearned String?   @db.Text
+
+  // ============================================
+  // RELATIONSHIPS
+  // ============================================
+
+  parentChangeId String?
+  parentChange   Change?  @relation("ChangeHierarchy", fields: [parentChangeId], references: [id], onDelete: SetNull)
+  childChanges   Change[] @relation("ChangeHierarchy")
+
+  incidentId String?
+  vendorId   String?
+  vendor     ExternalDependency? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  attachments Json? @default("[]")
+
+  // ============================================
+  // AUDIT
+  // ============================================
+
+  createdBy User? @relation("ChangeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("ChangeUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  // Related records
+  approvals  ChangeApproval[]
+  assetLinks ChangeAsset[]
+  history    ChangeHistory[]
+
+  // Evidence Module Relations
+  evidenceLinks EvidenceChange[]
+
+  @@index([changeRef])
+  @@index([status])
+  @@index([changeType])
+  @@index([category])
+  @@index([securityImpact])
+  @@index([requesterId])
+  @@index([plannedStart])
+}
+
+// ============================================
+// CHANGE APPROVALS
+// ============================================
+
+model ChangeApproval {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  changeId String
+  change   Change @relation(fields: [changeId], references: [id], onDelete: Cascade)
+
+  approverId String
+  approver   User   @relation("ChangeApprover", fields: [approverId], references: [id])
+
+  approverRole String
+  status       ApprovalStatus @default(PENDING)
+  decision     String?
+  decidedAt    DateTime?
+
+  comments   String? @db.Text
+  conditions String?
+
+  isRequired Boolean @default(true)
+
+  @@unique([changeId, approverId])
+  @@index([changeId])
+  @@index([approverId])
+  @@index([status])
+}
+
+// ============================================
+// CHANGE - ASSET LINK
+// ============================================
+
+model ChangeAsset {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  changeId String
+  change   Change @relation(fields: [changeId], references: [id], onDelete: Cascade)
+
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  impactType String
+  notes      String?
+
+  @@unique([changeId, assetId])
+  @@index([assetId])
+}
+
+// ============================================
+// CHANGE HISTORY
+// ============================================
+
+model ChangeHistory {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  changeId String
+  change   Change @relation(fields: [changeId], references: [id], onDelete: Cascade)
+
+  field    String
+  oldValue String? @db.Text
+  newValue String? @db.Text
+
+  changedById String?
+  changedBy   User?   @relation("ChangeHistoryBy", fields: [changedById], references: [id], onDelete: SetNull)
+
+  action String
+  notes  String?
+
+  @@index([changeId])
+  @@index([createdAt])
+}
+
+// ============================================
+// CHANGE TEMPLATES
+// ============================================
+
+model ChangeTemplate {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+
+  templateCode String @unique
+  name         String
+  description  String @db.Text
+
+  category       ChangeCategory
+  securityImpact SecurityImpact
+  riskLevel      String
+
+  instructions String  @db.Text
+  backoutPlan  String  @db.Text
+  testPlan     String? @db.Text
+
+  autoApprove Boolean @default(true)
+  maxDuration Int?
+
+  applicableAssetTypes Json? @default("[]")
+
+  isActive Boolean @default(true)
+
+  lastReviewDate DateTime?
+  nextReviewDate DateTime?
+  reviewedById   String?
+
+  createdBy User? @relation("ChangeTemplateCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([templateCode])
+  @@index([isActive])
+}
