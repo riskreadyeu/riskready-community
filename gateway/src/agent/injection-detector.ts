@@ -16,6 +16,7 @@ const INJECTION_PATTERNS: Array<{ name: string; regex: RegExp }> = [
   // Synonym variations
   { name: 'instruction_override', regex: /disregard\s+(?:all|your|prior|previous)(?:\s+(?:all|your|prior|previous))?\s+(?:directives|instructions|rules)/i },
   { name: 'instruction_override', regex: /forget\s+(?:your|all|previous)(?:\s+(?:your|all|previous))?\s+(?:instructions|guidelines|rules)/i },
+  { name: 'instruction_override', regex: /ignore\s+(?:your|the)\s+system\s+(?:prompt|instructions?|guidelines?)/i },
   // Jailbreak / mode switching
   { name: 'role_impersonation', regex: /from\s+now\s+on\s+(respond|act|behave|operate)\s+as/i },
   { name: 'role_impersonation', regex: /entering\s+(DAN|developer|admin|sudo|god)\s+mode/i },
