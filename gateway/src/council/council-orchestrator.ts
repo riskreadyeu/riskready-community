@@ -320,6 +320,7 @@ export class CouncilOrchestrator {
         messages: [{ role: 'user', content: userMessage }],
         tools,
         maxTurns: this.config.maxTurnsPerMember,
+        maxTokenBudget: this.config.maxTokenBudgetPerMember,
         signal,
         onEvent: () => {}, // council members don't stream to the user
         executeTool: (name, input) => executor.execute(name, input),
@@ -426,6 +427,7 @@ Format your response using the structured output format from your instructions.`
         messages: [{ role: 'user', content: synthesisPrompt }],
         tools,
         maxTurns: this.config.maxTurnsPerMember,
+        maxTokenBudget: this.config.maxTokenBudgetPerMember,
         signal,
         onEvent: () => {}, // synthesis doesn't stream to the user
         executeTool: (name, input) => executor.execute(name, input),

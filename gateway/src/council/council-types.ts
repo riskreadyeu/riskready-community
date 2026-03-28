@@ -79,6 +79,7 @@ export interface CouncilConfig {
   maxTurnsPerMember: number;
   defaultPattern: DeliberationPattern;
   memberModel?: string;
+  maxTokenBudgetPerMember: number;
 }
 
 export const DEFAULT_COUNCIL_CONFIG: CouncilConfig = {
@@ -87,6 +88,7 @@ export const DEFAULT_COUNCIL_CONFIG: CouncilConfig = {
   maxMembersPerSession: 6,
   maxTurnsPerMember: 15,
   defaultPattern: 'parallel_then_synthesis',
+  maxTokenBudgetPerMember: 80_000,
 };
 
 /** Maps council member roles to the MCP server names they need */
