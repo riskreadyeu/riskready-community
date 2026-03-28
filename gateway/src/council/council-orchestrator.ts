@@ -26,6 +26,31 @@ import { buildToolDefinitions } from '../agent/tool-builder.js';
 import type { FullToolSchema } from '../agent/tool-schema-loader.js';
 import type { SkillRegistry } from '../agent/skill-registry.js';
 
+const CONFIDENCE_SCORES: Record<string, number> = { high: 1, medium: 0, low: -1 };
+
+/**
+ * Calculate weighted confidence based on each member's data richness.
+ * Members with more findings and data sources get higher weight.
+ */
+export function calculateWeightedConfidence(opinions: CouncilOpinionData[]): 'high' | 'medium' | 'low' {
+  if (opinions.length === 0) return 'medium';
+
+  let weightedSum = 0;
+  let totalWeight = 0;
+
+  for (const opinion of opinions) {
+    const weight = Math.max(1, opinion.findings.length + opinion.dataSources.length);
+    const score = CONFIDENCE_SCORES[opinion.confidence] ?? 0;
+    weightedSum += score * weight;
+    totalWeight += weight;
+  }
+
+  const avg = weightedSum / totalWeight;
+  if (avg > 0.3) return 'high';
+  if (avg < -0.3) return 'low';
+  return 'medium';
+}
+
 interface CouncilOrchestratorDeps {
   router: Router;
   config?: Partial<CouncilConfig>;
@@ -529,11 +554,7 @@ Format your response using the structured output format from your instructions.`
     }
 
     // Determine overall confidence
-    const confidences = opinions.map((o) => o.confidence);
-    const highCount = confidences.filter((c) => c === 'high').length;
-    const lowCount = confidences.filter((c) => c === 'low').length;
-    const overallConfidence: 'high' | 'medium' | 'low' =
-      lowCount > highCount ? 'low' : highCount > confidences.length / 2 ? 'high' : 'medium';
+    const overallConfidence = calculateWeightedConfidence(opinions);
 
     return {
       sessionId,
