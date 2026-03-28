@@ -51,6 +51,22 @@ export function calculateWeightedConfidence(opinions: CouncilOpinionData[]): 'hi
   return 'medium';
 }
 
+// Agent-ops mutation tools that council members should not call
+const AGENT_OPS_MUTATIONS = ['create_agent_task', 'update_agent_task'];
+
+/**
+ * Filter tool schemas to read-only operations for council members.
+ * Removes propose_* tools and agent-ops mutation tools.
+ */
+export function filterReadOnlySchemas(schemas: FullToolSchema[]): FullToolSchema[] {
+  return schemas.filter((s) => {
+    const toolName = s.name.split('__').pop() ?? '';
+    if (toolName.startsWith('propose_')) return false;
+    if (AGENT_OPS_MUTATIONS.includes(toolName)) return false;
+    return true;
+  });
+}
+
 interface CouncilOrchestratorDeps {
   router: Router;
   config?: Partial<CouncilConfig>;
@@ -322,10 +338,12 @@ export class CouncilOrchestrator {
     const memberServers = filterMcpServersForMember(role, allMcpServers);
     const memberServerNames = Object.keys(memberServers);
     const memberToolSchemas = this.toolSchemas.filter((s) => memberServerNames.includes(s.serverName));
+    // Council members are analysis-only — remove mutation tools
+    const readOnlySchemas = filterReadOnlySchemas(memberToolSchemas);
 
     // Build tool definitions — council members don't need code execution
     const { supportsToolSearch } = await import('../agent/model-capabilities.js');
-    const tools = buildToolDefinitions(memberToolSchemas, {
+    const tools = buildToolDefinitions(readOnlySchemas, {
       allowCodeExecution: false,
       disableToolSearch: !supportsToolSearch(model),
     });
@@ -432,8 +450,9 @@ Format your response using the structured output format from your instructions.`
     // Filter tool schemas to CISO's servers
     const cisoServerNames = Object.keys(cisoServers);
     const cisoToolSchemas = this.toolSchemas.filter((s) => cisoServerNames.includes(s.serverName));
+    const readOnlyCisoSchemas = filterReadOnlySchemas(cisoToolSchemas);
     const { supportsToolSearch: supportsTS } = await import('../agent/model-capabilities.js');
-    const tools = buildToolDefinitions(cisoToolSchemas, {
+    const tools = buildToolDefinitions(readOnlyCisoSchemas, {
       allowCodeExecution: false,
       disableToolSearch: !supportsTS(model),
     });
