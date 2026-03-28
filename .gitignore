@@ -56,3 +56,4 @@ packages/mcp-shared/tsconfig.tsbuildinfo
 LATTICE_CONTEXT.md
 documentation/plans/
 documentation/specs/
+.worktrees/
