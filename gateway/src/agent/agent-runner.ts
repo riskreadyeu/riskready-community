@@ -14,7 +14,7 @@ import { resolveConversationModel } from '../model-resolution.js';
 import { applyGroundingGuard, type GuardToolResult, withFallbackGroundingToolResults } from '../grounding-guard.js';
 import { wrapMemoryContext, wrapTaskContext, isValidUUID } from '../shared/prompt-helpers.js';
 import { runMessageLoop } from './message-loop.js';
-import { detectInjectionPatterns } from './injection-detector.js';
+import { detectInjectionPatterns, buildInjectionWarning } from './injection-detector.js';
 import { McpToolExecutor } from './mcp-tool-executor.js';
 import { redactPII } from './pii-redactor.js';
 import { scanAndRedactCredentials } from './credential-scanner.js';
@@ -254,8 +254,10 @@ export class AgentRunner {
     try {
       // Prompt injection telemetry
       const injectionCheck = detectInjectionPatterns(msg.text);
+      let injectionWarning = '';
       if (injectionCheck.suspicious) {
         logger.warn({ patterns: injectionCheck.patterns, userId: msg.userId }, 'Potential prompt injection detected');
+        injectionWarning = '\n\n' + buildInjectionWarning(injectionCheck);
       }
 
       // Council decision: check if multi-agent deliberation is needed
@@ -316,6 +318,7 @@ export class AgentRunner {
         const systemPromptWithContext = SYSTEM_PROMPT +
           (memoryContext ? `\n${memoryContext}` : '') +
           (taskContext ? `\n${taskContext}` : '') +
+          injectionWarning +
           `\n\nOrganisation ID: ${msg.organisationId}`;
 
         const messages = buildConversationMessages(pastMessages, msg.text);
