@@ -17,6 +17,7 @@ import { getCouncilMemberPrompt, getOrchestratorPrompt } from './council-prompts
 import { filterMcpServersForMember } from './council-members.js';
 import { renderDeliberation } from './council-renderer.js';
 import { CouncilClassifier } from './council-classifier.js';
+import { parseCouncilOpinion } from './council-opinion-parser.js';
 import type { Router } from '../router/router.js';
 import { resolveConversationModel } from '../model-resolution.js';
 import { runMessageLoop } from '../agent/message-loop.js';
@@ -339,87 +340,7 @@ export class CouncilOrchestrator {
     emit({ type: 'council_member_done', agentRole: role, message: `${role} complete` });
 
     // Parse the member's output into structured opinion
-    return this.parseOpinion(role, fullText);
-  }
-
-  /**
-   * Parse a council member's text output into a structured CouncilOpinionData.
-   * Uses a best-effort approach to extract structured data from markdown.
-   */
-  private parseOpinion(role: CouncilMemberRole, text: string): CouncilOpinionData {
-    const findings: CouncilOpinionData['findings'] = [];
-    const recommendations: CouncilOpinionData['recommendations'] = [];
-    const dissents: CouncilOpinionData['dissents'] = [];
-    const dataSources: string[] = [];
-
-    // Extract findings section
-    const findingsMatch = text.match(/## Findings\n([\s\S]*?)(?=\n## |$)/);
-    if (findingsMatch) {
-      const findingItems = findingsMatch[1].match(/- \[?(CRITICAL|HIGH|MEDIUM|LOW|INFO)\]?\s*\*\*([^*]+)\*\*:?\s*([^\n]+)/gi) || [];
-      for (const item of findingItems) {
-        const match = item.match(/\[?(CRITICAL|HIGH|MEDIUM|LOW|INFO)\]?\s*\*\*([^*]+)\*\*:?\s*(.+)/i);
-        if (match) {
-          findings.push({
-            title: match[2].trim(),
-            severity: match[1].toLowerCase() as any,
-            description: match[3].trim(),
-            evidence: [],
-          });
-        }
-      }
-    }
-
-    // If no structured findings found, treat the whole text as a single finding
-    if (findings.length === 0 && text.length > 50) {
-      findings.push({
-        title: `${role} Analysis`,
-        severity: 'info',
-        description: text.slice(0, 2000),
-        evidence: [],
-      });
-    }
-
-    // Extract recommendations section
-    const recsMatch = text.match(/## Recommendations\n([\s\S]*?)(?=\n## |$)/);
-    if (recsMatch) {
-      const recItems = recsMatch[1].match(/- \[?(immediate|short_term|medium_term|long_term)\]?\s*\*\*([^*]+)\*\*:?\s*([^\n]+)/gi) || [];
-      for (const item of recItems) {
-        const match = item.match(/\[?(immediate|short_term|medium_term|long_term)\]?\s*\*\*([^*]+)\*\*:?\s*(.+)/i);
-        if (match) {
-          recommendations.push({
-            title: match[2].trim(),
-            priority: match[1].toLowerCase().replace(/[ -]/g, '_') as any,
-            description: match[3].trim(),
-            rationale: '',
-          });
-        }
-      }
-    }
-
-    // Extract confidence
-    const confidenceMatch = text.match(/## Confidence\n([\s\S]*?)(?=\n## |$)/i)
-      || text.match(/\*\*Confidence\*\*:?\s*(high|medium|low)/i);
-    const confidence = confidenceMatch?.[1]?.toLowerCase().includes('high') ? 'high'
-      : confidenceMatch?.[1]?.toLowerCase().includes('low') ? 'low'
-        : 'medium';
-
-    // Extract data sources
-    const sourcesMatch = text.match(/## Data Sources\n([\s\S]*?)(?=\n## |$)/);
-    if (sourcesMatch) {
-      const sourceLines = sourcesMatch[1].split('\n').filter((l) => l.trim().startsWith('-'));
-      for (const line of sourceLines) {
-        dataSources.push(line.replace(/^-\s*/, '').trim());
-      }
-    }
-
-    return {
-      agentRole: role,
-      findings,
-      recommendations,
-      dissents,
-      dataSources,
-      confidence,
-    };
+    return parseCouncilOpinion(role, fullText);
   }
 
   private async synthesize(
