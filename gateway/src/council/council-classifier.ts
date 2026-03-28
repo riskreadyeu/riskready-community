@@ -38,7 +38,7 @@ export class CouncilClassifier {
     const domainCount = this.router.countDistinctDomains(message);
 
     // Decision: convene if 3+ domains triggered OR explicit trigger phrase matched
-    const convene = domainCount >= 3 || triggerMatch;
+    const convene = domainCount >= this.config.domainThreshold || triggerMatch;
 
     if (!convene) {
       return {
