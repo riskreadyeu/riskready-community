@@ -9,68 +9,20 @@ import type { UnifiedMessage, ChatEvent } from '../channels/types.js';
 import { randomUUID } from 'node:crypto';
 import { WorkflowExecutor } from '../workflows/workflow-executor.js';
 import { getWorkflowById } from '../workflows/types.js';
+import { CronExpressionParser } from 'cron-parser';
 
 /**
- * Minimal cron parser: supports standard 5-field cron expressions.
- * For production, consider using a library like 'cron-parser'.
+ * Computes the next run time for a cron expression using the cron-parser library.
+ * Handles DST transitions, leap years, and all standard 5-field cron expressions.
  */
 function getNextCronRun(cronExpression: string, after: Date = new Date()): Date {
-  const parts = cronExpression.trim().split(/\s+/);
-  if (parts.length !== 5) {
-    throw new Error(`Invalid cron expression: ${cronExpression}`);
+  try {
+    const interval = CronExpressionParser.parse(cronExpression, { currentDate: after });
+    return interval.next().toDate();
+  } catch {
+    // Fallback: 24 hours from now
+    return new Date(after.getTime() + 24 * 60 * 60 * 1000);
   }
-
-  const [minuteSpec, hourSpec, daySpec, monthSpec, weekdaySpec] = parts;
-
-  function matchesField(spec: string, value: number, min: number, max: number): boolean {
-    if (spec === '*') return true;
-    for (const part of spec.split(',')) {
-      if (part.includes('/')) {
-        const [rangeStr, stepStr] = part.split('/');
-        const step = parseInt(stepStr!, 10);
-        const start = rangeStr === '*' ? min : parseInt(rangeStr!, 10);
-        for (let i = start; i <= max; i += step) {
-          if (i === value) return true;
-        }
-      } else if (part.includes('-')) {
-        const [lo, hi] = part.split('-').map(Number);
-        if (value >= lo! && value <= hi!) return true;
-      } else {
-        if (parseInt(part, 10) === value) return true;
-      }
-    }
-    return false;
-  }
-
-  // Start from the next minute
-  const candidate = new Date(after);
-  candidate.setSeconds(0, 0);
-  candidate.setMinutes(candidate.getMinutes() + 1);
-
-  // Scan forward up to 366 days
-  const maxIterations = 366 * 24 * 60;
-  for (let i = 0; i < maxIterations; i++) {
-    const min = candidate.getMinutes();
-    const hr = candidate.getHours();
-    const day = candidate.getDate();
-    const month = candidate.getMonth() + 1;
-    const weekday = candidate.getDay();
-
-    if (
-      matchesField(minuteSpec!, min, 0, 59) &&
-      matchesField(hourSpec!, hr, 0, 23) &&
-      matchesField(daySpec!, day, 1, 31) &&
-      matchesField(monthSpec!, month, 1, 12) &&
-      matchesField(weekdaySpec!, weekday, 0, 6)
-    ) {
-      return candidate;
-    }
-
-    candidate.setMinutes(candidate.getMinutes() + 1);
-  }
-
-  // Fallback: 24 hours from now
-  return new Date(after.getTime() + 24 * 60 * 60 * 1000);
 }
 
 export class SchedulerService {
