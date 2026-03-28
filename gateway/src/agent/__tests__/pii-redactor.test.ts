@@ -21,4 +21,17 @@ describe('redactPII', () => {
   it('handles empty string', () => {
     expect(redactPII('')).toBe('');
   });
+
+  it('redacts SSN patterns', () => {
+    expect(redactPII('SSN is 123-45-6789')).toContain('[SSN REDACTED]');
+  });
+
+  it('redacts IPv4 addresses', () => {
+    expect(redactPII('Server at 192.168.1.100 is down')).toContain('[IP REDACTED]');
+  });
+
+  it('does not redact version numbers that look like IPs', () => {
+    const text = 'Running version 4.5.2';
+    expect(redactPII(text)).toBe(text);
+  });
 });
