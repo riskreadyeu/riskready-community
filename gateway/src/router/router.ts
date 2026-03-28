@@ -50,6 +50,44 @@ const KEYWORD_TAG_MAP: Record<string, string[]> = {
   organisation: ['organisation', 'governance'], organization: ['organisation', 'governance'],
   department: ['organisation'], location: ['organisation'],
   committee: ['organisation'], 'business process': ['organisation'],
+
+  // Expanded risk/incident terms
+  vulnerability: ['risks', 'incidents'], threat: ['risks', 'incidents'],
+  'risk appetite': ['risks'], 'risk owner': ['risks'],
+  residual: ['risks'], inherent: ['risks'], likelihood: ['risks'],
+  impact: ['risks'], 'risk matrix': ['risks'], heatmap: ['risks'],
+
+  // Expanded control/ITSM terms
+  firewall: ['controls', 'itsm'], antivirus: ['controls', 'itsm'],
+  encryption: ['controls'], backup: ['controls', 'itsm'],
+  'access control': ['controls'], mfa: ['controls'],
+  'two factor': ['controls'], authentication: ['controls'],
+  patch: ['controls', 'itsm'], patching: ['controls', 'itsm'],
+
+  // Expanded compliance terms
+  nist: ['compliance', 'controls'], gdpr: ['compliance'],
+  pci: ['compliance'], hipaa: ['compliance'], sox: ['compliance'],
+  certification: ['compliance'], accreditation: ['compliance'],
+
+  // Expanded incident terms
+  'data leak': ['incidents'], 'data loss': ['incidents'],
+  outage: ['incidents', 'itsm'], downtime: ['incidents', 'itsm'],
+  'denial of service': ['incidents'], ddos: ['incidents'],
+  'social engineering': ['incidents'], insider: ['incidents'],
+
+  // Expanded evidence/audit terms
+  'audit trail': ['audits', 'evidence'], 'audit log': ['audits'],
+  'evidence collection': ['evidence'], screenshot: ['evidence'],
+  'supporting document': ['evidence'],
+
+  // Expanded ITSM terms
+  server: ['itsm'], network: ['itsm'], database: ['itsm'],
+  'service desk': ['itsm'], configuration: ['itsm'],
+  'change request': ['itsm'], 'release management': ['itsm'],
+
+  // Expanded organisation terms
+  stakeholder: ['organisation'], 'interested party': ['organisation'],
+  'business continuity': ['organisation', 'risks'], bcdr: ['organisation', 'risks'],
 };
 
 // Phrases that trigger the council (Phase 5) — exported for use by council classifier

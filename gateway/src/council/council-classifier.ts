@@ -103,13 +103,17 @@ export class CouncilClassifier {
   private selectPattern(message: string, members: CouncilMemberRole[]): DeliberationPattern {
     const lower = message.toLowerCase();
 
-    // Challenge-response for risk acceptance decisions
-    if (lower.includes('risk acceptance') || lower.includes('accept risk') || lower.includes('risk appetite')) {
+    // Challenge-response for risk acceptance and high-impact decisions
+    if (lower.includes('risk acceptance') || lower.includes('accept risk') || lower.includes('risk appetite')
+      || lower.includes('decommission') || lower.includes('retire control') || lower.includes('policy exception')
+      || lower.includes('waiver') || lower.includes('accept the risk')) {
       return 'challenge_response';
     }
 
-    // Sequential buildup for investigations
-    if (lower.includes('investigate') || lower.includes('root cause') || lower.includes('trace')) {
+    // Sequential buildup for investigations and causal analysis
+    if (lower.includes('investigate') || lower.includes('root cause') || lower.includes('trace')
+      || lower.includes('timeline') || lower.includes('causal') || lower.includes('impact analysis')
+      || lower.includes('how did') || lower.includes('what caused') || lower.includes('chain of events')) {
       return 'sequential_buildup';
     }
 
