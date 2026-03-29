@@ -25,6 +25,7 @@ import { Response } from 'express';
 import * as fs from 'fs/promises';
 import { createReadStream } from 'fs';
 import { AuthenticatedRequest } from '../../shared/types';
+import { validateFileMimeType } from '../../shared/utils/file-validation.util';
 
 // Multer file interface
 interface MulterFile {
@@ -77,6 +78,14 @@ export class DocumentAttachmentController {
     const validation = await this.service.validateFileBuffer(file.buffer);
     if (!validation.valid) {
       throw new Error(`Invalid file: ${validation.errors.join(', ')}`);
+    }
+
+    // Validate MIME type matches magic bytes
+    const mimeValidation = validateFileMimeType(file.buffer, file.mimetype);
+    if (!mimeValidation.valid) {
+      throw new Error(
+        `File MIME type mismatch: claimed ${file.mimetype}, detected ${mimeValidation.detectedType}`,
+      );
     }
 
     // Generate storage path
@@ -156,6 +165,7 @@ export class DocumentAttachmentController {
       'Content-Type': attachment.mimeType,
       'Content-Disposition': `attachment; filename="${attachment.originalFilename}"`,
       'Content-Length': attachment.size,
+      'X-Content-Type-Options': 'nosniff',
     });
 
     return new StreamableFile(file);
