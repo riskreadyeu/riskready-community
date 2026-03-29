@@ -5,3 +5,8 @@ dist
 coverage
 .dockerignore
 Dockerfile
+*.test.ts
+*.spec.ts
+__tests__
+README.md
+docs
