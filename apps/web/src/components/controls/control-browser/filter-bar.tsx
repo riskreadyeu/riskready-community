@@ -1,4 +1,3 @@
-"use client";
 
 import { Search, Filter, X, SlidersHorizontal, Download, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { Sparkles, AlertTriangle, TrendingUp, Shield, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";

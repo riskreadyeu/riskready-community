@@ -1,4 +1,3 @@
-"use client";
 
 import { Link } from "react-router-dom";
 import { CheckCircle2, AlertTriangle, XCircle, HelpCircle, ChevronRight } from "lucide-react";

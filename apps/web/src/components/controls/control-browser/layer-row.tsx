@@ -1,4 +1,3 @@
-"use client";
 
 import { useState } from "react";
 import { MoreHorizontal, Eye, Edit3, TestTube, Target, Activity } from "lucide-react";

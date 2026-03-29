@@ -1,4 +1,3 @@
-"use client";
 
 import { CheckCircle2, AlertTriangle, XCircle, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";

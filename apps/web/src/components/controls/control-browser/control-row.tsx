@@ -1,4 +1,3 @@
-"use client";
 
 import { useState } from "react";
 import { ChevronRight, ChevronDown, MoreHorizontal, Eye, Edit3, TestTube, Target } from "lucide-react";
