@@ -17,6 +17,7 @@ import { getCouncilMemberPrompt, getOrchestratorPrompt } from './council-prompts
 import { filterMcpServersForMember } from './council-members.js';
 import { renderDeliberation } from './council-renderer.js';
 import { CouncilClassifier } from './council-classifier.js';
+import { parseCouncilOpinion } from './council-opinion-parser.js';
 import type { Router } from '../router/router.js';
 import { resolveConversationModel } from '../model-resolution.js';
 import { runMessageLoop } from '../agent/message-loop.js';
@@ -24,6 +25,47 @@ import { McpToolExecutor } from '../agent/mcp-tool-executor.js';
 import { buildToolDefinitions } from '../agent/tool-builder.js';
 import type { FullToolSchema } from '../agent/tool-schema-loader.js';
 import type { SkillRegistry } from '../agent/skill-registry.js';
+
+const CONFIDENCE_SCORES: Record<string, number> = { high: 1, medium: 0, low: -1 };
+
+/**
+ * Calculate weighted confidence based on each member's data richness.
+ * Members with more findings and data sources get higher weight.
+ */
+export function calculateWeightedConfidence(opinions: CouncilOpinionData[]): 'high' | 'medium' | 'low' {
+  if (opinions.length === 0) return 'medium';
+
+  let weightedSum = 0;
+  let totalWeight = 0;
+
+  for (const opinion of opinions) {
+    const weight = Math.max(1, opinion.findings.length + opinion.dataSources.length);
+    const score = CONFIDENCE_SCORES[opinion.confidence] ?? 0;
+    weightedSum += score * weight;
+    totalWeight += weight;
+  }
+
+  const avg = weightedSum / totalWeight;
+  if (avg > 0.3) return 'high';
+  if (avg < -0.3) return 'low';
+  return 'medium';
+}
+
+// Agent-ops mutation tools that council members should not call
+const AGENT_OPS_MUTATIONS = ['create_agent_task', 'update_agent_task'];
+
+/**
+ * Filter tool schemas to read-only operations for council members.
+ * Removes propose_* tools and agent-ops mutation tools.
+ */
+export function filterReadOnlySchemas(schemas: FullToolSchema[]): FullToolSchema[] {
+  return schemas.filter((s) => {
+    const toolName = s.name.split('__').pop() ?? '';
+    if (toolName.startsWith('propose_')) return false;
+    if (AGENT_OPS_MUTATIONS.includes(toolName)) return false;
+    return true;
+  });
+}
 
 interface CouncilOrchestratorDeps {
   router: Router;
@@ -296,10 +338,12 @@ export class CouncilOrchestrator {
     const memberServers = filterMcpServersForMember(role, allMcpServers);
     const memberServerNames = Object.keys(memberServers);
     const memberToolSchemas = this.toolSchemas.filter((s) => memberServerNames.includes(s.serverName));
+    // Council members are analysis-only — remove mutation tools
+    const readOnlySchemas = filterReadOnlySchemas(memberToolSchemas);
 
     // Build tool definitions — council members don't need code execution
     const { supportsToolSearch } = await import('../agent/model-capabilities.js');
-    const tools = buildToolDefinitions(memberToolSchemas, {
+    const tools = buildToolDefinitions(readOnlySchemas, {
       allowCodeExecution: false,
       disableToolSearch: !supportsToolSearch(model),
     });
@@ -319,6 +363,7 @@ export class CouncilOrchestrator {
         messages: [{ role: 'user', content: userMessage }],
         tools,
         maxTurns: this.config.maxTurnsPerMember,
+        maxTokenBudget: this.config.maxTokenBudgetPerMember,
         signal,
         onEvent: () => {}, // council members don't stream to the user
         executeTool: (name, input) => executor.execute(name, input),
@@ -339,87 +384,7 @@ export class CouncilOrchestrator {
     emit({ type: 'council_member_done', agentRole: role, message: `${role} complete` });
 
     // Parse the member's output into structured opinion
-    return this.parseOpinion(role, fullText);
-  }
-
-  /**
-   * Parse a council member's text output into a structured CouncilOpinionData.
-   * Uses a best-effort approach to extract structured data from markdown.
-   */
-  private parseOpinion(role: CouncilMemberRole, text: string): CouncilOpinionData {
-    const findings: CouncilOpinionData['findings'] = [];
-    const recommendations: CouncilOpinionData['recommendations'] = [];
-    const dissents: CouncilOpinionData['dissents'] = [];
-    const dataSources: string[] = [];
-
-    // Extract findings section
-    const findingsMatch = text.match(/## Findings\n([\s\S]*?)(?=\n## |$)/);
-    if (findingsMatch) {
-      const findingItems = findingsMatch[1].match(/- \[?(CRITICAL|HIGH|MEDIUM|LOW|INFO)\]?\s*\*\*([^*]+)\*\*:?\s*([^\n]+)/gi) || [];
-      for (const item of findingItems) {
-        const match = item.match(/\[?(CRITICAL|HIGH|MEDIUM|LOW|INFO)\]?\s*\*\*([^*]+)\*\*:?\s*(.+)/i);
-        if (match) {
-          findings.push({
-            title: match[2].trim(),
-            severity: match[1].toLowerCase() as any,
-            description: match[3].trim(),
-            evidence: [],
-          });
-        }
-      }
-    }
-
-    // If no structured findings found, treat the whole text as a single finding
-    if (findings.length === 0 && text.length > 50) {
-      findings.push({
-        title: `${role} Analysis`,
-        severity: 'info',
-        description: text.slice(0, 2000),
-        evidence: [],
-      });
-    }
-
-    // Extract recommendations section
-    const recsMatch = text.match(/## Recommendations\n([\s\S]*?)(?=\n## |$)/);
-    if (recsMatch) {
-      const recItems = recsMatch[1].match(/- \[?(immediate|short_term|medium_term|long_term)\]?\s*\*\*([^*]+)\*\*:?\s*([^\n]+)/gi) || [];
-      for (const item of recItems) {
-        const match = item.match(/\[?(immediate|short_term|medium_term|long_term)\]?\s*\*\*([^*]+)\*\*:?\s*(.+)/i);
-        if (match) {
-          recommendations.push({
-            title: match[2].trim(),
-            priority: match[1].toLowerCase().replace(/[ -]/g, '_') as any,
-            description: match[3].trim(),
-            rationale: '',
-          });
-        }
-      }
-    }
-
-    // Extract confidence
-    const confidenceMatch = text.match(/## Confidence\n([\s\S]*?)(?=\n## |$)/i)
-      || text.match(/\*\*Confidence\*\*:?\s*(high|medium|low)/i);
-    const confidence = confidenceMatch?.[1]?.toLowerCase().includes('high') ? 'high'
-      : confidenceMatch?.[1]?.toLowerCase().includes('low') ? 'low'
-        : 'medium';
-
-    // Extract data sources
-    const sourcesMatch = text.match(/## Data Sources\n([\s\S]*?)(?=\n## |$)/);
-    if (sourcesMatch) {
-      const sourceLines = sourcesMatch[1].split('\n').filter((l) => l.trim().startsWith('-'));
-      for (const line of sourceLines) {
-        dataSources.push(line.replace(/^-\s*/, '').trim());
-      }
-    }
-
-    return {
-      agentRole: role,
-      findings,
-      recommendations,
-      dissents,
-      dataSources,
-      confidence,
-    };
+    return parseCouncilOpinion(role, fullText);
   }
 
   private async synthesize(
@@ -485,8 +450,9 @@ Format your response using the structured output format from your instructions.`
     // Filter tool schemas to CISO's servers
     const cisoServerNames = Object.keys(cisoServers);
     const cisoToolSchemas = this.toolSchemas.filter((s) => cisoServerNames.includes(s.serverName));
+    const readOnlyCisoSchemas = filterReadOnlySchemas(cisoToolSchemas);
     const { supportsToolSearch: supportsTS } = await import('../agent/model-capabilities.js');
-    const tools = buildToolDefinitions(cisoToolSchemas, {
+    const tools = buildToolDefinitions(readOnlyCisoSchemas, {
       allowCodeExecution: false,
       disableToolSearch: !supportsTS(model),
     });
@@ -505,6 +471,7 @@ Format your response using the structured output format from your instructions.`
         messages: [{ role: 'user', content: synthesisPrompt }],
         tools,
         maxTurns: this.config.maxTurnsPerMember,
+        maxTokenBudget: this.config.maxTokenBudgetPerMember,
         signal,
         onEvent: () => {}, // synthesis doesn't stream to the user
         executeTool: (name, input) => executor.execute(name, input),
@@ -606,11 +573,7 @@ Format your response using the structured output format from your instructions.`
     }
 
     // Determine overall confidence
-    const confidences = opinions.map((o) => o.confidence);
-    const highCount = confidences.filter((c) => c === 'high').length;
-    const lowCount = confidences.filter((c) => c === 'low').length;
-    const overallConfidence: 'high' | 'medium' | 'low' =
-      lowCount > highCount ? 'low' : highCount > confidences.length / 2 ? 'high' : 'medium';
+    const overallConfidence = calculateWeightedConfidence(opinions);
 
     return {
       sessionId,

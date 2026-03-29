@@ -1,4 +1,4 @@
-export { isValidUUID, truncateString } from './validators.js';
+export { isValidUUID, truncateString, zodUuidOrCuid } from './validators.js';
 export {
   wrapMemoryContext,
   wrapTaskContext,
