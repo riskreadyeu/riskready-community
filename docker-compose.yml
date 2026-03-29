@@ -87,7 +87,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-riskready}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-riskready}?schema=public
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       GATEWAY_PORT: 3100
-      GATEWAY_SECRET: ${GATEWAY_SECRET:-}
+      GATEWAY_SECRET: ${GATEWAY_SECRET:?Set GATEWAY_SECRET in .env (must differ from JWT_SECRET)}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       NODE_ENV: production
     depends_on:
