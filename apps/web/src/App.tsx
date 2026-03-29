@@ -60,7 +60,9 @@ export default function App() {
         }}
       >
         <AppInner />
-        <Toaster richColors position="top-right" />
+        <div aria-live="polite" role="status">
+          <Toaster richColors position="top-right" />
+        </div>
       </BrowserRouter>
     </ErrorBoundary>
   );
