@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/index.ts",
+    "postinstall": "rm -rf node_modules/.prisma/client && mkdir -p node_modules/.prisma && test -d ../server/node_modules/.prisma/client && ln -sfn \"$(cd ../server/node_modules/.prisma/client && pwd)\" node_modules/.prisma/client || true",
     "test": "vitest run"
   },
   "imports": {
