@@ -11,7 +11,7 @@ export function registerPolicyTools(server: McpServer) {
       status: z.enum(['DRAFT', 'PENDING_REVIEW', 'PENDING_APPROVAL', 'APPROVED', 'PUBLISHED', 'UNDER_REVISION', 'SUPERSEDED', 'RETIRED', 'ARCHIVED']).optional().describe('Filter by document status'),
       documentType: z.enum(['POLICY', 'STANDARD', 'PROCEDURE', 'WORK_INSTRUCTION', 'FORM', 'TEMPLATE', 'CHECKLIST', 'GUIDELINE', 'RECORD']).optional().describe('Filter by document type'),
       classification: z.enum(['PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED']).optional().describe('Filter by classification'),
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
     },
@@ -114,7 +114,7 @@ export function registerPolicyTools(server: McpServer) {
     'Search policy documents by document ID, title, or purpose. If not found, returns a not-found message. Do not invent or assume values.',
     {
       query: z.string().max(200).describe('Search term'),
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
     },
     withErrorHandling('search_policy_documents', async ({ query, organisationId }) => {
       const documents = await prisma.policyDocument.findMany({

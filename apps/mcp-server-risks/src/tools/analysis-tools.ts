@@ -8,7 +8,7 @@ export function registerAnalysisTools(server: McpServer) {
     'get_risk_heatmap',
     'Get risk heatmap data: likelihood x impact matrix for all scenarios with scores. If not found, returns a not-found message. Do not invent or assume values.',
     {
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
     },
     withErrorHandling('get_risk_heatmap', async ({ organisationId }) => {
       const where: Record<string, unknown> = {};
@@ -178,7 +178,7 @@ export function registerAnalysisTools(server: McpServer) {
     'get_risk_dashboard',
     'Get aggregate risk posture summary: risk counts, scenario distribution, tolerance status, treatment progress. If not found, returns a not-found message. Do not invent or assume values.',
     {
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
     },
     withErrorHandling('get_risk_dashboard', async ({ organisationId }) => {
       const riskWhere: Record<string, unknown> = {};

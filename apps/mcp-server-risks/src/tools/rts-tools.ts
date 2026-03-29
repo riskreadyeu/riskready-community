@@ -9,7 +9,7 @@ export function registerRTSTools(server: McpServer) {
     'List Risk Tolerance Statements with optional status filter. If not found, returns a not-found message. Do not invent or assume values.',
     {
       status: z.enum(['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'ACTIVE', 'SUPERSEDED', 'RETIRED']).optional().describe('Filter by RTS status'),
-      organisationId: z.string().optional().describe('Filter by organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
@@ -97,7 +97,7 @@ export function registerRTSTools(server: McpServer) {
     'get_rts_stats',
     'Get aggregate RTS statistics: total count, by status, by tolerance level. If not found, returns a not-found message. Do not invent or assume values.',
     {
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
     },
     withErrorHandling('get_rts_stats', async ({ organisationId }) => {
       const where: Record<string, unknown> = {};

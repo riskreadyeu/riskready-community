@@ -114,7 +114,7 @@ export function registerTreatmentTools(server: McpServer) {
     'get_treatment_stats',
     'Get aggregate treatment plan statistics: total count, by status, by type, progress distribution. If not found, returns a not-found message. Do not invent or assume values.',
     {
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
     },
     withErrorHandling('get_treatment_stats', async ({ organisationId }) => {
       const where: Record<string, unknown> = {};

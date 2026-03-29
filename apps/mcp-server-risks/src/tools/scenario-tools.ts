@@ -11,7 +11,7 @@ export function registerScenarioTools(server: McpServer) {
       riskId: z.string().optional().describe('Filter by parent risk UUID'),
       status: z.enum(['DRAFT', 'ASSESSED', 'EVALUATED', 'TREATING', 'TREATED', 'ACCEPTED', 'MONITORING', 'ESCALATED', 'REVIEW', 'CLOSED', 'ARCHIVED']).optional().describe('Filter by scenario status'),
       toleranceStatus: z.enum(['WITHIN', 'EXCEEDS', 'CRITICAL']).optional().describe('Filter by tolerance status'),
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
