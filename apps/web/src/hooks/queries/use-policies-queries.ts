@@ -217,9 +217,9 @@ export function useCurrentWorkflow(documentId: string) {
 // Change request hooks
 // ---------------------------------------------------------------------------
 
-export function useChangeRequests(params?: { skip?: number; take?: number; status?: string; documentId?: string }) {
+export function useChangeRequests(params?: Parameters<typeof getChangeRequests>[0]) {
   return useQuery({
-    queryKey: changeRequestKeys.list(params ?? {}),
+    queryKey: changeRequestKeys.list((params ?? {}) as Record<string, unknown>),
     queryFn: () => getChangeRequests(params),
   });
 }
@@ -243,9 +243,9 @@ export function useChangeRequestStats() {
 // Exception hooks
 // ---------------------------------------------------------------------------
 
-export function usePolicyExceptions(params?: { skip?: number; take?: number; status?: string; documentId?: string }) {
+export function usePolicyExceptions(params?: Parameters<typeof getExceptions>[0]) {
   return useQuery({
-    queryKey: exceptionKeys.list(params ?? {}),
+    queryKey: exceptionKeys.list((params ?? {}) as Record<string, unknown>),
     queryFn: () => getExceptions(params),
   });
 }

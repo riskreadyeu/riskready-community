@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
@@ -30,8 +30,6 @@ import {
   type RowAction,
 } from "@/components/common";
 import {
-  getIncidents,
-  getIncidentStats,
   type Incident,
   type IncidentStats,
   type IncidentSeverity,
@@ -40,6 +38,7 @@ import {
   statusLabels,
   categoryLabels,
 } from "@/lib/incidents-api";
+import { useIncidents, useIncidentStats } from "@/hooks/queries";
 
 function SeverityBadge({ severity }: { severity: IncidentSeverity }) {
   const colors: Record<IncidentSeverity, string> = {
@@ -75,39 +74,16 @@ function StatusBadge({ status }: { status: IncidentStatus }) {
 
 export default function IncidentRegisterPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [stats, setStats] = useState<IncidentStats | null>(null);
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [severityFilter, statusFilter, categoryFilter]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [incidentsData, statsData] = await Promise.all([
-        getIncidents({ take: 500 }),
-        getIncidentStats(),
-      ]);
-      setIncidents(incidentsData.results);
-      setStats(statsData);
-    } catch (err) {
-      console.error("Error loading incidents:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: incidentsData, isLoading: incidentsLoading } = useIncidents({ take: 500 });
+  const { data: stats = null, isLoading: statsLoading } = useIncidentStats();
+  const incidents = incidentsData?.results ?? [];
+  const loading = incidentsLoading || statsLoading;
 
   const filteredIncidents = incidents.filter((i) => {
     if (severityFilter !== "all" && i.severity !== severityFilter) return false;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,8 +37,6 @@ import {
 import { toast } from 'sonner';
 import { PageHeader, StatCard, StatCardGrid } from '@/components/common';
 import {
-  getAssets,
-  getAssetSummary,
   type Asset,
   type AssetSummary,
   type AssetType,
@@ -46,6 +44,7 @@ import {
   type BusinessCriticality,
   type CapacityStatus,
 } from '@/lib/itsm-api';
+import { useAssets, useAssetSummary } from '@/hooks/queries';
 
 const ASSET_TYPE_ICONS: Record<string, React.ReactNode> = {
   SERVER: <Server className="h-4 w-4" />,
@@ -79,10 +78,6 @@ const STATUS_COLORS: Record<AssetStatus, BadgeVariant> = {
 
 export default function AssetRegisterPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [summary, setSummary] = useState<AssetSummary | null>(null);
-  const [count, setCount] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get('search') || '');
 
   const page = parseInt(searchParams.get('page') || '1');
@@ -95,34 +90,20 @@ export default function AssetRegisterPage() {
     capacityStatus: searchParams.get('capacityStatus') || undefined,
   };
 
-  useEffect(() => {
-    loadData();
-  }, [searchParams]);
+  const { data: assetsData, isLoading: assetsLoading } = useAssets({
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    search: searchParams.get('search') || undefined,
+    assetType: filters.assetType || undefined,
+    status: filters.status || undefined,
+    businessCriticality: filters.businessCriticality || undefined,
+    capacityStatus: filters.capacityStatus as CapacityStatus | undefined,
+  });
+  const { data: summary = null, isLoading: summaryLoading } = useAssetSummary();
 
-  async function loadData() {
-    setLoading(true);
-    try {
-      const [assetsData, summaryData] = await Promise.all([
-        getAssets({
-          skip: (page - 1) * pageSize,
-          take: pageSize,
-          search: searchParams.get('search') || undefined,
-          assetType: filters.assetType || undefined,
-          status: filters.status || undefined,
-          businessCriticality: filters.businessCriticality || undefined,
-          capacityStatus: filters.capacityStatus as CapacityStatus | undefined,
-        }),
-        getAssetSummary(),
-      ]);
-      setAssets(assetsData.results);
-      setCount(assetsData.count);
-      setSummary(summaryData);
-    } catch (err) {
-      console.error('Failed to load assets:', err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const assets = assetsData?.results ?? [];
+  const count = assetsData?.count ?? 0;
+  const loading = assetsLoading || summaryLoading;
 
   function updateFilter(key: string, value: string | null) {
     const params = new URLSearchParams(searchParams);

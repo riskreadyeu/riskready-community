@@ -4,7 +4,7 @@
 // Risk register list page with bulk selection and filtering capabilities
 // Updated to use DataTable component per design system
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Download,
@@ -39,8 +39,9 @@ import {
   useBulkSelection,
 } from "@/components/archer";
 
-// API
-import { getRisks, type Risk } from "@/lib/risks-api";
+// API & Queries
+import { type Risk } from "@/lib/risks-api";
+import { useRisks } from "@/hooks/queries";
 import { toast } from "sonner";
 
 
@@ -49,14 +50,15 @@ import { tierColors, tierLabels, statusColors, statusLabels, getRiskLevel } from
 
 export function RiskRegisterV2Page() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [risks, setRisks] = useState<Risk[]>([]);
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [frameworkFilter, setFrameworkFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
+  const { data: risksData, isLoading: loading, refetch } = useRisks({ take: 500 });
+  const loadData = () => refetch();
+  const risks = risksData?.results ?? [];
 
   // Filter risks based on current filters
   const filteredRisks = useMemo(() => {
@@ -69,28 +71,6 @@ export function RiskRegisterV2Page() {
   }, [risks, tierFilter, statusFilter, frameworkFilter]);
 
   const bulkSelection = useBulkSelection(filteredRisks, (r) => r.id);
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-    bulkSelection.clearSelection();
-  }, [tierFilter, statusFilter, frameworkFilter]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const data = await getRisks({ take: 500 });
-      setRisks(data.results);
-    } catch (err) {
-      console.error("Error loading risks:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleBulkExport = () => {
     toast.info(`Exporting ${bulkSelection.selectedIds.length} risks - feature coming soon`);

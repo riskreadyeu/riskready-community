@@ -258,9 +258,9 @@ export function useMetricsDashboard(organisationId: string) {
 // SOA hooks
 // ---------------------------------------------------------------------------
 
-export function useSOAs(params?: { skip?: number; take?: number; organisationId?: string; status?: string }) {
+export function useSOAs(params?: Parameters<typeof getSOAs>[0]) {
   return useQuery({
-    queryKey: soaKeys.list(params ?? {}),
+    queryKey: soaKeys.list((params ?? {}) as Record<string, unknown>),
     queryFn: () => getSOAs(params),
   });
 }

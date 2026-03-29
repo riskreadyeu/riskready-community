@@ -3,7 +3,7 @@
 // =============================================================================
 // Detail page for individual risks showing overview, scenarios, controls, and history
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   BarChart3,
@@ -37,14 +37,14 @@ import {
   WorkflowSidebar,
 } from "@/components/archer";
 
-// API
+// API & Queries
 import {
-  getRisk,
   disableRisk,
   enableRisk,
   type Risk,
   type RiskScenario,
 } from "@/lib/risks-api";
+import { useRisk } from "@/hooks/queries";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -89,34 +89,15 @@ const scenarioStatusLabels: Record<string, string> = {
 export function RiskDetailV2Page() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [risk, setRisk] = useState<Risk | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { data: risk = null, isLoading: loading, error: loadErrorObj, refetch } = useRisk(id ?? '');
+  const loadData = () => refetch();
+  const loadError = loadErrorObj ? (loadErrorObj instanceof Error ? loadErrorObj.message : "Failed to load risk") : null;
   const [activeTab, setActiveTab] = useState("overview");
 
   // Dialog states
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const [disableDialogOpen, setDisableDialogOpen] = useState(false);
-
-  useEffect(() => {
-    if (id) loadData();
-  }, [id]);
-
-  const loadData = async () => {
-    if (!id) return;
-    try {
-      setLoading(true);
-      setLoadError(null);
-      const data = await getRisk(id);
-      setRisk(data);
-    } catch (err) {
-      console.error("Error loading risk:", err);
-      setLoadError(err instanceof Error ? err.message : "Failed to load risk");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (

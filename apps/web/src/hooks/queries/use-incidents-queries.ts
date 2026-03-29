@@ -43,7 +43,7 @@ export const incidentKeys = {
 
 export function useIncidents(params?: GetIncidentsParams) {
   return useQuery({
-    queryKey: incidentKeys.list(params ?? {}),
+    queryKey: incidentKeys.list((params ?? {}) as Record<string, unknown>),
     queryFn: () => getIncidents(params),
   });
 }
