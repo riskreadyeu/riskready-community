@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { getMe, login as loginRequest, logout as logoutRequest } from "@/lib/api";
 
@@ -48,13 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const applyUser = (nextUser: AuthUser | null) => {
+  const applyUser = useCallback((nextUser: AuthUser | null) => {
     setUser(nextUser);
     setOrgId(nextUser?.organisationId ?? "");
     persistUser(nextUser);
-  };
+  }, []);
 
-  const resolveOrgId = async (userData: AuthUser | null) => {
+  const resolveOrgIdRef = useRef(async (userData: AuthUser | null): Promise<AuthUser | null> => {
     if (!userData) {
       setOrgId("");
       return null;
@@ -79,13 +79,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return userData;
-  };
+  });
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     const me = await getMe();
-    const resolvedUser = await resolveOrgId(me.user);
+    const resolvedUser = await resolveOrgIdRef.current(me.user);
     applyUser(resolvedUser);
-  };
+  }, [applyUser]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const storedUser = localStorage.getItem("auth_user");
           if (storedUser) {
             const parsed = JSON.parse(storedUser) as AuthUser;
-            const resolvedUser = await resolveOrgId(parsed);
+            const resolvedUser = await resolveOrgIdRef.current(parsed);
             applyUser(resolvedUser);
           } else {
             applyUser(null);
@@ -111,9 +111,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     void checkAuth();
-  }, []);
+  }, [applyUser, refresh]);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     try {
       await loginRequest(email, password);
       await refresh();
@@ -121,15 +121,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Login error:", err);
       throw err;
     }
-  };
+  }, [refresh]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await logoutRequest();
     } finally {
       applyUser(null);
     }
-  };
+  }, [applyUser]);
 
   const organisationId = user?.organisationId || orgId;
 
@@ -143,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       refresh,
     }),
-    [user, organisationId, isLoading],
+    [user, organisationId, isLoading, login, logout, refresh],
   );
 
   return (
