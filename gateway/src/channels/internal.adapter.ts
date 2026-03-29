@@ -28,7 +28,7 @@ export class InternalAdapter implements ChannelAdapter {
   constructor(opts: InternalAdapterOptions) {
     this.port = opts.port;
     this.secret = opts.secret;
-    this.server = Fastify({ logger: false });
+    this.server = Fastify({ logger: false, bodyLimit: 1_048_576 });
     this.setupRoutes(opts.rateLimit);
   }
 
