@@ -1,4 +1,3 @@
-"use client";
 
 import { ControlEffectivenessGauge } from "./control-effectiveness-gauge";
 import { ControlHeader } from "./control-header";

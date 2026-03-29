@@ -1,4 +1,3 @@
-"use client";
 
 import { useEffect, useState } from "react";
 import { ArrowRight, TrendingDown, TrendingUp, Shield, Loader2 } from "lucide-react";

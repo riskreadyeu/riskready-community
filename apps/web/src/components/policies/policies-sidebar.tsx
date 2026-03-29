@@ -1,4 +1,3 @@
-"use client";
 
 import { NavLink, useLocation } from "react-router-dom";
 import {
