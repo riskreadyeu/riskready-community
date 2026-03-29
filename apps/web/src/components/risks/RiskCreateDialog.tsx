@@ -21,6 +21,27 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { createRisk, type RiskTier, type RiskStatus, type ControlFramework } from "@/lib/risks-api";
 import { AlertTriangle, Loader2 } from "lucide-react";
+import { useZodForm, z } from "@/lib/form-utils";
+import { FieldErrorMessage } from "@/components/common/form-field";
+
+const riskCreateSchema = z.object({
+  riskId: z.string().min(1, "Risk ID is required"),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional().default(""),
+  tier: z.enum(["CORE", "EXTENDED", "ADVANCED"]).default("CORE"),
+  status: z.enum(["IDENTIFIED", "ASSESSED", "TREATING", "ACCEPTED", "CLOSED"]).default("IDENTIFIED"),
+  framework: z.enum(["ISO", "SOC2", "NIS2", "DORA"]).default("ISO"),
+  riskOwner: z.string().optional().default(""),
+  likelihood: z.string().optional().default(""),
+  impact: z.string().optional().default(""),
+  applicable: z.boolean().default(true),
+  justificationIfNa: z.string().optional().default(""),
+  soc2Criteria: z.string().optional().default(""),
+  tscCategory: z.string().optional().default(""),
+  orgSize: z.string().optional().default(""),
+});
+
+type RiskCreateFormValues = z.infer<typeof riskCreateSchema>;
 
 interface RiskCreateDialogProps {
   open: boolean;
@@ -31,13 +52,14 @@ interface RiskCreateDialogProps {
 export function RiskCreateDialog({ open, onOpenChange, onSuccess }: RiskCreateDialogProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
+
+  const form = useZodForm(riskCreateSchema, {
     riskId: "",
     title: "",
     description: "",
-    tier: "CORE" as RiskTier,
-    status: "IDENTIFIED" as RiskStatus,
-    framework: "ISO" as ControlFramework,
+    tier: "CORE",
+    status: "IDENTIFIED",
+    framework: "ISO",
     riskOwner: "",
     likelihood: "",
     impact: "",
@@ -48,51 +70,30 @@ export function RiskCreateDialog({ open, onOpenChange, onSuccess }: RiskCreateDi
     orgSize: "",
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!form.riskId || !form.title) {
-      setError("Risk ID and Title are required");
-      return;
-    }
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = form;
 
+  const applicable = watch("applicable");
+  const framework = watch("framework");
+
+  const onSubmit = handleSubmit(async (data: RiskCreateFormValues) => {
     try {
       setSaving(true);
       setError(null);
-      await createRisk(form);
+      await createRisk(data);
       onSuccess?.();
       onOpenChange(false);
-      resetForm();
+      reset();
     } catch (err: unknown) {
       console.error("Error creating risk:", err);
       setError(err instanceof Error ? err.message : "Failed to create risk");
     } finally {
       setSaving(false);
     }
-  };
-
-  const resetForm = () => {
-    setForm({
-      riskId: "",
-      title: "",
-      description: "",
-      tier: "CORE",
-      status: "IDENTIFIED",
-      framework: "ISO",
-      riskOwner: "",
-      likelihood: "",
-      impact: "",
-      applicable: true,
-      justificationIfNa: "",
-      soc2Criteria: "",
-      tscCategory: "",
-      orgSize: "",
-    });
-    setError(null);
-  };
+  });
 
   const handleClose = () => {
-    resetForm();
+    reset();
+    setError(null);
     onOpenChange(false);
   };
 
@@ -109,7 +110,7 @@ export function RiskCreateDialog({ open, onOpenChange, onSuccess }: RiskCreateDi
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={onSubmit}>
           <div className="space-y-6 py-4">
             {error && (
               <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -123,17 +124,16 @@ export function RiskCreateDialog({ open, onOpenChange, onSuccess }: RiskCreateDi
                 <Label htmlFor="riskId">Risk ID *</Label>
                 <Input
                   id="riskId"
-                  value={form.riskId}
-                  onChange={(e) => setForm({ ...form, riskId: e.target.value })}
+                  {...register("riskId")}
                   placeholder="e.g., RISK-001"
-                  required
                 />
+                <FieldErrorMessage error={errors.riskId} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="framework">Framework</Label>
                 <Select
-                  value={form.framework}
-                  onValueChange={(v) => setForm({ ...form, framework: v as ControlFramework })}
+                  value={watch("framework")}
+                  onValueChange={(v) => setValue("framework", v as ControlFramework, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -152,19 +152,17 @@ export function RiskCreateDialog({ open, onOpenChange, onSuccess }: RiskCreateDi
               <Label htmlFor="title">Title *</Label>
               <Input
                 id="title"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                {...register("title")}
                 placeholder="Brief risk title"
-                required
               />
+              <FieldErrorMessage error={errors.title} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                {...register("description")}
                 placeholder="Detailed risk description..."
                 rows={4}
               />
@@ -175,8 +173,8 @@ export function RiskCreateDialog({ open, onOpenChange, onSuccess }: RiskCreateDi
               <div className="space-y-2">
                 <Label htmlFor="tier">Risk Tier</Label>
                 <Select
-                  value={form.tier}
-                  onValueChange={(v) => setForm({ ...form, tier: v as RiskTier })}
+                  value={watch("tier")}
+                  onValueChange={(v) => setValue("tier", v as RiskTier, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -191,8 +189,8 @@ export function RiskCreateDialog({ open, onOpenChange, onSuccess }: RiskCreateDi
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select
-                  value={form.status}
-                  onValueChange={(v) => setForm({ ...form, status: v as RiskStatus })}
+                  value={watch("status")}
+                  onValueChange={(v) => setValue("status", v as RiskStatus, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -213,8 +211,8 @@ export function RiskCreateDialog({ open, onOpenChange, onSuccess }: RiskCreateDi
               <div className="space-y-2">
                 <Label htmlFor="likelihood">Likelihood</Label>
                 <Select
-                  value={form.likelihood}
-                  onValueChange={(v) => setForm({ ...form, likelihood: v })}
+                  value={watch("likelihood")}
+                  onValueChange={(v) => setValue("likelihood", v, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select..." />
@@ -231,8 +229,8 @@ export function RiskCreateDialog({ open, onOpenChange, onSuccess }: RiskCreateDi
               <div className="space-y-2">
                 <Label htmlFor="impact">Impact</Label>
                 <Select
-                  value={form.impact}
-                  onValueChange={(v) => setForm({ ...form, impact: v })}
+                  value={watch("impact")}
+                  onValueChange={(v) => setValue("impact", v, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select..." />
@@ -250,8 +248,7 @@ export function RiskCreateDialog({ open, onOpenChange, onSuccess }: RiskCreateDi
                 <Label htmlFor="riskOwner">Risk Owner</Label>
                 <Input
                   id="riskOwner"
-                  value={form.riskOwner}
-                  onChange={(e) => setForm({ ...form, riskOwner: e.target.value })}
+                  {...register("riskOwner")}
                   placeholder="Name or role"
                 />
               </div>
@@ -265,32 +262,30 @@ export function RiskCreateDialog({ open, onOpenChange, onSuccess }: RiskCreateDi
                 <Label htmlFor="applicable">Applicable</Label>
                 <Switch
                   id="applicable"
-                  checked={form.applicable}
-                  onCheckedChange={(checked) => setForm({ ...form, applicable: checked })}
+                  checked={applicable}
+                  onCheckedChange={(checked) => setValue("applicable", checked, { shouldValidate: true })}
                 />
               </div>
 
-              {!form.applicable && (
+              {!applicable && (
                 <div className="space-y-2">
                   <Label htmlFor="justificationIfNa">Justification (if N/A)</Label>
                   <Textarea
                     id="justificationIfNa"
-                    value={form.justificationIfNa}
-                    onChange={(e) => setForm({ ...form, justificationIfNa: e.target.value })}
+                    {...register("justificationIfNa")}
                     placeholder="Explain why this risk is not applicable..."
                     rows={2}
                   />
                 </div>
               )}
 
-              {form.framework === "SOC2" && (
+              {framework === "SOC2" && (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="soc2Criteria">SOC 2 Criteria</Label>
                     <Input
                       id="soc2Criteria"
-                      value={form.soc2Criteria}
-                      onChange={(e) => setForm({ ...form, soc2Criteria: e.target.value })}
+                      {...register("soc2Criteria")}
                       placeholder="e.g., CC6.1"
                     />
                   </div>
@@ -298,8 +293,7 @@ export function RiskCreateDialog({ open, onOpenChange, onSuccess }: RiskCreateDi
                     <Label htmlFor="tscCategory">TSC Category</Label>
                     <Input
                       id="tscCategory"
-                      value={form.tscCategory}
-                      onChange={(e) => setForm({ ...form, tscCategory: e.target.value })}
+                      {...register("tscCategory")}
                       placeholder="e.g., Security"
                     />
                   </div>
@@ -310,8 +304,7 @@ export function RiskCreateDialog({ open, onOpenChange, onSuccess }: RiskCreateDi
                 <Label htmlFor="orgSize">Organization Size</Label>
                 <Input
                   id="orgSize"
-                  value={form.orgSize}
-                  onChange={(e) => setForm({ ...form, orgSize: e.target.value })}
+                  {...register("orgSize")}
                   placeholder="e.g., SME, Large Enterprise"
                 />
               </div>

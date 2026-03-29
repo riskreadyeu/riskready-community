@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +37,16 @@ import {
   Loader2,
 } from "lucide-react";
 import type { Nonconformity, UserBasic, CAPStatus } from "@/lib/audits-api";
+import { useZodForm, z } from "@/lib/form-utils";
+import { FieldErrorMessage } from "@/components/common/form-field";
+
+const capSchema = z.object({
+  correctiveAction: z.string().min(1, "Corrective action plan is required"),
+  rootCause: z.string().optional().default(""),
+  responsibleUserId: z.string().min(1, "Responsible person is required"),
+});
+
+type CAPFormValues = z.infer<typeof capSchema>;
 
 interface DefineCapDialogProps {
   nc: Nonconformity;
@@ -69,17 +79,35 @@ export function DefineCapDialog({
   onSaveDraft,
   onSubmitForApproval,
 }: DefineCapDialogProps) {
-  // Form state - initialize with existing values if any
-  const [correctiveAction, setCorrectiveAction] = useState(nc.correctiveAction || "");
-  const [rootCause, setRootCause] = useState(nc.rootCause || "");
-  const [responsibleUserId, setResponsibleUserId] = useState(nc.responsibleUserId || "");
+  // Target date managed separately since it uses a Calendar picker (not a text input)
   const [targetDate, setTargetDate] = useState<Date | undefined>(
     nc.targetClosureDate ? new Date(nc.targetClosureDate) : undefined
   );
-  
+
   // Loading states
   const [savingDraft, setSavingDraft] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const form = useZodForm(capSchema, {
+    correctiveAction: nc.correctiveAction || "",
+    rootCause: nc.rootCause || "",
+    responsibleUserId: nc.responsibleUserId || "",
+  });
+
+  const { register, watch, setValue, formState: { errors } } = form;
+
+  // Reset form when NC changes
+  useEffect(() => {
+    form.reset({
+      correctiveAction: nc.correctiveAction || "",
+      rootCause: nc.rootCause || "",
+      responsibleUserId: nc.responsibleUserId || "",
+    });
+    setTargetDate(nc.targetClosureDate ? new Date(nc.targetClosureDate) : undefined);
+  }, [nc, form]);
+
+  const correctiveAction = watch("correctiveAction");
+  const responsibleUserId = watch("responsibleUserId");
 
   const isFormValid = correctiveAction.trim() && responsibleUserId && targetDate;
   const canEdit = ["NOT_DEFINED", "DRAFT", "REJECTED"].includes(nc.capStatus);
@@ -97,13 +125,13 @@ export function DefineCapDialog({
 
   const handleSaveDraft = async () => {
     if (!isFormValid || !targetDate) return;
-    
+
     setSavingDraft(true);
     try {
       await onSaveDraft({
-        correctiveAction,
-        rootCause: rootCause || undefined,
-        responsibleUserId,
+        correctiveAction: watch("correctiveAction"),
+        rootCause: watch("rootCause") || undefined,
+        responsibleUserId: watch("responsibleUserId"),
         targetClosureDate: targetDate,
       });
     } finally {
@@ -113,7 +141,7 @@ export function DefineCapDialog({
 
   const handleSubmitForApproval = async () => {
     if (!canSubmit) return;
-    
+
     setSubmitting(true);
     try {
       await onSubmitForApproval();
@@ -181,8 +209,7 @@ export function DefineCapDialog({
             </Label>
             <Textarea
               id="rootCause"
-              value={rootCause}
-              onChange={(e) => setRootCause(e.target.value)}
+              {...register("rootCause")}
               placeholder="Describe the root cause of this nonconformity. What underlying factors led to this issue?"
               className="min-h-[80px]"
               disabled={!canEdit}
@@ -200,12 +227,12 @@ export function DefineCapDialog({
             </Label>
             <Textarea
               id="correctiveAction"
-              value={correctiveAction}
-              onChange={(e) => setCorrectiveAction(e.target.value)}
+              {...register("correctiveAction")}
               placeholder="Describe the specific actions that will be taken to address this nonconformity and prevent recurrence..."
               className="min-h-[120px]"
               disabled={!canEdit}
             />
+            <FieldErrorMessage error={errors.correctiveAction} />
             <p className="text-xs text-muted-foreground">
               Be specific about what actions will be taken, by whom, and how success will be measured
             </p>
@@ -217,9 +244,9 @@ export function DefineCapDialog({
               <User className="h-4 w-4 text-muted-foreground" />
               Responsible Person *
             </Label>
-            <Select 
-              value={responsibleUserId} 
-              onValueChange={setResponsibleUserId}
+            <Select
+              value={watch("responsibleUserId")}
+              onValueChange={(v) => setValue("responsibleUserId", v, { shouldValidate: true })}
               disabled={!canEdit}
             >
               <SelectTrigger id="responsible">
@@ -235,6 +262,7 @@ export function DefineCapDialog({
                 ))}
               </SelectContent>
             </Select>
+            <FieldErrorMessage error={errors.responsibleUserId} />
           </div>
 
           {/* Target Date */}
@@ -302,7 +330,7 @@ export function DefineCapDialog({
                 )}
                 Save as Draft
               </Button>
-              
+
               {nc.capStatus === "DRAFT" && (
                 <Button
                   onClick={handleSubmitForApproval}
@@ -329,14 +357,3 @@ export function DefineCapDialog({
     </Dialog>
   );
 }
-
-
-
-
-
-
-
-
-
-
-

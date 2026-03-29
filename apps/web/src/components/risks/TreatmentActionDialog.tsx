@@ -18,14 +18,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  createTreatmentAction, 
+import {
+  createTreatmentAction,
   updateTreatmentAction,
-  type TreatmentAction, 
+  type TreatmentAction,
   type ActionStatus,
   type TreatmentPriority,
 } from "@/lib/risks-api";
 import { ListTodo, Loader2 } from "lucide-react";
+import { useZodForm, z } from "@/lib/form-utils";
+import { FieldErrorMessage } from "@/components/common/form-field";
+
+const actionSchema = z.object({
+  actionId: z.string().min(1, "Action ID is required"),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional().default(""),
+  status: z.enum(["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "BLOCKED", "CANCELLED"]).default("NOT_STARTED"),
+  priority: z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW"]).default("MEDIUM"),
+  dueDate: z.string().optional().default(""),
+  estimatedHours: z.string().optional().default(""),
+  actualHours: z.string().optional().default(""),
+  completionNotes: z.string().optional().default(""),
+  blockerNotes: z.string().optional().default(""),
+});
+
+type ActionFormValues = z.infer<typeof actionSchema>;
 
 interface TreatmentActionDialogProps {
   action?: TreatmentAction;
@@ -35,22 +52,23 @@ interface TreatmentActionDialogProps {
   onSuccess?: () => void;
 }
 
-export function TreatmentActionDialog({ 
-  action, 
+export function TreatmentActionDialog({
+  action,
   treatmentPlanId,
-  open, 
-  onOpenChange, 
-  onSuccess 
+  open,
+  onOpenChange,
+  onSuccess
 }: TreatmentActionDialogProps) {
   const isEditing = !!action;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
+
+  const form = useZodForm(actionSchema, {
     actionId: "",
     title: "",
     description: "",
-    status: "NOT_STARTED" as ActionStatus,
-    priority: "MEDIUM" as TreatmentPriority,
+    status: "NOT_STARTED",
+    priority: "MEDIUM",
     dueDate: "",
     estimatedHours: "",
     actualHours: "",
@@ -58,9 +76,13 @@ export function TreatmentActionDialog({
     blockerNotes: "",
   });
 
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = form;
+
+  const status = watch("status");
+
   useEffect(() => {
     if (action) {
-      setForm({
+      reset({
         actionId: action.actionId || "",
         title: action.title || "",
         description: action.description || "",
@@ -73,49 +95,37 @@ export function TreatmentActionDialog({
         blockerNotes: action.blockerNotes || "",
       });
     } else {
-      resetForm();
+      reset({
+        actionId: "",
+        title: "",
+        description: "",
+        status: "NOT_STARTED",
+        priority: "MEDIUM",
+        dueDate: "",
+        estimatedHours: "",
+        actualHours: "",
+        completionNotes: "",
+        blockerNotes: "",
+      });
     }
-  }, [action]);
+  }, [action, reset]);
 
-  const resetForm = () => {
-    setForm({
-      actionId: "",
-      title: "",
-      description: "",
-      status: "NOT_STARTED",
-      priority: "MEDIUM",
-      dueDate: "",
-      estimatedHours: "",
-      actualHours: "",
-      completionNotes: "",
-      blockerNotes: "",
-    });
-    setError(null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!form.actionId || !form.title) {
-      setError("Action ID and Title are required");
-      return;
-    }
-
+  const onSubmit = handleSubmit(async (data: ActionFormValues) => {
     try {
       setSaving(true);
       setError(null);
 
       const payload = {
-        actionId: form.actionId,
-        title: form.title,
-        description: form.description || undefined,
-        status: form.status,
-        priority: form.priority,
-        dueDate: form.dueDate || undefined,
-        estimatedHours: form.estimatedHours ? parseInt(form.estimatedHours) : undefined,
-        actualHours: form.actualHours ? parseInt(form.actualHours) : undefined,
-        completionNotes: form.completionNotes || undefined,
-        blockerNotes: form.blockerNotes || undefined,
+        actionId: data.actionId,
+        title: data.title,
+        description: data.description || undefined,
+        status: data.status,
+        priority: data.priority,
+        dueDate: data.dueDate || undefined,
+        estimatedHours: data.estimatedHours ? parseInt(data.estimatedHours) : undefined,
+        actualHours: data.actualHours ? parseInt(data.actualHours) : undefined,
+        completionNotes: data.completionNotes || undefined,
+        blockerNotes: data.blockerNotes || undefined,
       };
 
       if (isEditing && action) {
@@ -123,20 +133,20 @@ export function TreatmentActionDialog({
       } else {
         await createTreatmentAction(treatmentPlanId, payload);
       }
-      
+
       onSuccess?.();
       onOpenChange(false);
-      if (!isEditing) resetForm();
+      if (!isEditing) reset();
     } catch (err: unknown) {
       console.error("Error saving action:", err);
       setError(err instanceof Error ? err.message : "Failed to save action");
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const handleClose = () => {
-    if (!isEditing) resetForm();
+    if (!isEditing) reset();
     setError(null);
     onOpenChange(false);
   };
@@ -154,7 +164,7 @@ export function TreatmentActionDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={onSubmit}>
           <div className="space-y-4 py-4">
             {error && (
               <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -167,18 +177,17 @@ export function TreatmentActionDialog({
                 <Label htmlFor="actionId">Action ID *</Label>
                 <Input
                   id="actionId"
-                  value={form.actionId}
-                  onChange={(e) => setForm({ ...form, actionId: e.target.value })}
+                  {...register("actionId")}
                   placeholder="e.g., TP-001-A01"
                   disabled={isEditing}
-                  required
                 />
+                <FieldErrorMessage error={errors.actionId} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select
-                  value={form.status}
-                  onValueChange={(v) => setForm({ ...form, status: v as ActionStatus })}
+                  value={watch("status")}
+                  onValueChange={(v) => setValue("status", v as ActionStatus, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -198,19 +207,17 @@ export function TreatmentActionDialog({
               <Label htmlFor="title">Title *</Label>
               <Input
                 id="title"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                {...register("title")}
                 placeholder="What needs to be done?"
-                required
               />
+              <FieldErrorMessage error={errors.title} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                {...register("description")}
                 placeholder="Additional details about this action..."
                 rows={2}
               />
@@ -220,8 +227,8 @@ export function TreatmentActionDialog({
               <div className="space-y-2">
                 <Label htmlFor="priority">Priority</Label>
                 <Select
-                  value={form.priority}
-                  onValueChange={(v) => setForm({ ...form, priority: v as TreatmentPriority })}
+                  value={watch("priority")}
+                  onValueChange={(v) => setValue("priority", v as TreatmentPriority, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -239,8 +246,7 @@ export function TreatmentActionDialog({
                 <Input
                   id="dueDate"
                   type="date"
-                  value={form.dueDate}
-                  onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                  {...register("dueDate")}
                 />
               </div>
             </div>
@@ -251,8 +257,7 @@ export function TreatmentActionDialog({
                 <Input
                   id="estimatedHours"
                   type="number"
-                  value={form.estimatedHours}
-                  onChange={(e) => setForm({ ...form, estimatedHours: e.target.value })}
+                  {...register("estimatedHours")}
                   placeholder="e.g., 8"
                   min="0"
                 />
@@ -262,34 +267,31 @@ export function TreatmentActionDialog({
                 <Input
                   id="actualHours"
                   type="number"
-                  value={form.actualHours}
-                  onChange={(e) => setForm({ ...form, actualHours: e.target.value })}
+                  {...register("actualHours")}
                   placeholder="e.g., 10"
                   min="0"
                 />
               </div>
             </div>
 
-            {form.status === "COMPLETED" && (
+            {status === "COMPLETED" && (
               <div className="space-y-2">
                 <Label htmlFor="completionNotes">Completion Notes</Label>
                 <Textarea
                   id="completionNotes"
-                  value={form.completionNotes}
-                  onChange={(e) => setForm({ ...form, completionNotes: e.target.value })}
+                  {...register("completionNotes")}
                   placeholder="Notes about completion..."
                   rows={2}
                 />
               </div>
             )}
 
-            {form.status === "BLOCKED" && (
+            {status === "BLOCKED" && (
               <div className="space-y-2">
                 <Label htmlFor="blockerNotes">Blocker Notes</Label>
                 <Textarea
                   id="blockerNotes"
-                  value={form.blockerNotes}
-                  onChange={(e) => setForm({ ...form, blockerNotes: e.target.value })}
+                  {...register("blockerNotes")}
                   placeholder="What is blocking this action?"
                   rows={2}
                 />
