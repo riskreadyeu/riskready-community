@@ -51,6 +51,28 @@ export class BusinessProcessService {
   }
 
   async create(data: CreateBusinessProcessDto) {
+    // Auto-resolve processCode conflicts
+    if (data.processCode) {
+      const baseCode = data.processCode;
+      let candidateCode = baseCode;
+      let suffix = 1;
+      while (await this.prisma.businessProcess.findFirst({
+        where: { processCode: candidateCode },
+      })) {
+        suffix++;
+        const match = baseCode.match(/^(.+?)(\d+)$/);
+        if (match) {
+          const nextNum = (parseInt(match[2], 10) + suffix - 1).toString().padStart(match[2].length, '0');
+          candidateCode = `${match[1]}${nextNum}`;
+        } else {
+          candidateCode = `${baseCode}-${suffix}`;
+        }
+      }
+      if (candidateCode !== baseCode) {
+        data = { ...data, processCode: candidateCode };
+      }
+    }
+
     return this.prisma.businessProcess.create({
       data: data as Prisma.BusinessProcessUncheckedCreateInput,
     });
