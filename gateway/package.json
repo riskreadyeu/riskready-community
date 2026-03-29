@@ -14,7 +14,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "0.74.0",
     "@modelcontextprotocol/sdk": "1.27.1",
-    "@prisma/client": "5.19.1",
+    "@prisma/client": "5.22.0",
     "cron-parser": "^5.5.0",
     "fastify": "5.8.2",
     "pino": "9.6.0",
@@ -22,9 +22,9 @@
     "zod": "4.3.6"
   },
   "devDependencies": {
-    "@types/node": "20.14.10",
+    "@types/node": "20.19.33",
     "tsx": "4.21.0",
     "typescript": "5.5.4",
-    "vitest": "3.0.0"
+    "vitest": "3.0.5"
   }
 }
