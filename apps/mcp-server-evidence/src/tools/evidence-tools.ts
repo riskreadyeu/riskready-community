@@ -12,7 +12,7 @@ export function registerEvidenceTools(server: McpServer) {
       evidenceType: z.enum(['DOCUMENT', 'CERTIFICATE', 'REPORT', 'POLICY', 'PROCEDURE', 'SCREENSHOT', 'LOG', 'CONFIGURATION', 'NETWORK_CAPTURE', 'MEMORY_DUMP', 'DISK_IMAGE', 'MALWARE_SAMPLE', 'EMAIL', 'MEETING_NOTES', 'APPROVAL_RECORD', 'AUDIT_REPORT', 'ASSESSMENT_RESULT', 'TEST_RESULT', 'SCAN_RESULT', 'VIDEO', 'AUDIO', 'OTHER']).optional().describe('Filter by evidence type'),
       classification: z.enum(['PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED']).optional().describe('Filter by classification'),
       category: z.string().optional().describe('Filter by category'),
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
     },
@@ -115,7 +115,7 @@ export function registerEvidenceTools(server: McpServer) {
     'Search evidence by reference, title, or description. If not found, returns a not-found message. Do not invent or assume values.',
     {
       query: z.string().max(200).describe('Search term (matches against evidenceRef, title, description)'),
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
     },
     withErrorHandling('search_evidence', async ({ query, organisationId }) => {
       const evidence = await prisma.evidence.findMany({

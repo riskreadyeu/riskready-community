@@ -255,7 +255,7 @@ export function registerControlTools(server: McpServer) {
     'get_effectiveness_report',
     'Get a control implementation effectiveness report showing implementation rates across applicable, enabled controls. If not found, returns a not-found message. Do not invent or assume values.',
     {
-      organisationId: z.string().optional().describe('Organisation UUID (uses first org if omitted)'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
     },
     withErrorHandling('get_effectiveness_report', async ({ organisationId }) => {
       const where: Record<string, unknown> = { applicable: true, enabled: true };

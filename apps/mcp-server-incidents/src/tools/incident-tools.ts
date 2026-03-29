@@ -11,7 +11,7 @@ export function registerIncidentTools(server: McpServer) {
       status: z.enum(['DETECTED', 'TRIAGED', 'INVESTIGATING', 'CONTAINING', 'ERADICATING', 'RECOVERING', 'POST_INCIDENT', 'CLOSED']).optional().describe('Filter by incident status'),
       severity: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional().describe('Filter by severity'),
       category: z.enum(['MALWARE', 'PHISHING', 'DENIAL_OF_SERVICE', 'DATA_BREACH', 'UNAUTHORIZED_ACCESS', 'INSIDER_THREAT', 'PHYSICAL', 'SUPPLY_CHAIN', 'SYSTEM_FAILURE', 'CONFIGURATION_ERROR', 'OTHER']).optional().describe('Filter by category'),
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
       skip: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).optional().describe('Page size (max 200)'),
     },
@@ -106,7 +106,7 @@ export function registerIncidentTools(server: McpServer) {
     'Search incidents by reference number, title, or description. If not found, returns a not-found message. Do not invent or assume values.',
     {
       query: z.string().max(200).describe('Search term (matches against referenceNumber, title, description)'),
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
     },
     withErrorHandling('search_incidents', async ({ query, organisationId }) => {
       const incidents = await prisma.incident.findMany({

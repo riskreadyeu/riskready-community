@@ -11,7 +11,7 @@ export function registerKRITools(server: McpServer) {
       riskId: z.string().optional().describe('Filter by parent risk UUID'),
       status: z.enum(['GREEN', 'AMBER', 'RED']).optional().describe('Filter by RAG status'),
       tier: z.enum(['CORE', 'EXTENDED', 'ADVANCED']).optional().describe('Filter by tier'),
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },

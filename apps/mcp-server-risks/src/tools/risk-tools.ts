@@ -11,7 +11,7 @@ export function registerRiskTools(server: McpServer) {
       status: z.enum(['IDENTIFIED', 'ASSESSED', 'TREATING', 'ACCEPTED', 'CLOSED', 'MONITORING']).optional().describe('Filter by risk status'),
       tier: z.enum(['CORE', 'EXTENDED', 'ADVANCED']).optional().describe('Filter by risk tier'),
       framework: z.enum(['ISO', 'SOC2', 'NIS2', 'DORA']).optional().describe('Filter by control framework'),
-      organisationId: z.string().optional().describe('Filter by organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
       skip: z.number().int().min(0).default(0).describe('Pagination offset'),
       take: z.number().int().min(1).max(200).default(50).describe('Page size (max 200)'),
     },
@@ -69,7 +69,7 @@ export function registerRiskTools(server: McpServer) {
     'Get a single risk with full details: scenarios, KRIs, treatment plans, tolerance statements, and audit metadata. If not found, returns a not-found message. Do not invent or assume values.',
     {
       id: z.string().describe('Risk UUID'),
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
     },
     withErrorHandling('get_risk', async ({ id, organisationId }) => {
       const risk = await prisma.risk.findFirst({
@@ -146,7 +146,7 @@ export function registerRiskTools(server: McpServer) {
     'Search risks by title or riskId pattern. Returns matching risks with basic info. If not found, returns a not-found message. Do not invent or assume values.',
     {
       query: z.string().max(200).describe('Search term (matches against title and riskId)'),
-      organisationId: z.string().optional().describe('Organisation UUID'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
     },
     withErrorHandling('search_risks', async ({ query, organisationId }) => {
       const results = await prisma.risk.findMany({
@@ -188,7 +188,7 @@ export function registerRiskTools(server: McpServer) {
     'get_risk_stats',
     'Get aggregate risk statistics: total count, by status, by tier, by framework, scenario and KRI counts. If not found, returns a not-found message. Do not invent or assume values.',
     {
-      organisationId: z.string().optional().describe('Organisation UUID (uses all orgs if omitted)'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
     },
     withErrorHandling('get_risk_stats', async ({ organisationId }) => {
       const where: Record<string, unknown> = {};

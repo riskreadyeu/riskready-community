@@ -236,7 +236,7 @@ export function registerAnalysisTools(server: McpServer) {
     'get_control_coverage_matrix',
     'Get each applicable control with its latest assessment test result and metric RAG status. Useful for a holistic control health view. If not found, returns a not-found message. Do not invent or assume values.',
     {
-      organisationId: z.string().optional().describe('Organisation UUID (all orgs if omitted)'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
     },
     withErrorHandling('get_control_coverage_matrix', async ({ organisationId }) => {
       const where: Record<string, unknown> = { applicable: true, enabled: true };

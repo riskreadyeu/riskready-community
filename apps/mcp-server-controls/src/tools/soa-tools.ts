@@ -177,7 +177,7 @@ export function registerSOATools(server: McpServer) {
     'get_latest_soa',
     'Get the most recent Statement of Applicability with full entries and summary statistics. If not found, returns a not-found message. Do not invent or assume values.',
     {
-      organisationId: z.string().optional().describe('Organisation UUID (uses most recent SOA if omitted)'),
+      organisationId: z.string().describe('Organisation UUID (injected by gateway)'),
     },
     withErrorHandling('get_latest_soa', async ({ organisationId }) => {
       const where: Record<string, unknown> = {};
