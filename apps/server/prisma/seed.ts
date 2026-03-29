@@ -85,6 +85,22 @@ async function main() {
 
   await seedDemo();
 
+  // Ensure admin roles are set via raw SQL (ts-node compilation can strip
+  // Prisma upsert role fields depending on tsconfig settings)
+  const adminEmail = process.env['ADMIN_EMAIL']?.trim().toLowerCase();
+  const adminEmails = [
+    'admin@riskready.com',
+    'admin@local.test',
+    'ceo@clearstream.ie',
+    'ciso@clearstream.ie',
+    ...(adminEmail ? [adminEmail] : []),
+  ];
+  await prisma.$executeRawUnsafe(
+    `UPDATE "User" SET "role" = 'ADMIN' WHERE "email" = ANY($1)`,
+    adminEmails,
+  );
+  console.log(`✅ Set ADMIN role for: ${adminEmails.join(', ')}`);
+
   console.log('\n🎉 Database seed completed successfully!');
   console.log('\n📋 Summary:');
   console.log(`   - ${users.length} users`);
