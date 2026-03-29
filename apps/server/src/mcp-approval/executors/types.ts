@@ -6,19 +6,38 @@ export type ExecutorPayload = Record<string, any>;
 export type Executor = (payload: ExecutorPayload, reviewedById: string, organisationId?: string) => Promise<unknown>;
 export type ExecutorMap = Map<McpActionType, Executor>;
 
-/** Strip ALL MCP metadata fields before passing to Prisma update/lifecycle calls */
-const MCP_META_KEYS = ['organisationId', 'reason', 'mcpSessionId', 'mcpToolName'];
+/**
+ * All MCP metadata keys that may appear in payloads but should not reach Prisma.
+ * - `organisationId` is metadata for routing but is sometimes needed for create calls.
+ * - `reason`, `mcpSessionId`, `mcpToolName` are always MCP-only.
+ */
+export const MCP_METADATA_KEYS = ['organisationId', 'reason', 'mcpSessionId', 'mcpToolName'] as const;
 
-export function stripMcpMeta<T extends Record<string, unknown>>(payload: T): Record<string, unknown> {
+/** MCP-only fields that should never be passed to any Prisma create/update call */
+const MCP_ONLY_KEYS: readonly string[] = ['reason', 'mcpSessionId', 'mcpToolName'];
+
+/** Strip ALL MCP metadata fields (including organisationId) — for update/lifecycle calls */
+export function stripAllMcpMeta<T extends Record<string, unknown>>(payload: T): Record<string, unknown> {
   const cleaned = { ...payload };
-  for (const key of MCP_META_KEYS) {
+  for (const key of MCP_METADATA_KEYS) {
     delete (cleaned as Record<string, unknown>)[key];
   }
   return cleaned;
 }
 
-/** MCP-only fields that should never be passed to any Prisma create/update call */
-const MCP_ONLY_KEYS = ['reason', 'mcpSessionId', 'mcpToolName'];
+/** Strip only non-org metadata (reason, mcpSessionId, mcpToolName) — for create calls that need organisationId */
+export function stripNonOrgMeta<T extends Record<string, unknown>>(payload: T): Record<string, unknown> {
+  const cleaned = { ...payload };
+  for (const key of MCP_ONLY_KEYS) {
+    delete (cleaned as Record<string, unknown>)[key];
+  }
+  return cleaned;
+}
+
+/**
+ * @deprecated Use {@link stripAllMcpMeta} instead. Kept for backward compatibility.
+ */
+export const stripMcpMeta = stripAllMcpMeta;
 
 /**
  * Prepare an MCP payload for a service create() call.
@@ -37,7 +56,6 @@ export function prepareCreatePayload(
     relationalFields?: Record<string, string>;
   },
 ): Record<string, unknown> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const cleaned = { ...payload };
   for (const key of MCP_ONLY_KEYS) {
     delete cleaned[key];
