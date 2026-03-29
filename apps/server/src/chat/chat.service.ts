@@ -6,9 +6,12 @@ import type { JwtUser } from '../shared/types';
 import { CHAT_MODELS, isChatModel } from './chat-models';
 import type { CreateConversationDto, SendMessageDto } from './chat.dto';
 
+/** Maximum number of tracked run owners before evicting oldest entries */
+const MAX_RUN_OWNERS = 1000;
+
 @Injectable()
 export class ChatService {
-  /** Maps runId → userId for stream ownership verification */
+  /** Maps runId → userId for stream ownership verification (bounded) */
   private readonly runOwners = new Map<string, string>();
 
   constructor(
@@ -108,6 +111,11 @@ export class ChatService {
     const result = await response.json() as { runId: string };
 
     // Track run ownership so proxyRunStream can verify the caller
+    // Evict oldest entry if at capacity (Map preserves insertion order)
+    if (this.runOwners.size >= MAX_RUN_OWNERS) {
+      const oldestKey = this.runOwners.keys().next().value;
+      if (oldestKey !== undefined) this.runOwners.delete(oldestKey);
+    }
     this.runOwners.set(result.runId, user.id);
     setTimeout(() => this.runOwners.delete(result.runId), 10 * 60_000);
 
