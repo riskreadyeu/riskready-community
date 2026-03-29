@@ -16,7 +16,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "postinstall": "rm -rf node_modules/.prisma/client && mkdir -p node_modules/.prisma && test -d ../../apps/server/node_modules/.prisma/client && ln -sfn \"$(cd ../../apps/server/node_modules/.prisma/client && pwd)\" node_modules/.prisma/client || true"
   },
   "imports": {
     "#src/*": "./src/*"
