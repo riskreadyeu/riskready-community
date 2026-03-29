@@ -152,6 +152,30 @@ export class PolicyDocumentService {
   }
 
   async create(data: Prisma.PolicyDocumentCreateInput, userId?: string) {
+    // Auto-resolve documentId conflicts by appending a suffix
+    const orgId = typeof data.organisation === 'object' && 'connect' in data.organisation
+      ? (data.organisation as { connect: { id: string } }).connect.id
+      : undefined;
+    if (data.documentId && orgId) {
+      const baseId = data.documentId;
+      let candidateId = baseId;
+      let suffix = 1;
+      while (await this.prisma.policyDocument.findFirst({
+        where: { documentId: candidateId, organisationId: orgId, deletedAt: null },
+      })) {
+        suffix++;
+        // POL-001 → POL-002, POL-003, etc. If not numeric, append -2, -3
+        const match = baseId.match(/^(.+?)(\d+)$/);
+        if (match) {
+          const nextNum = (parseInt(match[2], 10) + suffix - 1).toString().padStart(match[2].length, '0');
+          candidateId = `${match[1]}${nextNum}`;
+        } else {
+          candidateId = `${baseId}-${suffix}`;
+        }
+      }
+      data = { ...data, documentId: candidateId };
+    }
+
     const document = await this.prisma.policyDocument.create({
       data: {
         ...data,
