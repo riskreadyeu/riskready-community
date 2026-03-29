@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 interface AsyncState<T> {
   data: T | null;
@@ -22,29 +22,43 @@ export function useAsync<T>(
     error: null,
   });
 
+  const asyncFunctionRef = useRef(asyncFunction);
+  const mountedRef = useRef(true);
+
+  // Always keep ref updated with latest function
+  useEffect(() => {
+    asyncFunctionRef.current = asyncFunction;
+  });
+
   const execute = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const data = await asyncFunction();
-      setState({ data, loading: false, error: null });
+      const data = await asyncFunctionRef.current();
+      if (mountedRef.current) {
+        setState({ data, loading: false, error: null });
+      }
       return data;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      setState({ data: null, loading: false, error: err });
+      if (mountedRef.current) {
+        setState({ data: null, loading: false, error: err });
+      }
       throw err;
     }
-  }, [asyncFunction]);
+  }, []); // stable reference - never changes
 
   const reset = useCallback(() => {
     setState({ data: null, loading: false, error: null });
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     if (immediate) {
       execute().catch(() => {});
     }
-  }, [execute, immediate]);
+    return () => { mountedRef.current = false; };
+  }, []); // only run on mount
 
   return {
     ...state,
@@ -66,25 +80,42 @@ export function useAsyncCallback<T, Args extends unknown[]>(
     error: null,
   });
 
+  const asyncFunctionRef = useRef(asyncFunction);
+  const mountedRef = useRef(true);
+
+  // Always keep ref updated with latest function
+  useEffect(() => {
+    asyncFunctionRef.current = asyncFunction;
+  });
+
   const execute = useCallback(
     async (...args: Args) => {
       setState((prev) => ({ ...prev, loading: true, error: null }));
 
       try {
-        const data = await asyncFunction(...args);
-        setState({ data, loading: false, error: null });
+        const data = await asyncFunctionRef.current(...args);
+        if (mountedRef.current) {
+          setState({ data, loading: false, error: null });
+        }
         return data;
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
-        setState({ data: null, loading: false, error: err });
+        if (mountedRef.current) {
+          setState({ data: null, loading: false, error: err });
+        }
         throw err;
       }
     },
-    [asyncFunction]
+    [] // stable reference - never changes
   );
 
   const reset = useCallback(() => {
     setState({ data: null, loading: false, error: null });
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
   }, []);
 
   return {
