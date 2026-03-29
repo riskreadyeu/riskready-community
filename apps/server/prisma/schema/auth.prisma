@@ -8,6 +8,7 @@ model User {
   passwordHash        String
   firstName           String?
   lastName            String?
+  role                String    @default("USER")
   isActive            Boolean   @default(true)
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
@@ -262,6 +263,8 @@ model User {
 
   // MCP Pending Action Relations
   mcpActionsReviewed McpPendingAction[] @relation("McpActionReviewedBy")
+
+  @@index([role])
 }
 
 model RefreshSession {

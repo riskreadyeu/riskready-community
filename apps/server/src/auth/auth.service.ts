@@ -24,7 +24,12 @@ type AuthResult = {
   refreshSessionId: string;
 };
 
-function resolveUserRole(email: string): 'ADMIN' | 'USER' {
+function resolveUserRole(dbRole: string, email: string): 'ADMIN' | 'USER' {
+  // If the DB already has an explicit ADMIN role, use it
+  if (dbRole === 'ADMIN') return 'ADMIN';
+
+  // Backward compatibility: fall back to email-based matching for users
+  // whose DB role is still the default 'USER' (e.g. demo seed data)
   const configuredAdmins = (process.env['ADMIN_EMAILS'] ?? '')
     .split(',')
     .map((item) => item.trim().toLowerCase())
@@ -92,7 +97,7 @@ export class AuthService {
       });
 
       const organisationId = await getSingleOrganisationId(this.prisma, { allowMissing: true });
-      const role = resolveUserRole(user.email);
+      const role = resolveUserRole(user.role ?? 'USER', user.email);
       const accessToken = await this.jwtService.signAsync({
         sub: user.id,
         email: user.email,
@@ -166,7 +171,7 @@ export class AuthService {
     });
 
     const organisationId = await getSingleOrganisationId(this.prisma, { allowMissing: true });
-    const role = resolveUserRole(user.email);
+    const role = resolveUserRole(user.role ?? 'USER', user.email);
     const accessToken = await this.jwtService.signAsync({
       sub: user.id,
       email: user.email,
