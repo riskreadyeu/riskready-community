@@ -4,6 +4,33 @@ import { z } from 'zod';
 import { logger } from '../logger.js';
 import type { CouncilOpinionData, CouncilMemberRole } from './council-types.js';
 
+// --- Parse metrics for observability ---
+
+interface ParseMetrics {
+  totalAttempts: number;
+  jsonSuccess: number;
+  legacyFallback: number;
+  failures: number;
+}
+
+const parseMetrics: ParseMetrics = {
+  totalAttempts: 0,
+  jsonSuccess: 0,
+  legacyFallback: 0,
+  failures: 0,
+};
+
+export function getParseMetrics(): ParseMetrics {
+  return { ...parseMetrics };
+}
+
+export function resetParseMetrics(): void {
+  parseMetrics.totalAttempts = 0;
+  parseMetrics.jsonSuccess = 0;
+  parseMetrics.legacyFallback = 0;
+  parseMetrics.failures = 0;
+}
+
 // --- Zod schema for structured JSON extraction ---
 
 const VALID_SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'] as const;
@@ -144,13 +171,16 @@ export function parseLegacyMarkdown(role: CouncilMemberRole, text: string): Coun
 // --- Main parser: tries JSON first, falls back to legacy markdown ---
 
 export function parseCouncilOpinion(role: CouncilMemberRole, text: string): CouncilOpinionData {
+  parseMetrics.totalAttempts++;
+
   // Try to extract and parse a JSON block first
   const jsonBlock = extractJsonBlock(text);
   if (jsonBlock) {
     try {
       const raw = JSON.parse(jsonBlock);
       const parsed = OpinionSchema.parse(raw);
-      logger.info({ role, parseMethod: 'json' }, 'Council opinion parsed via JSON extraction');
+      parseMetrics.jsonSuccess++;
+      logger.info({ role, parseMethod: 'json', metrics: getParseMetrics() }, 'Council opinion parsed via JSON extraction');
       return {
         agentRole: role,
         ...parsed,
@@ -164,6 +194,7 @@ export function parseCouncilOpinion(role: CouncilMemberRole, text: string): Coun
   }
 
   // Fall back to legacy markdown parsing
-  logger.info({ role, parseMethod: 'legacy_markdown' }, 'Council opinion parsed via legacy markdown');
+  parseMetrics.legacyFallback++;
+  logger.info({ role, parseMethod: 'legacy_markdown', metrics: getParseMetrics() }, 'Council opinion parsed via legacy markdown');
   return parseLegacyMarkdown(role, text);
 }
