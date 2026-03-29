@@ -35,7 +35,8 @@ export class CsrfMiddleware implements NestMiddleware {
         const token = randomBytes(32).toString('hex');
         res.cookie('XSRF-TOKEN', token, {
           httpOnly: false, // Frontend must read this
-          secure: process.env['NODE_ENV'] === 'production',
+          secure: process.env['COOKIE_SECURE'] === 'true' ||
+            (process.env['NODE_ENV'] === 'production' && process.env['COOKIE_SECURE'] !== 'false'),
           sameSite: 'lax',
           path: '/',
         });
