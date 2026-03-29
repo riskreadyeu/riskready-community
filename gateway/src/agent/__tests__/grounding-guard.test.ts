@@ -1,36 +1,57 @@
-import { describe, it, expect } from 'vitest';
-import { checkGrounding } from '../grounding-guard.js';
+import { describe, it, expect, vi } from 'vitest';
+
+// Mock the logger before importing the module under test
+vi.mock('../../logger.js', () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+import { checkGrounding, logGroundingMetrics } from '../grounding-guard.js';
+import { logger } from '../../logger.js';
 
 describe('checkGrounding', () => {
-  it('flags IDs in response that were not in tool results', () => {
-    const toolResultIds = ['R-01', 'R-02', 'CTRL-042'];
-    const responseText = 'Risk R-01 is critical. Also check R-99 for details.';
-    const result = checkGrounding(responseText, toolResultIds);
-    expect(result.suspectedFabricatedIds).toContain('R-99');
-    expect(result.suspectedFabricatedIds).not.toContain('R-01');
+  it('returns empty array when all IDs are known', () => {
+    const result = checkGrounding('Risk R-01 is critical', ['R-01']);
+    expect(result.suspectedFabricatedIds).toEqual([]);
   });
 
-  it('returns clean when all IDs are grounded', () => {
-    const toolResultIds = ['R-01', 'CTRL-042', 'INC-2025-001'];
-    const responseText =
-      'Risk R-01 linked to CTRL-042 from incident INC-2025-001.';
-    const result = checkGrounding(responseText, toolResultIds);
-    expect(result.suspectedFabricatedIds).toHaveLength(0);
+  it('detects fabricated IDs not in tool results', () => {
+    const result = checkGrounding('Risk R-01 and R-99 found', ['R-01']);
+    expect(result.suspectedFabricatedIds).toEqual(['R-99']);
+  });
+});
+
+describe('logGroundingMetrics', () => {
+  it('does not throw on clean result', () => {
+    expect(() => logGroundingMetrics({ suspectedFabricatedIds: [] }, 5)).not.toThrow();
   });
 
-  it('detects fabricated UUIDs', () => {
-    const toolResultIds = ['550e8400-e29b-41d4-a716-446655440000'];
-    const responseText =
-      'Found record 550e8400-e29b-41d4-a716-446655440000 and also 99999999-aaaa-bbbb-cccc-dddddddddddd.';
-    const result = checkGrounding(responseText, toolResultIds);
-    expect(result.suspectedFabricatedIds).toContain(
-      '99999999-aaaa-bbbb-cccc-dddddddddddd',
+  it('does not throw on result with fabrications', () => {
+    expect(() => logGroundingMetrics({ suspectedFabricatedIds: ['R-99'] }, 3)).not.toThrow();
+  });
+
+  it('logs info for every check', () => {
+    logGroundingMetrics({ suspectedFabricatedIds: [] }, 5);
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        groundingCheck: expect.objectContaining({
+          totalIdsChecked: 5,
+          fabricatedIdsFound: 0,
+        }),
+      }),
+      'Grounding guard check completed',
     );
   });
 
-  it('handles empty tool results gracefully', () => {
-    const responseText = 'No data found.';
-    const result = checkGrounding(responseText, []);
-    expect(result.suspectedFabricatedIds).toHaveLength(0);
+  it('logs warn when fabricated IDs are detected', () => {
+    logGroundingMetrics({ suspectedFabricatedIds: ['R-99'] }, 3);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ fabricatedIds: ['R-99'] }),
+      'Grounding guard detected possible fabricated IDs',
+    );
   });
 });

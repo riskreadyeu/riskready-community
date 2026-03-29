@@ -1,3 +1,5 @@
+import { logger } from '../logger.js';
+
 // Patterns that look like record IDs in the GRC domain
 const ID_PATTERNS = [
   /\b[A-Z]{1,5}-\d{2,5}(?:-\d{1,5})?\b/g, // R-01, CTRL-042, INC-2025-001, NC-2025-001
@@ -30,4 +32,20 @@ export function checkGrounding(
   );
 
   return { suspectedFabricatedIds };
+}
+
+export function logGroundingMetrics(result: GroundingResult, totalIdsChecked: number): void {
+  logger.info({
+    groundingCheck: {
+      totalIdsChecked,
+      fabricatedIdsFound: result.suspectedFabricatedIds.length,
+      fabricatedIds: result.suspectedFabricatedIds,
+    },
+  }, 'Grounding guard check completed');
+
+  if (result.suspectedFabricatedIds.length > 0) {
+    logger.warn({
+      fabricatedIds: result.suspectedFabricatedIds,
+    }, 'Grounding guard detected possible fabricated IDs');
+  }
 }
