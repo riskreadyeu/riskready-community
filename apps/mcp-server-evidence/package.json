@@ -11,12 +11,13 @@
   },
   "imports": {
     "#src/*": "./src/*",
-    "#mcp-shared": "./_mcp-shared/src/index.ts"
+    "#mcp-shared": "@riskready/mcp-shared/src/index.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.27.1",
     "@prisma/client": "5.22.0",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "@riskready/mcp-shared": "*"
   },
   "devDependencies": {
     "@types/node": "20.19.33",
