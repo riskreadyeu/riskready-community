@@ -59,44 +59,46 @@ export default function LoginPage(props: {
             <CardDescription>Community Edition — GRC Platform</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-1">
-              <div className="text-sm font-medium">Email</div>
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-            </div>
-            <div className="space-y-1">
-              <div className="text-sm font-medium">Password</div>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !submitting) {
-                    e.preventDefault();
-                    document.getElementById("login-btn")?.click();
-                  }
-                }}
-              />
-            </div>
-            {error ? <div className="text-sm text-destructive">{error}</div> : null}
-            <Button
-              id="login-btn"
-              className="w-full"
-              disabled={submitting}
-              onClick={async () => {
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (submitting) return;
                 setSubmitting(true);
                 setError(null);
                 try {
                   await props.onLogin(email, password);
-                } catch (e: unknown) {
-                  setError(e instanceof Error ? e.message : "Login failed");
+                } catch (err: unknown) {
+                  setError(err instanceof Error ? err.message : "Login failed");
                 } finally {
                   setSubmitting(false);
                 }
               }}
+              className="space-y-4"
+              aria-describedby={error ? "login-error" : undefined}
             >
-              {submitting ? "Signing in..." : "Sign in"}
-            </Button>
+              <div className="space-y-1">
+                <label htmlFor="email" className="text-sm font-medium">Email</label>
+                <Input id="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+              </div>
+              <div className="space-y-1">
+                <label htmlFor="password" className="text-sm font-medium">Password</label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+              </div>
+              {error ? <div id="login-error" role="alert" className="text-sm text-destructive">{error}</div> : null}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={submitting}
+              >
+                {submitting ? "Signing in..." : "Sign in"}
+              </Button>
+            </form>
 
             {/* Demo accounts */}
             <div className="pt-2 border-t">
