@@ -1,3 +1,5 @@
+# NOTE: For production, pin to specific digest: FROM node:20-alpine@sha256:<digest>
+# Run: docker pull node:20-alpine && docker inspect --format='{{index .RepoDigests 0}}' node:20-alpine
 FROM node:20-alpine AS build
 WORKDIR /app
 
@@ -8,6 +10,8 @@ COPY src ./src
 RUN npm ci
 RUN npm run build
 
+# NOTE: For production, pin to specific digest: FROM nginx:1.27-alpine@sha256:<digest>
+# Run: docker pull nginx:1.27-alpine && docker inspect --format='{{index .RepoDigests 0}}' nginx:1.27-alpine
 FROM nginx:1.27-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
