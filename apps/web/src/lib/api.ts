@@ -38,7 +38,7 @@ export function getApiErrorMessage(text: string, fallback: string): string {
   return trimmed;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetchWithAuth(path, init);
 
   if (!res.ok) {

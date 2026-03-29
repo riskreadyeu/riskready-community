@@ -1,27 +1,7 @@
 // Controls Module API Service
 
 import type { Evidence } from "@/lib/evidence-api";
-import { fetchWithAuth } from './fetch-with-auth';
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetchWithAuth(path, init);
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(text || `Request failed (${res.status})`);
-  }
-
-  const text = await res.text();
-  if (!text) {
-    throw new Error('Empty response from server');
-  }
-  
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    throw new Error('Invalid JSON response from server');
-  }
-}
+import { request } from './api';
 
 // ============================================
 // Types
