@@ -3,6 +3,24 @@ import { AssetService } from '../../itsm/services/asset.service';
 import { CapacityService } from '../../itsm/services/capacity.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ExecutorMap, prepareCreatePayload, stripMcpMeta } from './types';
+import {
+  validatePayload,
+  UpdateChangePayload,
+  ApproveChangePayload,
+  RejectChangePayload,
+  ImplementChangePayload,
+  CompleteChangePayload,
+  CancelChangePayload,
+  UpdateCapacityPlanPayload,
+  CreateAssetPayload,
+  UpdateAssetPayload,
+  DeleteAssetPayload,
+  CreateAssetRelationshipPayload,
+  LinkAssetControlPayload,
+  LinkAssetRiskPayload,
+  CreateChangePayload,
+  CreateCapacityPlanPayload,
+} from './payload-schemas';
 
 export interface ItsmExecutorServices {
   changeService: ChangeService;
@@ -17,131 +35,136 @@ export function registerItsmExecutors(executors: ExecutorMap, services: ItsmExec
   // --- Change management ---
 
   executors.set('UPDATE_CHANGE', (p, userId) => {
-    const { changeId, ...data } = p as { changeId: string; [k: string]: any };
+    const { changeId, ...data } = validatePayload(UpdateChangePayload, p, 'UPDATE_CHANGE');
     return changeService.update(changeId, stripMcpMeta(data) as any, userId);
   });
 
   executors.set('APPROVE_CHANGE', (p, userId) => {
-    const { changeId, comments } = p as { changeId: string; comments?: string; [k: string]: any };
-    return changeService.update(changeId, { status: 'APPROVED', approvalComments: comments } as any, userId);
+    const validated = validatePayload(ApproveChangePayload, p, 'APPROVE_CHANGE');
+    return changeService.update(
+      validated.changeId,
+      { status: 'APPROVED', approvalComments: validated.comments } as any,
+      userId,
+    );
   });
 
   executors.set('REJECT_CHANGE', (p, userId) => {
-    const { changeId, rejectionReason } = p as { changeId: string; rejectionReason: string; [k: string]: any };
-    return changeService.update(changeId, { status: 'REJECTED', rejectionReason } as any, userId);
+    const validated = validatePayload(RejectChangePayload, p, 'REJECT_CHANGE');
+    return changeService.update(
+      validated.changeId,
+      { status: 'REJECTED', rejectionReason: validated.rejectionReason } as any,
+      userId,
+    );
   });
 
   executors.set('IMPLEMENT_CHANGE', (p, userId) => {
-    const { changeId, implementationNotes, actualStart } = p as {
-      changeId: string;
-      implementationNotes?: string;
-      actualStart?: string;
-      [k: string]: any;
-    };
-    return changeService.update(changeId, {
+    const validated = validatePayload(ImplementChangePayload, p, 'IMPLEMENT_CHANGE');
+    return changeService.update(validated.changeId, {
       status: 'IMPLEMENTING',
-      implementationNotes,
-      actualStart: actualStart ? new Date(actualStart) : undefined,
+      implementationNotes: validated.implementationNotes,
+      actualStart: validated.actualStart ? new Date(validated.actualStart) : undefined,
     } as any, userId);
   });
 
   executors.set('COMPLETE_CHANGE', (p, userId) => {
-    const { changeId, successful, completionNotes, testResults, lessonsLearned, pirRequired, pirNotes } = p as {
-      changeId: string;
-      successful: boolean;
-      completionNotes?: string;
-      testResults?: string;
-      lessonsLearned?: string;
-      pirRequired?: boolean;
-      pirNotes?: string;
-      [k: string]: any;
-    };
-    return changeService.update(changeId, {
-      status: successful ? 'COMPLETED' : 'FAILED',
-      completionNotes,
-      testResults,
-      lessonsLearned,
-      pirRequired,
-      pirNotes,
+    const validated = validatePayload(CompleteChangePayload, p, 'COMPLETE_CHANGE');
+    return changeService.update(validated.changeId, {
+      status: validated.successful ? 'COMPLETED' : 'FAILED',
+      completionNotes: validated.completionNotes,
+      testResults: validated.testResults,
+      lessonsLearned: validated.lessonsLearned,
+      pirRequired: validated.pirRequired,
+      pirNotes: validated.pirNotes,
       actualEnd: new Date(),
     } as any, userId);
   });
 
   executors.set('CANCEL_CHANGE', (p, userId) => {
-    const { changeId, cancellationReason } = p as { changeId: string; cancellationReason: string; [k: string]: any };
-    return changeService.update(changeId, { status: 'CANCELLED', cancellationReason } as any, userId);
+    const validated = validatePayload(CancelChangePayload, p, 'CANCEL_CHANGE');
+    return changeService.update(
+      validated.changeId,
+      { status: 'CANCELLED', cancellationReason: validated.cancellationReason } as any,
+      userId,
+    );
   });
 
   // --- Capacity planning ---
 
   executors.set('UPDATE_CAPACITY_PLAN', (p) => {
-    const { capacityPlanId, ...data } = p as { capacityPlanId: string; [k: string]: any };
+    const { capacityPlanId, ...data } = validatePayload(UpdateCapacityPlanPayload, p, 'UPDATE_CAPACITY_PLAN');
     return capacityService.updateCapacityPlan(capacityPlanId, stripMcpMeta(data) as any);
   });
 
   // --- Asset management ---
 
-  executors.set('CREATE_ASSET', (p) =>
-    assetService.create(prepareCreatePayload(p) as any),
-  );
+  executors.set('CREATE_ASSET', (p) => {
+    const validated = validatePayload(CreateAssetPayload, p, 'CREATE_ASSET');
+    return assetService.create(prepareCreatePayload(validated) as any);
+  });
 
   executors.set('UPDATE_ASSET', (p) => {
-    const { assetId, ...data } = p as { assetId: string; [k: string]: any };
+    const { assetId, ...data } = validatePayload(UpdateAssetPayload, p, 'UPDATE_ASSET');
     return assetService.update(assetId, stripMcpMeta(data) as any);
   });
 
-  executors.set('DELETE_ASSET', (p) =>
-    assetService.delete(p['assetId']),
-  );
+  executors.set('DELETE_ASSET', (p) => {
+    const validated = validatePayload(DeleteAssetPayload, p, 'DELETE_ASSET');
+    return assetService.delete(validated.assetId);
+  });
 
-  executors.set('CREATE_ASSET_RELATIONSHIP', (p, userId) =>
-    prismaService.assetRelationship.create({
+  executors.set('CREATE_ASSET_RELATIONSHIP', (p, userId) => {
+    const validated = validatePayload(CreateAssetRelationshipPayload, p, 'CREATE_ASSET_RELATIONSHIP');
+    return prismaService.assetRelationship.create({
       data: {
-        fromAssetId: p['fromAssetId'],
-        toAssetId: p['toAssetId'],
-        relationshipType: p['relationshipType'],
-        isCritical: p['isCritical'] ?? false,
-        description: p['description'],
-        notes: p['notes'],
+        fromAssetId: validated.fromAssetId,
+        toAssetId: validated.toAssetId,
+        relationshipType: validated.relationshipType as any, // Prisma enum
+        isCritical: validated.isCritical ?? false,
+        description: validated.description,
+        notes: validated.notes,
         createdById: userId,
       },
-    }),
-  );
+    });
+  });
 
-  executors.set('LINK_ASSET_CONTROL', (p) =>
-    prismaService.assetControl.create({
+  executors.set('LINK_ASSET_CONTROL', (p) => {
+    const validated = validatePayload(LinkAssetControlPayload, p, 'LINK_ASSET_CONTROL');
+    return prismaService.assetControl.create({
       data: {
-        assetId: p['assetId'],
-        controlId: p['controlId'],
-        status: p['status'] || 'planned',
-        implementationNotes: p['implementationNotes'],
-        implementedDate: p['implementedDate'] ? new Date(p['implementedDate']) : undefined,
-        evidenceUrl: p['evidenceUrl'],
-        lastVerified: p['lastVerified'] ? new Date(p['lastVerified']) : undefined,
+        assetId: validated.assetId,
+        controlId: validated.controlId,
+        status: validated.status || 'planned',
+        implementationNotes: validated.implementationNotes,
+        implementedDate: validated.implementedDate ? new Date(validated.implementedDate) : undefined,
+        evidenceUrl: validated.evidenceUrl,
+        lastVerified: validated.lastVerified ? new Date(validated.lastVerified) : undefined,
       },
-    }),
-  );
+    });
+  });
 
-  executors.set('LINK_ASSET_RISK', (p) =>
-    prismaService.assetRisk.create({
+  executors.set('LINK_ASSET_RISK', (p) => {
+    const validated = validatePayload(LinkAssetRiskPayload, p, 'LINK_ASSET_RISK');
+    return prismaService.assetRisk.create({
       data: {
-        assetId: p['assetId'],
-        riskId: p['riskId'],
-        impactLevel: p['impactLevel'],
-        notes: p['notes'],
+        assetId: validated.assetId,
+        riskId: validated.riskId,
+        impactLevel: validated.impactLevel,
+        notes: validated.notes,
       },
-    }),
-  );
+    });
+  });
 
   // --- Change management (create) ---
 
-  executors.set('CREATE_CHANGE', (p, userId) =>
-    changeService.create(prepareCreatePayload(p) as any, userId),
-  );
+  executors.set('CREATE_CHANGE', (p, userId) => {
+    const validated = validatePayload(CreateChangePayload, p, 'CREATE_CHANGE');
+    return changeService.create(prepareCreatePayload(validated) as any, userId);
+  });
 
   // --- Capacity planning (create) ---
 
-  executors.set('CREATE_CAPACITY_PLAN', (p) =>
-    capacityService.createCapacityPlan(prepareCreatePayload(p) as any),
-  );
+  executors.set('CREATE_CAPACITY_PLAN', (p) => {
+    const validated = validatePayload(CreateCapacityPlanPayload, p, 'CREATE_CAPACITY_PLAN');
+    return capacityService.createCapacityPlan(prepareCreatePayload(validated) as any);
+  });
 }
