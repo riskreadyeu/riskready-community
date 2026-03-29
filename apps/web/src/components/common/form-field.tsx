@@ -1,4 +1,11 @@
 import { ReactNode } from "react";
+import {
+  Controller,
+  type Control,
+  type FieldPath,
+  type FieldValues,
+  type FieldError,
+} from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -218,4 +225,154 @@ interface FormRowProps {
 
 export function FormRow({ children, className }: FormRowProps) {
   return <div className={cn("grid grid-cols-2 gap-4", className)}>{children}</div>;
+}
+
+// ============================================
+// React Hook Form (RHF) integration
+// ============================================
+
+interface RHFFormFieldProps<T extends FieldValues> {
+  control: Control<T>;
+  name: FieldPath<T>;
+  label: string;
+  type?: "text" | "email" | "password" | "number" | "textarea" | "select" | "switch" | "date" | "datetime-local";
+  placeholder?: string;
+  options?: Array<{ value: string; label: string }>;
+  required?: boolean;
+  disabled?: boolean;
+  description?: string;
+  rows?: number;
+  className?: string;
+}
+
+/**
+ * A form field component that integrates with react-hook-form's Controller pattern.
+ * Use this alongside useZodForm() from "@/lib/form-utils" for type-safe,
+ * schema-validated forms.
+ *
+ * For simple text/number/date inputs, prefer using register() directly
+ * with the standard Input component. Use RHFFormField when you need
+ * Select or Switch integration via Controller.
+ */
+export function RHFFormField<T extends FieldValues>({
+  control,
+  name,
+  label,
+  type = "text",
+  placeholder,
+  options,
+  required,
+  disabled,
+  description,
+  rows,
+  className,
+}: RHFFormFieldProps<T>) {
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field, fieldState: { error } }) => {
+        const renderInput = () => {
+          switch (type) {
+            case "textarea":
+              return (
+                <Textarea
+                  {...field}
+                  id={name}
+                  placeholder={placeholder}
+                  rows={rows || 3}
+                  disabled={disabled}
+                  className={cn(error && "border-destructive")}
+                />
+              );
+
+            case "select":
+              return (
+                <Select
+                  value={field.value as string}
+                  onValueChange={field.onChange}
+                  disabled={disabled}
+                >
+                  <SelectTrigger className={cn(error && "border-destructive")}>
+                    <SelectValue placeholder={placeholder || "Select..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {options?.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              );
+
+            case "switch":
+              return (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id={name}
+                    checked={!!field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={disabled}
+                  />
+                  {description && (
+                    <span className="text-sm text-muted-foreground">{description}</span>
+                  )}
+                </div>
+              );
+
+            default:
+              return (
+                <Input
+                  {...field}
+                  id={name}
+                  type={type}
+                  placeholder={placeholder}
+                  disabled={disabled}
+                  value={field.value ?? ""}
+                  className={cn(error && "border-destructive")}
+                />
+              );
+          }
+        };
+
+        if (type === "switch") {
+          return (
+            <div className={cn("flex items-center justify-between", className)}>
+              <Label htmlFor={name} className="flex flex-col gap-1">
+                <span>
+                  {label}
+                  {required && <span className="text-destructive ml-1">*</span>}
+                </span>
+              </Label>
+              {renderInput()}
+            </div>
+          );
+        }
+
+        return (
+          <div className={cn("space-y-2", className)}>
+            <Label htmlFor={name}>
+              {label}
+              {required && <span className="text-destructive ml-1">*</span>}
+            </Label>
+            {renderInput()}
+            {description && type !== "switch" && (
+              <p className="text-xs text-muted-foreground">{description}</p>
+            )}
+            {error && <p className="text-xs text-destructive">{error.message}</p>}
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+/**
+ * Inline error display helper for use with register().
+ * Usage: <FieldError error={form.formState.errors.title} />
+ */
+export function FieldErrorMessage({ error }: { error?: FieldError }) {
+  if (!error?.message) return null;
+  return <p className="text-xs text-destructive">{error.message}</p>;
 }

@@ -5,7 +5,7 @@ export { DataTable, type Column, type RowAction, StatusBadge, CriticalityBadge, 
 export { DetailPageLayout } from './detail-page-layout';
 export { StatCard, StatCardGrid } from './stat-card';
 export { FormDialog, ConfirmDialog } from './form-dialog';
-export { FormField, FormSection, FormRow } from './form-field';
+export { FormField, FormSection, FormRow, RHFFormField, FieldErrorMessage } from './form-field';
 export { SlideOver, SlideOverForm } from './slide-over';
 
 // Archer GRC components
