@@ -36,9 +36,13 @@ export interface GatewayConfig {
 export function loadConfig(): GatewayConfig {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error('DATABASE_URL is required');
-  const gatewaySecret = process.env.GATEWAY_SECRET || process.env.JWT_SECRET;
+  const gatewaySecret = process.env.GATEWAY_SECRET;
   if (!gatewaySecret) {
-    throw new Error('GATEWAY_SECRET or JWT_SECRET is required');
+    console.error('[gateway] GATEWAY_SECRET is not set. This variable is required and must be a unique, random secret (min 32 chars). Do NOT reuse JWT_SECRET.');
+    throw new Error('GATEWAY_SECRET environment variable is required');
+  }
+  if (process.env.JWT_SECRET && gatewaySecret === process.env.JWT_SECRET) {
+    console.warn('[gateway] WARNING: GATEWAY_SECRET is identical to JWT_SECRET. For security, use a separate secret for the gateway.');
   }
 
   return {
