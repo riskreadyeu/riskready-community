@@ -36,6 +36,28 @@ export class LocationService {
   }
 
   async create(data: Prisma.LocationCreateInput) {
+    // Auto-resolve locationCode conflicts (field is optional)
+    if (data.locationCode) {
+      const baseCode = data.locationCode;
+      let candidateCode = baseCode;
+      let suffix = 1;
+      while (await this.prisma.location.findFirst({
+        where: { locationCode: candidateCode },
+      })) {
+        suffix++;
+        const match = baseCode.match(/^(.+?)(\d+)$/);
+        if (match) {
+          const nextNum = (parseInt(match[2], 10) + suffix - 1).toString().padStart(match[2].length, '0');
+          candidateCode = `${match[1]}${nextNum}`;
+        } else {
+          candidateCode = `${baseCode}-${suffix}`;
+        }
+      }
+      if (candidateCode !== baseCode) {
+        data = { ...data, locationCode: candidateCode };
+      }
+    }
+
     return this.prisma.location.create({ data });
   }
 

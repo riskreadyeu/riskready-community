@@ -182,6 +182,32 @@ export class AssetService {
   }
 
   async create(data: CreateAssetDto) {
+    // Auto-resolve assetTag conflicts (assetTag is globally unique)
+    if (data.assetTag) {
+      const baseTag = data.assetTag;
+      let candidateTag = baseTag;
+      let suffix = 1;
+      while (
+        await this.prisma.asset.findFirst({
+          where: { assetTag: candidateTag },
+        })
+      ) {
+        suffix++;
+        const match = baseTag.match(/^(.+?)(\d+)$/);
+        if (match) {
+          const nextNum = (parseInt(match[2], 10) + suffix - 1)
+            .toString()
+            .padStart(match[2].length, '0');
+          candidateTag = `${match[1]}${nextNum}`;
+        } else {
+          candidateTag = `${baseTag}-${suffix}`;
+        }
+      }
+      if (candidateTag !== baseTag) {
+        data = { ...data, assetTag: candidateTag };
+      }
+    }
+
     return this.prisma.asset.create({
       data: this.toAssetWriteData(data) as Prisma.AssetUncheckedCreateInput,
       include: {

@@ -32,7 +32,27 @@ export class AssessmentService {
     },
     userId?: string,
   ) {
-    const assessmentRef = data.assessmentRef || await this.generateRef(data.organisationId);
+    let assessmentRef = data.assessmentRef || await this.generateRef(data.organisationId);
+
+    // Auto-resolve assessmentRef conflicts
+    const organisationId = data.organisationId;
+    if (assessmentRef && organisationId) {
+      let candidateRef = assessmentRef;
+      let suffix = 1;
+      while (await this.prisma.assessment.findFirst({
+        where: { assessmentRef: candidateRef, organisationId },
+      })) {
+        suffix++;
+        const match = assessmentRef.match(/^(.+?)(\d+)$/);
+        if (match) {
+          const nextNum = (parseInt(match[2], 10) + suffix - 1).toString().padStart(match[2].length, '0');
+          candidateRef = `${match[1]}${nextNum}`;
+        } else {
+          candidateRef = `${assessmentRef}-${suffix}`;
+        }
+      }
+      assessmentRef = candidateRef;
+    }
 
     const assessment = await this.prisma.assessment.create({
       data: {

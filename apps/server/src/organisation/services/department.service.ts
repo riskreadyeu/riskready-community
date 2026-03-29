@@ -49,6 +49,28 @@ export class DepartmentService {
   }
 
   async create(data: Prisma.DepartmentCreateInput) {
+    // Auto-resolve departmentCode conflicts
+    if (data.departmentCode) {
+      const baseCode = data.departmentCode;
+      let candidateCode = baseCode;
+      let suffix = 1;
+      while (await this.prisma.department.findFirst({
+        where: { departmentCode: candidateCode },
+      })) {
+        suffix++;
+        const match = baseCode.match(/^(.+?)(\d+)$/);
+        if (match) {
+          const nextNum = (parseInt(match[2], 10) + suffix - 1).toString().padStart(match[2].length, '0');
+          candidateCode = `${match[1]}${nextNum}`;
+        } else {
+          candidateCode = `${baseCode}-${suffix}`;
+        }
+      }
+      if (candidateCode !== baseCode) {
+        data = { ...data, departmentCode: candidateCode };
+      }
+    }
+
     return this.prisma.department.create({
       data,
       include: {
