@@ -329,6 +329,9 @@ model Control {
   // Metrics
   metrics ControlMetric[]
 
+  // Soft delete
+  deletedAt DateTime?
+
   // Audit fields
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -344,6 +347,7 @@ model Control {
   @@index([organisationId])
   @@index([applicable])
   @@index([organisationId, implementationStatus])
+  @@index([deletedAt])
 }
 
 // ============================================
@@ -705,6 +709,9 @@ model Risk {
   eventLog             RiskEventLog[]
   toleranceEvaluations ToleranceEvaluation[]
 
+  // Soft delete
+  deletedAt DateTime?
+
   // Audit fields
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -719,6 +726,7 @@ model Risk {
   @@index([framework])
   @@index([organisationId])
   @@index([organisationId, status])
+  @@index([deletedAt])
 }
 
 // ============================================

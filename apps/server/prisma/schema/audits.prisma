@@ -161,6 +161,9 @@ model Nonconformity {
   raisedById String
   raisedBy   User   @relation("NCRaisedBy", fields: [raisedById], references: [id], onDelete: Restrict)
 
+  // Soft delete
+  deletedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -181,4 +184,5 @@ model Nonconformity {
   @@index([verifiedById])
   @@index([closedById])
   @@index([raisedById])
+  @@index([deletedAt])
 }

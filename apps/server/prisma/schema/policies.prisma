@@ -348,6 +348,9 @@ model PolicyDocument {
   organisationId String
   organisation   OrganisationProfile @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
+  // Soft delete
+  deletedAt DateTime?
+
   // Timestamps
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -363,6 +366,7 @@ model PolicyDocument {
   @@index([nextReviewDate])
   @@index([organisationId])
   @@index([parentDocumentId])
+  @@index([deletedAt])
 }
 
 model DocumentVersion {

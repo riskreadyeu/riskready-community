@@ -194,6 +194,12 @@ model Evidence {
   newerVersions     Evidence[] @relation("EvidenceVersions")
 
   // ============================================
+  // SOFT DELETE
+  // ============================================
+
+  deletedAt DateTime?
+
+  // ============================================
   // AUDIT TRAIL
   // ============================================
 
@@ -243,6 +249,7 @@ model Evidence {
   @@index([collectedById])
   @@index([createdAt])
   @@index([category])
+  @@index([deletedAt])
 }
 
 // ============================================
