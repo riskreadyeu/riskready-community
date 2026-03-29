@@ -343,6 +343,7 @@ model Control {
   @@index([implementationStatus])
   @@index([organisationId])
   @@index([applicable])
+  @@index([organisationId, implementationStatus])
 }
 
 // ============================================
@@ -717,6 +718,7 @@ model Risk {
   @@index([status])
   @@index([framework])
   @@index([organisationId])
+  @@index([organisationId, status])
 }
 
 // ============================================
