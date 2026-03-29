@@ -458,6 +458,12 @@ model Asset {
   wazuhDashboardUrl String? // Direct link to Wazuh dashboard for this agent
 
   // ============================================
+  // SOFT DELETE
+  // ============================================
+
+  deletedAt DateTime?
+
+  // ============================================
   // AUDIT
   // ============================================
 
@@ -503,6 +509,7 @@ model Asset {
   @@index([cloudProvider])
   @@index([inIsmsScope])
   @@index([capacityStatus])
+  @@index([deletedAt])
 }
 
 // ============================================

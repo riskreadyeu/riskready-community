@@ -213,6 +213,12 @@ model Incident {
   organisation   OrganisationProfile? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
 
   // ============================================
+  // SOFT DELETE
+  // ============================================
+
+  deletedAt DateTime?
+
+  // ============================================
   // AUDIT
   // ============================================
 
@@ -248,6 +254,7 @@ model Incident {
   @@index([handlerId])
   @@index([incidentManagerId])
   @@index([organisationId, status])
+  @@index([deletedAt])
 }
 
 // ============================================
