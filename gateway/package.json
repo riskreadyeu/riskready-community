@@ -8,8 +8,7 @@
     "start": "tsx src/main.ts",
     "dev": "tsx watch src/main.ts",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "postinstall": "rm -rf node_modules/.prisma/client node_modules/@prisma/client && mkdir -p node_modules/.prisma && ln -s ../../../apps/server/node_modules/.prisma/client node_modules/.prisma/client && ln -s ../../../apps/server/node_modules/@prisma/client node_modules/@prisma/client"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.74.0",
