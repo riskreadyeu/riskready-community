@@ -3,11 +3,11 @@ import { isValidUUID, truncateString } from '../validators.js';
 
 describe('isValidUUID', () => {
   it('accepts valid UUID v4', () => {
-    expect(isValidUUID('a1b2c3d4-e5f6-7890-abcd-ef1234567890')).toBe(true);
+    expect(isValidUUID('a1b2c3d4-e5f6-4890-abcd-ef1234567890')).toBe(true);
   });
 
-  it('accepts uppercase UUID', () => {
-    expect(isValidUUID('A1B2C3D4-E5F6-7890-ABCD-EF1234567890')).toBe(true);
+  it('accepts uppercase UUID v4', () => {
+    expect(isValidUUID('A1B2C3D4-E5F6-4890-ABCD-EF1234567890')).toBe(true);
   });
 
   it('rejects empty string', () => {
@@ -19,11 +19,11 @@ describe('isValidUUID', () => {
   });
 
   it('rejects UUID with wrong length', () => {
-    expect(isValidUUID('a1b2c3d4-e5f6-7890-abcd-ef123456789')).toBe(false);
+    expect(isValidUUID('a1b2c3d4-e5f6-4890-abcd-ef123456789')).toBe(false);
   });
 
   it('rejects string with injection payload', () => {
-    expect(isValidUUID('a1b2c3d4-e5f6-7890-abcd-ef1234567890; DROP TABLE')).toBe(false);
+    expect(isValidUUID('a1b2c3d4-e5f6-4890-abcd-ef1234567890; DROP TABLE')).toBe(false);
   });
 });
 
