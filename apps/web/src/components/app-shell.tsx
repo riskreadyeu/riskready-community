@@ -84,7 +84,7 @@ function SideNav(props: { className?: string; collapsed?: boolean; onToggle?: ()
         </button>
       ) : null}
 
-      <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
+      <nav role="navigation" aria-label="Main navigation" className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
         {navGroups.map((group) => (
           <div key={group.label}>
             {!props.collapsed ? (
@@ -92,38 +92,39 @@ function SideNav(props: { className?: string; collapsed?: boolean; onToggle?: ()
                 {group.label}
               </span>
             ) : null}
-            <div className={cn("mt-2 space-y-1", props.collapsed && "mt-0")}>
+            <ul role="list" className={cn("mt-2 space-y-1", props.collapsed && "mt-0")}>
               {group.items.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  title={props.collapsed ? item.title : undefined}
-                  className={({ isActive }) =>
-                    cn(
-                      "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200",
-                      isActive
-                        ? "bg-sidebar-primary/10 text-sidebar-primary font-medium"
-                        : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                      props.collapsed && "justify-center px-2",
-                    )
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      {isActive ? (
-                        <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
-                      ) : null}
-                      <item.icon className={cn("h-[18px] w-[18px] shrink-0", isActive && "text-sidebar-primary")} />
-                      {!props.collapsed ? (
-                        <>
-                          <span className="flex-1">{item.title}</span>
-                        </>
-                      ) : null}
-                    </>
-                  )}
-                </NavLink>
+                <li key={item.to}>
+                  <NavLink
+                    to={item.to}
+                    title={props.collapsed ? item.title : undefined}
+                    className={({ isActive }) =>
+                      cn(
+                        "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200",
+                        isActive
+                          ? "bg-sidebar-primary/10 text-sidebar-primary font-medium"
+                          : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                        props.collapsed && "justify-center px-2",
+                      )
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        {isActive ? (
+                          <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
+                        ) : null}
+                        <item.icon className={cn("h-[18px] w-[18px] shrink-0", isActive && "text-sidebar-primary")} />
+                        {!props.collapsed ? (
+                          <>
+                            <span className="flex-1">{item.title}</span>
+                          </>
+                        ) : null}
+                      </>
+                    )}
+                  </NavLink>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         ))}
       </nav>
@@ -222,7 +223,14 @@ export default function AppShell(
 
   return (
     <div className="flex h-screen bg-background">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none"
+      >
+        Skip to main content
+      </a>
       <aside
+        aria-label="Primary sidebar"
         className={cn(
           "hidden border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-out lg:flex",
           sidebarCollapsed ? "w-[68px]" : "w-[260px]",
@@ -232,7 +240,7 @@ export default function AppShell(
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-card/50 px-4 backdrop-blur-sm lg:px-6">
+        <header aria-label="Top navigation" className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-card/50 px-4 backdrop-blur-sm lg:px-6">
           <div className="flex flex-1 items-center gap-4">
             <Sheet>
               <SheetTrigger asChild>
@@ -346,6 +354,7 @@ export default function AppShell(
         <div className="flex flex-1 overflow-hidden">
           {SecondarySidebar ? (
             <aside
+              aria-label="Module navigation"
               className="hidden w-[260px] border-r border-sidebar-border lg:block"
               data-testid="shell-secondary-sidebar"
             >
@@ -353,7 +362,7 @@ export default function AppShell(
             </aside>
           ) : null}
 
-          <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+          <main id="main-content" role="main" className="flex-1 overflow-y-auto p-4 lg:p-6">
             <div className="w-full">{props.children}</div>
           </main>
         </div>
