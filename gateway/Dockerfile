@@ -112,4 +112,6 @@ EXPOSE 3100
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
   CMD wget -qO- http://localhost:3100/health || exit 1
 
+# NOTE: Gateway runs TypeScript directly via tsx, so source files must be present.
+# For smaller production images, consider pre-compiling to JavaScript.
 CMD ["npx", "tsx", "src/main.ts"]
