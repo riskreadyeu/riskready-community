@@ -296,7 +296,7 @@ export function DataTable<T>({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-within:opacity-100 transition-opacity"
                               >
                                 <MoreHorizontal className="w-4 h-4" />
                               </Button>
