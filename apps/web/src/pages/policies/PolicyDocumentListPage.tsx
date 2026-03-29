@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -28,11 +28,11 @@ import {
 import { ListPageLayout } from "@/components/archer";
 import { DataTable, StatusBadge, Column, RowAction } from "@/components/common";
 import {
-  getPolicies,
   type PolicyDocument,
   type DocumentType,
   type DocumentStatus,
 } from "@/lib/policies-api";
+import { usePolicies } from "@/hooks/queries";
 import { cn } from "@/lib/utils";
 
 const documentTypeLabels: Record<DocumentType, string> = {
@@ -73,14 +73,11 @@ const statusVariants: Record<string, "success" | "warning" | "destructive" | "de
 
 export default function PolicyDocumentListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [loading, setLoading] = useState(true);
-  const [documents, setDocuments] = useState<PolicyDocument[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  
+
   // Pagination
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  
+
   // Filters
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [typeFilter, setTypeFilter] = useState<DocumentType | "all">(
@@ -90,28 +87,15 @@ export default function PolicyDocumentListPage() {
     (searchParams.get("status") as DocumentStatus) || "all"
   );
 
-  const loadDocuments = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await getPolicies({
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        search: searchQuery || undefined,
-        documentType: typeFilter !== "all" ? typeFilter : undefined,
-        status: statusFilter !== "all" ? statusFilter : undefined,
-      });
-      setDocuments(response.results);
-      setTotalCount(response.count);
-    } catch (err) {
-      console.error("Error loading documents:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, pageSize, searchQuery, typeFilter, statusFilter]);
-
-  useEffect(() => {
-    loadDocuments();
-  }, [loadDocuments]);
+  const { data: response, isLoading: loading } = usePolicies({
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    search: searchQuery || undefined,
+    documentType: typeFilter !== "all" ? typeFilter : undefined,
+    status: statusFilter !== "all" ? statusFilter : undefined,
+  });
+  const documents = response?.results ?? [];
+  const totalCount = response?.count ?? 0;
 
   // Update URL params when filters change
   useEffect(() => {

@@ -1,20 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
-  getControls,
-  getControlStats,
-  type Control,
   type ControlFramework,
-  type ControlStats,
   type ControlTheme,
   type ImplementationStatus,
 } from "@/lib/controls-api";
-import { notifyError } from "@/lib/app-errors";
+import { useControls, useControlStats } from "@/hooks/queries";
 
 export function useControlsLibrary() {
-  const [loading, setLoading] = useState(true);
-  const [controls, setControls] = useState<Control[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [stats, setStats] = useState<ControlStats | null>(null);
   const [themeFilter, setThemeFilterState] = useState<string>("all");
   const [statusFilter, setStatusFilterState] = useState<string>("all");
   const [frameworkFilter, setFrameworkFilterState] = useState<string>("all");
@@ -22,38 +14,24 @@ export function useControlsLibrary() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  async function refresh() {
-    try {
-      setLoading(true);
-      const [controlsData, statsData] = await Promise.all([
-        getControls({
-          skip: (currentPage - 1) * pageSize,
-          take: pageSize,
-          ...(themeFilter !== "all" && { theme: themeFilter as ControlTheme }),
-          ...(statusFilter !== "all" && {
-            implementationStatus: statusFilter as ImplementationStatus,
-          }),
-          ...(frameworkFilter !== "all" && {
-            framework: frameworkFilter as ControlFramework,
-          }),
-          ...(activeOnly && { activeOnly: true }),
-        }),
-        getControlStats(),
-      ]);
+  const { data: controlsData, isLoading: controlsLoading, refetch: refresh } = useControls({
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize,
+    ...(themeFilter !== "all" && { theme: themeFilter as ControlTheme }),
+    ...(statusFilter !== "all" && {
+      implementationStatus: statusFilter as ImplementationStatus,
+    }),
+    ...(frameworkFilter !== "all" && {
+      framework: frameworkFilter as ControlFramework,
+    }),
+    ...(activeOnly && { activeOnly: true }),
+  });
 
-      setControls(controlsData.results);
-      setTotalCount(controlsData.count);
-      setStats(statsData);
-    } catch (error) {
-      notifyError("Error loading controls:", error, "Failed to load controls");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data: stats = null, isLoading: statsLoading } = useControlStats();
 
-  useEffect(() => {
-    refresh();
-  }, [currentPage, pageSize, themeFilter, statusFilter, frameworkFilter, activeOnly]);
+  const controls = controlsData?.results ?? [];
+  const totalCount = controlsData?.count ?? 0;
+  const loading = controlsLoading || statsLoading;
 
   function setThemeFilter(value: string) {
     setThemeFilterState(value);

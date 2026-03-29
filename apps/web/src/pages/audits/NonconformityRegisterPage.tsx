@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+// Note: useEffect kept for URL param sync only
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,10 +11,7 @@ import {
   StatCardGrid,
 } from "@/components/common";
 import {
-  getNonconformities,
-  getNonconformityStats,
   updateNonconformity,
-  getUsers,
   type Nonconformity,
   type NonconformityStats,
   type NCStatus,
@@ -22,6 +20,8 @@ import {
   type CAPStatus,
   type UserBasic,
 } from "@/lib/audits-api";
+import { useNonconformities, useNonconformityStats, useAuditUsers, auditKeys } from "@/hooks/queries";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
   Filter,
@@ -42,15 +42,10 @@ import { CompleteNCDialog } from "@/components/audits/CompleteNCDialog";
 export default function NonconformityRegisterPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [loading, setLoading] = useState(true);
-  const [nonconformities, setNonconformities] = useState<Nonconformity[]>([]);
-  const [stats, setStats] = useState<NonconformityStats | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
 
   // Dialog state
   const [selectedNC, setSelectedNC] = useState<Nonconformity | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [users, setUsers] = useState<UserBasic[]>([]);
 
   // Filters - Initialize from URL params
   const [statusFilter, setStatusFilter] = useState<string>(searchParams.get("status") || "all");
@@ -61,6 +56,22 @@ export default function NonconformityRegisterPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
+  // TanStack Query hooks
+  const { data: ncsData, isLoading: ncsLoading } = useNonconformities({
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize,
+    ...(statusFilter !== "all" && { status: statusFilter as NCStatus }),
+    ...(severityFilter !== "all" && { severity: severityFilter as NCSeverity }),
+    ...(sourceFilter !== "all" && { source: sourceFilter as NonconformitySource }),
+  });
+  const { data: stats = null, isLoading: statsLoading } = useNonconformityStats();
+  const { data: users = [] } = useAuditUsers();
+
+  const queryClient = useQueryClient();
+  const nonconformities = ncsData?.results ?? [];
+  const totalCount = ncsData?.count ?? 0;
+  const loading = ncsLoading || statsLoading;
+
   // Update URL params when filters change
   useEffect(() => {
     const params = new URLSearchParams();
@@ -69,35 +80,6 @@ export default function NonconformityRegisterPage() {
     if (sourceFilter !== "all") params.set("source", sourceFilter);
     setSearchParams(params, { replace: true });
   }, [statusFilter, severityFilter, sourceFilter, setSearchParams]);
-
-  useEffect(() => {
-    loadData();
-  }, [currentPage, pageSize, statusFilter, severityFilter, sourceFilter]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [ncsData, statsData, usersData] = await Promise.all([
-        getNonconformities({
-          skip: (currentPage - 1) * pageSize,
-          take: pageSize,
-          ...(statusFilter !== "all" && { status: statusFilter as NCStatus }),
-          ...(severityFilter !== "all" && { severity: severityFilter as NCSeverity }),
-          ...(sourceFilter !== "all" && { source: sourceFilter as NonconformitySource }),
-        }),
-        getNonconformityStats(),
-        getUsers(),
-      ]);
-      setNonconformities(ncsData.results);
-      setTotalCount(ncsData.count);
-      setStats(statsData);
-      setUsers(usersData);
-    } catch (err) {
-      console.error("Error loading nonconformities:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getSeverityBadge = (severity: NCSeverity) => {
     const variants = {
@@ -167,7 +149,7 @@ export default function NonconformityRegisterPage() {
         targetClosureDate: data.targetClosureDate.toISOString(),
         rootCause: data.additionalContext,
       });
-      await loadData(); // Refresh list
+      await queryClient.invalidateQueries({ queryKey: auditKeys.all }); // Refresh list
     } catch (err) {
       console.error("Error completing NC:", err);
       throw err;
@@ -180,7 +162,7 @@ export default function NonconformityRegisterPage() {
         status: "REJECTED",
         verificationNotes: `Rejected: ${reason}`,
       });
-      await loadData(); // Refresh list
+      await queryClient.invalidateQueries({ queryKey: auditKeys.all }); // Refresh list
     } catch (err) {
       console.error("Error rejecting NC:", err);
       throw err;

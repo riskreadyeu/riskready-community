@@ -81,9 +81,9 @@ export const treatmentKeys = {
 // Risk hooks
 // ---------------------------------------------------------------------------
 
-export function useRisks(params?: { skip?: number; take?: number; tier?: string; status?: string; framework?: string }) {
+export function useRisks(params?: Parameters<typeof getRisks>[0]) {
   return useQuery({
-    queryKey: riskKeys.list(params ?? {}),
+    queryKey: riskKeys.list((params ?? {}) as Record<string, unknown>),
     queryFn: () => getRisks(params),
   });
 }
@@ -192,9 +192,9 @@ export function useKRIDashboard(organisationId?: string) {
 // RTS hooks
 // ---------------------------------------------------------------------------
 
-export function useRTSList(params?: { skip?: number; take?: number; status?: string }) {
+export function useRTSList(params?: Parameters<typeof getRTSList>[0]) {
   return useQuery({
-    queryKey: rtsKeys.list(params ?? {}),
+    queryKey: rtsKeys.list((params ?? {}) as Record<string, unknown>),
     queryFn: () => getRTSList(params),
   });
 }
@@ -226,9 +226,9 @@ export function useRTSByRisk(riskId: string) {
 // Treatment plan hooks
 // ---------------------------------------------------------------------------
 
-export function useTreatmentPlans(params?: { skip?: number; take?: number; riskId?: string; status?: string }) {
+export function useTreatmentPlans(params?: Parameters<typeof getTreatmentPlans>[0]) {
   return useQuery({
-    queryKey: treatmentKeys.list(params ?? {}),
+    queryKey: treatmentKeys.list((params ?? {}) as Record<string, unknown>),
     queryFn: () => getTreatmentPlans(params),
   });
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -31,14 +31,14 @@ import {
   type RowAction,
 } from "@/components/common";
 import {
-  getEvidenceList,
-  getEvidenceStats,
   type Evidence,
   type EvidenceStats,
   type EvidenceType,
   type EvidenceStatus,
   type EvidenceClassification,
 } from "@/lib/evidence-api";
+import { useEvidenceList, useEvidenceStats, evidenceKeys } from "@/hooks/queries";
+import { useQueryClient } from "@tanstack/react-query";
 import { EvidenceUploadDialog } from "@/components/evidence/EvidenceUploadDialog";
 import { EvidenceLinkDialog } from "@/components/evidence/EvidenceLinkDialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -96,9 +96,6 @@ const typeLabels: Record<EvidenceType, string> = {
 export default function EvidenceRepositoryPage() {
   const navigate = useNavigate();
   const { userId } = useCurrentUser();
-  const [loading, setLoading] = useState(true);
-  const [evidence, setEvidence] = useState<Evidence[]>([]);
-  const [stats, setStats] = useState<EvidenceStats | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [classificationFilter, setClassificationFilter] = useState<string>("all");
@@ -108,25 +105,12 @@ export default function EvidenceRepositoryPage() {
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [selectedEvidenceForLink, setSelectedEvidenceForLink] = useState<Evidence | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [evidenceData, statsData] = await Promise.all([
-        getEvidenceList({ take: 500 }),
-        getEvidenceStats(),
-      ]);
-      setEvidence(evidenceData.results);
-      setStats(statsData);
-    } catch (err) {
-      console.error("Error loading evidence:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const queryClient = useQueryClient();
+  const { data: evidenceData, isLoading: evidenceLoading } = useEvidenceList({ take: 500 });
+  const { data: stats = null, isLoading: statsLoading } = useEvidenceStats();
+  const evidence = evidenceData?.results ?? [];
+  const loading = evidenceLoading || statsLoading;
+  const refreshEvidence = () => queryClient.invalidateQueries({ queryKey: evidenceKeys.all });
 
   const filteredEvidence = evidence.filter((e) => {
     if (typeFilter !== "all" && e.evidenceType !== typeFilter) return false;
@@ -426,7 +410,7 @@ export default function EvidenceRepositoryPage() {
       <EvidenceUploadDialog
         open={uploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
-        onSuccess={loadData}
+        onSuccess={refreshEvidence}
         userId={userId ?? ""}
       />
 
@@ -443,7 +427,7 @@ export default function EvidenceRepositoryPage() {
           evidenceId={selectedEvidenceForLink.id}
           evidenceTitle={selectedEvidenceForLink.title}
           onSuccess={() => {
-            loadData();
+            refreshEvidence();
           }}
         />
       )}

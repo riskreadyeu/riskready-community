@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Shield, Target, CheckCircle2, History, Edit3, MoreHorizontal, Check, Clock, AlertTriangle } from "lucide-react";
@@ -13,7 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { getControl, type Control } from "@/lib/controls-api";
+import { type Control } from "@/lib/controls-api";
+import { useControl, controlKeys } from "@/hooks/queries";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArcherTabSet } from "@/components/archer/tab-set";
 import {
   ControlGeneralTab,
@@ -65,31 +67,11 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 export default function ControlDetailPage() {
   const params = useParams();
   const navigate = useNavigate();
-  const [control, setControl] = useState<Control | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchControl() {
-      if (!params['controlId']) {
-        setError("No control ID provided");
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await getControl(params['controlId']);
-        setControl(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load control");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchControl();
-  }, [params['controlId']]);
+  const queryClient = useQueryClient();
+  const controlId = params['controlId'] ?? '';
+  const { data: control = null, isLoading: loading, error: errorObj } = useControl(controlId);
+  const error = !controlId ? "No control ID provided" : errorObj ? (errorObj instanceof Error ? errorObj.message : "Failed to load control") : null;
+  const refreshControl = () => queryClient.invalidateQueries({ queryKey: controlKeys.detail(controlId) });
 
   // Computed values
   const statusConfig = STATUS_CONFIG[control?.implementationStatus || "NOT_STARTED"]!;
@@ -204,7 +186,7 @@ export default function ControlDetailPage() {
         ]}
         actions={
           <div className="flex items-center gap-2">
-            <ControlEnableDisable control={control} onStateChange={(updated) => setControl(updated)} />
+            <ControlEnableDisable control={control} onStateChange={() => refreshControl()} />
             <Button variant="outline" size="sm" onClick={() => toast.info("This feature is coming soon")}>
               <Edit3 className="h-4 w-4 mr-2" />
               Edit
