@@ -1,3 +1,5 @@
+# NOTE: For production, pin to specific digest: FROM node:20-alpine@sha256:<digest>
+# Run: docker pull node:20-alpine && docker inspect --format='{{index .RepoDigests 0}}' node:20-alpine
 FROM node:20-alpine AS builder
 
 RUN apk add --no-cache openssl
@@ -91,6 +93,8 @@ RUN for srv in controls risks evidence policies organisation itsm audits inciden
     done
 
 # --- Production stage ---
+# NOTE: For production, pin to specific digest: FROM node:20-alpine@sha256:<digest>
+# Run: docker pull node:20-alpine && docker inspect --format='{{index .RepoDigests 0}}' node:20-alpine
 FROM node:20-alpine
 
 RUN apk add --no-cache openssl

@@ -1,3 +1,5 @@
+# NOTE: For production, pin to specific digest: FROM node:20-bookworm-slim@sha256:<digest>
+# Run: docker pull node:20-bookworm-slim && docker inspect --format='{{index .RepoDigests 0}}' node:20-bookworm-slim
 FROM node:20-bookworm-slim AS build
 WORKDIR /app
 
@@ -19,6 +21,8 @@ RUN npm run build
 FROM build AS migrate
 CMD ["sh", "-c", "npx prisma db push --schema=prisma/schema --skip-generate && npx prisma db seed"]
 
+# NOTE: For production, pin to specific digest: FROM node:20-bookworm-slim@sha256:<digest>
+# Run: docker pull node:20-bookworm-slim && docker inspect --format='{{index .RepoDigests 0}}' node:20-bookworm-slim
 FROM node:20-bookworm-slim
 WORKDIR /app
 
