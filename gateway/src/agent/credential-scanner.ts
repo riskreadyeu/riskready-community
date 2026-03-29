@@ -12,6 +12,14 @@ const CREDENTIAL_PATTERNS = [
   { pattern: /(?:api[_-]?key|apikey|secret[_-]?key|access[_-]?token)\s*[:=]\s*["']?[a-zA-Z0-9_\-]{20,}["']?/gi, replacement: '[REDACTED_CREDENTIAL]' },
   // AWS keys
   { pattern: /AKIA[0-9A-Z]{16}/g, replacement: '[REDACTED_AWS_KEY]' },
+  // GitHub tokens (classic & fine-grained)
+  { pattern: /gh[pous]_[a-zA-Z0-9]{30,}/g, replacement: '[REDACTED_GITHUB_TOKEN]' },
+  // GCP API keys
+  { pattern: /AIza[a-zA-Z0-9_-]{35}/g, replacement: '[REDACTED_GCP_KEY]' },
+  // PEM private keys
+  { pattern: /-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |DSA )?PRIVATE KEY-----/g, replacement: '[REDACTED_PRIVATE_KEY]' },
+  // Slack tokens
+  { pattern: /xox[bporas]-[a-zA-Z0-9-]{10,}/g, replacement: '[REDACTED_SLACK_TOKEN]' },
   // JWT tokens (long base64 with dots)
   { pattern: /eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}/g, replacement: '[REDACTED_JWT]' },
   // Connection strings with passwords

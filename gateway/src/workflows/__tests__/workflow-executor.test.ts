@@ -24,7 +24,7 @@ vi.mock('../../logger.js', () => ({
   logger: { info: vi.fn(), error: vi.fn(), debug: vi.fn(), warn: vi.fn() },
 }));
 
-import { WorkflowExecutor } from '../workflow-executor.js';
+import { WorkflowExecutor, STEP_CONTEXT_MAX } from '../workflow-executor.js';
 import type { WorkflowDefinition } from '../types.js';
 
 const twoStepWorkflow: WorkflowDefinition = {
@@ -101,6 +101,10 @@ describe('WorkflowExecutor', () => {
 
       expect(result.parentTaskId).toBe('new-parent-task');
     });
+  });
+
+  it('preserves step context up to 8000 characters', () => {
+    expect(STEP_CONTEXT_MAX).toBe(8000);
   });
 
   describe('executeSteps() — zero remaining steps', () => {

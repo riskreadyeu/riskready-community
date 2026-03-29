@@ -23,6 +23,8 @@ export interface GatewayConfig {
     maxTurnsPerMember: number;
     defaultPattern: DeliberationPattern;
     memberModel?: string;
+    maxTokenBudgetPerMember: number;
+    domainThreshold: number;
   };
   rateLimit: {
     perUserHour: number;
@@ -60,6 +62,8 @@ export function loadConfig(): GatewayConfig {
       maxTurnsPerMember: Number(process.env.COUNCIL_MAX_TURNS_PER_MEMBER ?? 15),
       defaultPattern: (process.env.COUNCIL_DEFAULT_PATTERN as DeliberationPattern) ?? 'parallel_then_synthesis',
       memberModel: process.env.COUNCIL_MEMBER_MODEL || undefined,
+      maxTokenBudgetPerMember: parseInt(process.env.COUNCIL_MAX_TOKENS_PER_MEMBER || '80000', 10),
+      domainThreshold: parseInt(process.env.COUNCIL_DOMAIN_THRESHOLD || '3', 10),
     },
     rateLimit: {
       perUserHour: Number(process.env.RATE_LIMIT_PER_USER_HOUR ?? 30),

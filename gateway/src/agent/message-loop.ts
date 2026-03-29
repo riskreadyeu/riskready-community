@@ -2,6 +2,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import type { ChatEvent } from '../channels/types.js';
 import type { ToolResult } from './mcp-tool-executor.js';
 import { logger } from '../logger.js';
+import { sanitizeToolResult } from './tool-result-sanitizer.js';
 
 export interface ToolCallRecord {
   name: string;
@@ -230,7 +231,7 @@ export async function runMessageLoop(opts: MessageLoopOptions): Promise<MessageL
         toolResultBlocks.push({
           type: 'tool_result',
           tool_use_id: pending.id,
-          content: result.content,
+          content: sanitizeToolResult(result.content),
           is_error: result.isError,
         });
       } else {

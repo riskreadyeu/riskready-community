@@ -7,6 +7,9 @@ import type { UnifiedMessage, ChatEvent } from '../channels/types.js';
 import type { WorkflowDefinition, WorkflowExecution } from './types.js';
 import { randomUUID } from 'node:crypto';
 
+/** Maximum characters of result text carried forward per workflow step. */
+export const STEP_CONTEXT_MAX = 8000;
+
 export class WorkflowExecutor {
   private agentRunner: AgentRunner;
 
@@ -98,7 +101,7 @@ export class WorkflowExecutor {
     let cumulativeContext = completedSteps
       .filter((t: { result: string | null }) => t.result)
       .map((t: { stepIndex: number | null; result: string | null }) =>
-        `**${workflow.steps[t.stepIndex!]!.name}:**\n${t.result!.slice(0, 3000)}`
+        `**${workflow.steps[t.stepIndex!]!.name}:**\n${t.result!.slice(0, STEP_CONTEXT_MAX)}`
       )
       .join('\n\n');
 
@@ -230,7 +233,7 @@ export class WorkflowExecutor {
 
         // Add to cumulative context
         if (updatedStepTask?.result) {
-          cumulativeContext += `\n\n**${step.name}:**\n${updatedStepTask.result.slice(0, 3000)}`;
+          cumulativeContext += `\n\n**${step.name}:**\n${updatedStepTask.result.slice(0, STEP_CONTEXT_MAX)}`;
         }
 
         // Check if step hit an approval gate
