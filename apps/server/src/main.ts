@@ -8,6 +8,7 @@ import { SanitizePipe } from './shared/pipes/sanitize.pipe';
 import { GlobalExceptionFilter } from './shared/filters/http-exception.filter';
 import { EnrichContextInterceptor } from './shared/interceptors/enrich-context.interceptor';
 import { PaginationInterceptor } from './shared/interceptors/pagination.interceptor';
+import { CsrfMiddleware } from './shared/middleware/csrf.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -15,6 +16,10 @@ async function bootstrap() {
   });
 
   app.use(cookieParser());
+
+  // CSRF protection (double-submit cookie pattern)
+  const csrf = new CsrfMiddleware();
+  app.use(csrf.use.bind(csrf));
 
   // Trust first proxy hop (Caddy/nginx) for correct req.ip
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
@@ -68,7 +73,7 @@ async function bootstrap() {
         },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-XSRF-TOKEN'],
   });
 
 
