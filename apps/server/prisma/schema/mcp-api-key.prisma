@@ -10,6 +10,7 @@ model McpApiKey {
   organisationId String
   lastUsedAt     DateTime?
   createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   revokedAt      DateTime?
 
   @@index([prefix])

@@ -224,6 +224,8 @@ model ToleranceEvaluation {
   // Auto-generated alert (if exceeds)
   alertId String?
 
+  updatedAt DateTime @updatedAt
+
   @@index([riskId])
   @@index([status])
   @@index([evaluatedAt])
