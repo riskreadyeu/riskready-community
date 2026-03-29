@@ -32,7 +32,6 @@ function resolveUserRole(email: string): 'ADMIN' | 'USER' {
   const adminEmails = new Set([
     'admin@riskready.com',
     'admin@local.test',
-    'ciso@clearstream.ie',
     process.env['ADMIN_EMAIL']?.trim().toLowerCase(),
     ...configuredAdmins,
   ].filter((value): value is string => Boolean(value)));
