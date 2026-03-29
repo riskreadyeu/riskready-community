@@ -247,6 +247,7 @@ model Incident {
   @@index([organisationId])
   @@index([handlerId])
   @@index([incidentManagerId])
+  @@index([organisationId, status])
 }
 
 // ============================================
