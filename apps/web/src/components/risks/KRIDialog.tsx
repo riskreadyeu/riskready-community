@@ -19,15 +19,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  createKRI, 
+import {
+  createKRI,
   updateKRI,
-  type KeyRiskIndicator, 
-  type RiskTier, 
+  type KeyRiskIndicator,
+  type RiskTier,
   type ControlFramework,
   type CollectionFrequency,
 } from "@/lib/risks-api";
 import { Activity, Loader2 } from "lucide-react";
+import { useZodForm, z } from "@/lib/form-utils";
+import { FieldErrorMessage } from "@/components/common/form-field";
+
+const kriSchema = z.object({
+  kriId: z.string().min(1, "KRI ID is required"),
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional().default(""),
+  tier: z.enum(["CORE", "EXTENDED", "ADVANCED"]).default("CORE"),
+  framework: z.enum(["ISO", "SOC2", "NIS2", "DORA"]).default("ISO"),
+  frequency: z.enum(["DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "ANNUAL", "PER_EVENT", "PER_INCIDENT"]).default("MONTHLY"),
+  unit: z.string().optional().default(""),
+  formula: z.string().optional().default(""),
+  dataSource: z.string().optional().default(""),
+  automated: z.boolean().default(false),
+  thresholdGreen: z.string().optional().default(""),
+  thresholdAmber: z.string().optional().default(""),
+  thresholdRed: z.string().optional().default(""),
+  soc2Criteria: z.string().optional().default(""),
+});
+
+type KRIFormValues = z.infer<typeof kriSchema>;
 
 interface KRIDialogProps {
   kri?: KeyRiskIndicator | null;
@@ -37,23 +58,24 @@ interface KRIDialogProps {
   onSuccess?: () => void;
 }
 
-export function KRIDialog({ 
-  kri, 
-  riskId, 
-  open, 
-  onOpenChange, 
-  onSuccess 
+export function KRIDialog({
+  kri,
+  riskId,
+  open,
+  onOpenChange,
+  onSuccess
 }: KRIDialogProps) {
   const isEditing = !!kri;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
+
+  const form = useZodForm(kriSchema, {
     kriId: "",
     name: "",
     description: "",
-    tier: "CORE" as RiskTier,
-    framework: "ISO" as ControlFramework,
-    frequency: "MONTHLY" as CollectionFrequency,
+    tier: "CORE",
+    framework: "ISO",
+    frequency: "MONTHLY",
     unit: "",
     formula: "",
     dataSource: "",
@@ -64,15 +86,20 @@ export function KRIDialog({
     soc2Criteria: "",
   });
 
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = form;
+
+  const framework = watch("framework");
+  const automated = watch("automated");
+
   useEffect(() => {
     if (kri) {
-      setForm({
+      reset({
         kriId: kri.kriId || "",
         name: kri.name || "",
         description: kri.description || "",
         tier: kri.tier,
         framework: kri.framework,
-        frequency: kri.frequency,
+        frequency: kri.frequency as KRIFormValues["frequency"],
         unit: kri.unit || "",
         formula: kri.formula || "",
         dataSource: kri.dataSource || "",
@@ -83,44 +110,33 @@ export function KRIDialog({
         soc2Criteria: kri.soc2Criteria || "",
       });
     } else {
-      resetForm();
+      reset({
+        kriId: "",
+        name: "",
+        description: "",
+        tier: "CORE",
+        framework: "ISO",
+        frequency: "MONTHLY",
+        unit: "",
+        formula: "",
+        dataSource: "",
+        automated: false,
+        thresholdGreen: "",
+        thresholdAmber: "",
+        thresholdRed: "",
+        soc2Criteria: "",
+      });
     }
-  }, [kri]);
+  }, [kri, reset]);
 
-  const resetForm = () => {
-    setForm({
-      kriId: "",
-      name: "",
-      description: "",
-      tier: "CORE",
-      framework: "ISO",
-      frequency: "MONTHLY",
-      unit: "",
-      formula: "",
-      dataSource: "",
-      automated: false,
-      thresholdGreen: "",
-      thresholdAmber: "",
-      thresholdRed: "",
-      soc2Criteria: "",
-    });
-    setError(null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!form.kriId || !form.name) {
-      setError("KRI ID and Name are required");
-      return;
-    }
-
+  const onSubmit = handleSubmit(async (data: KRIFormValues) => {
     try {
       setSaving(true);
       setError(null);
 
       const payload = {
-        ...form,
+        ...data,
+        frequency: data.frequency as CollectionFrequency,
         riskId: riskId || kri?.riskId,
       };
 
@@ -129,20 +145,20 @@ export function KRIDialog({
       } else {
         await createKRI(payload);
       }
-      
+
       onSuccess?.();
       onOpenChange(false);
-      if (!isEditing) resetForm();
+      if (!isEditing) reset();
     } catch (err: unknown) {
       console.error("Error saving KRI:", err);
       setError(err instanceof Error ? err.message : "Failed to save KRI");
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const handleClose = () => {
-    if (!isEditing) resetForm();
+    if (!isEditing) reset();
     setError(null);
     onOpenChange(false);
   };
@@ -160,7 +176,7 @@ export function KRIDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={onSubmit}>
           <div className="space-y-6 py-4">
             {error && (
               <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -174,18 +190,17 @@ export function KRIDialog({
                 <Label htmlFor="kriId">KRI ID *</Label>
                 <Input
                   id="kriId"
-                  value={form.kriId}
-                  onChange={(e) => setForm({ ...form, kriId: e.target.value })}
+                  {...register("kriId")}
                   placeholder="e.g., KRI-001"
                   disabled={isEditing}
-                  required
                 />
+                <FieldErrorMessage error={errors.kriId} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="framework">Framework</Label>
                 <Select
-                  value={form.framework}
-                  onValueChange={(v) => setForm({ ...form, framework: v as ControlFramework })}
+                  value={watch("framework")}
+                  onValueChange={(v) => setValue("framework", v as ControlFramework, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -204,19 +219,17 @@ export function KRIDialog({
               <Label htmlFor="name">Name *</Label>
               <Input
                 id="name"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                {...register("name")}
                 placeholder="Brief KRI name"
-                required
               />
+              <FieldErrorMessage error={errors.name} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                {...register("description")}
                 placeholder="What does this KRI measure and why is it important?"
                 rows={3}
               />
@@ -227,8 +240,8 @@ export function KRIDialog({
               <div className="space-y-2">
                 <Label htmlFor="tier">Tier</Label>
                 <Select
-                  value={form.tier}
-                  onValueChange={(v) => setForm({ ...form, tier: v as RiskTier })}
+                  value={watch("tier")}
+                  onValueChange={(v) => setValue("tier", v as RiskTier, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -243,20 +256,20 @@ export function KRIDialog({
               <div className="space-y-2">
                 <Label htmlFor="frequency">Collection Frequency</Label>
                 <Select
-                  value={form.frequency}
-                  onValueChange={(v) => setForm({ ...form, frequency: v as CollectionFrequency })}
+                  value={watch("frequency")}
+                  onValueChange={(v) => setValue("frequency", v as KRIFormValues["frequency"], { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="REAL_TIME">Real-time</SelectItem>
                     <SelectItem value="DAILY">Daily</SelectItem>
                     <SelectItem value="WEEKLY">Weekly</SelectItem>
                     <SelectItem value="MONTHLY">Monthly</SelectItem>
                     <SelectItem value="QUARTERLY">Quarterly</SelectItem>
-                    <SelectItem value="ANNUALLY">Annually</SelectItem>
-                    <SelectItem value="AD_HOC">Ad-hoc</SelectItem>
+                    <SelectItem value="ANNUAL">Annual</SelectItem>
+                    <SelectItem value="PER_EVENT">Per Event</SelectItem>
+                    <SelectItem value="PER_INCIDENT">Per Incident</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -264,8 +277,7 @@ export function KRIDialog({
                 <Label htmlFor="unit">Unit of Measure</Label>
                 <Input
                   id="unit"
-                  value={form.unit}
-                  onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                  {...register("unit")}
                   placeholder="e.g., %, hours, count"
                 />
               </div>
@@ -274,14 +286,13 @@ export function KRIDialog({
             {/* Formula & Data Source */}
             <div className="space-y-4 p-4 rounded-lg bg-secondary/30 border">
               <h4 className="font-medium text-sm">Measurement Details</h4>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="formula">Formula</Label>
                 <Textarea
                   id="formula"
-                  value={form.formula}
-                  onChange={(e) => setForm({ ...form, formula: e.target.value })}
-                  placeholder="How is this KRI calculated? e.g., (Failed logins / Total logins) × 100"
+                  {...register("formula")}
+                  placeholder="How is this KRI calculated? e.g., (Failed logins / Total logins) x 100"
                   rows={2}
                 />
               </div>
@@ -291,8 +302,7 @@ export function KRIDialog({
                   <Label htmlFor="dataSource">Data Source</Label>
                   <Input
                     id="dataSource"
-                    value={form.dataSource}
-                    onChange={(e) => setForm({ ...form, dataSource: e.target.value })}
+                    {...register("dataSource")}
                     placeholder="e.g., SIEM, ServiceNow, Manual"
                   />
                 </div>
@@ -300,19 +310,18 @@ export function KRIDialog({
                   <Label htmlFor="automated" className="text-sm">Automated Collection</Label>
                   <Switch
                     id="automated"
-                    checked={form.automated}
-                    onCheckedChange={(checked) => setForm({ ...form, automated: checked })}
+                    checked={automated}
+                    onCheckedChange={(checked) => setValue("automated", checked, { shouldValidate: true })}
                   />
                 </div>
               </div>
 
-              {form.framework === "SOC2" && (
+              {framework === "SOC2" && (
                 <div className="space-y-2">
                   <Label htmlFor="soc2Criteria">SOC 2 Criteria</Label>
                   <Input
                     id="soc2Criteria"
-                    value={form.soc2Criteria}
-                    onChange={(e) => setForm({ ...form, soc2Criteria: e.target.value })}
+                    {...register("soc2Criteria")}
                     placeholder="e.g., CC6.1"
                   />
                 </div>
@@ -323,14 +332,13 @@ export function KRIDialog({
             <div className="space-y-4 p-4 rounded-lg bg-secondary/30 border">
               <h4 className="font-medium text-sm">RAG Thresholds</h4>
               <p className="text-xs text-muted-foreground">Define thresholds for status classification (e.g., "&lt;5" or "5-10" or "&gt;10")</p>
-              
+
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="thresholdGreen" className="text-green-600">Green</Label>
                   <Input
                     id="thresholdGreen"
-                    value={form.thresholdGreen}
-                    onChange={(e) => setForm({ ...form, thresholdGreen: e.target.value })}
+                    {...register("thresholdGreen")}
                     placeholder="e.g., <5%"
                     className="border-green-500/50 focus-visible:ring-green-500"
                   />
@@ -340,8 +348,7 @@ export function KRIDialog({
                   <Label htmlFor="thresholdAmber" className="text-amber-600">Amber</Label>
                   <Input
                     id="thresholdAmber"
-                    value={form.thresholdAmber}
-                    onChange={(e) => setForm({ ...form, thresholdAmber: e.target.value })}
+                    {...register("thresholdAmber")}
                     placeholder="e.g., 5-10%"
                     className="border-amber-500/50 focus-visible:ring-amber-500"
                   />
@@ -351,8 +358,7 @@ export function KRIDialog({
                   <Label htmlFor="thresholdRed" className="text-red-600">Red</Label>
                   <Input
                     id="thresholdRed"
-                    value={form.thresholdRed}
-                    onChange={(e) => setForm({ ...form, thresholdRed: e.target.value })}
+                    {...register("thresholdRed")}
                     placeholder="e.g., >10%"
                     className="border-red-500/50 focus-visible:ring-red-500"
                   />

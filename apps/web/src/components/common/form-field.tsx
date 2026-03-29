@@ -235,7 +235,7 @@ interface RHFFormFieldProps<T extends FieldValues> {
   control: Control<T>;
   name: FieldPath<T>;
   label: string;
-  type?: "text" | "email" | "password" | "number" | "textarea" | "select" | "switch" | "date" | "datetime-local";
+  type?: "text" | "email" | "password" | "number" | "textarea" | "select" | "date" | "datetime-local" | "switch";
   placeholder?: string;
   options?: Array<{ value: string; label: string }>;
   required?: boolean;
@@ -357,7 +357,7 @@ export function RHFFormField<T extends FieldValues>({
               {required && <span className="text-destructive ml-1">*</span>}
             </Label>
             {renderInput()}
-            {description && type !== "switch" && (
+            {description && (
               <p className="text-xs text-muted-foreground">{description}</p>
             )}
             {error && <p className="text-xs text-destructive">{error.message}</p>}

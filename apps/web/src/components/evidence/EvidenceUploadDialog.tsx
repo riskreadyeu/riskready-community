@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { Upload, X, File, AlertCircle } from "lucide-react";
 import {
   Dialog,
@@ -27,6 +26,8 @@ import {
   type CreateEvidenceInput,
   createEvidence,
 } from "@/lib/evidence-api";
+import { useZodForm, z } from "@/lib/form-utils";
+import { FieldErrorMessage } from "@/components/common/form-field";
 
 interface EvidenceUploadDialogProps {
   open: boolean;
@@ -63,17 +64,26 @@ const classificationOptions: { value: EvidenceClassification; label: string; col
   { value: "RESTRICTED", label: "Restricted", color: "bg-red-500/10 text-red-500" },
 ];
 
-interface FormData {
-  title: string;
-  description: string;
-  evidenceType: EvidenceType;
-  classification: EvidenceClassification;
-  category: string;
-  tags: string;
-  validFrom: string;
-  validUntil: string;
-  notes: string;
-}
+const evidenceUploadSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional().default(""),
+  evidenceType: z.enum([
+    "DOCUMENT", "CERTIFICATE", "REPORT", "POLICY", "PROCEDURE",
+    "SCREENSHOT", "LOG", "CONFIGURATION", "NETWORK_CAPTURE",
+    "MEMORY_DUMP", "DISK_IMAGE", "MALWARE_SAMPLE",
+    "EMAIL", "MEETING_NOTES", "APPROVAL_RECORD", "AUDIT_REPORT",
+    "ASSESSMENT_RESULT", "TEST_RESULT", "SCAN_RESULT",
+    "VIDEO", "AUDIO", "OTHER",
+  ]).default("DOCUMENT"),
+  classification: z.enum(["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"]).default("INTERNAL"),
+  category: z.string().optional().default(""),
+  tags: z.string().optional().default(""),
+  validFrom: z.string().optional().default(""),
+  validUntil: z.string().optional().default(""),
+  notes: z.string().optional().default(""),
+});
+
+type EvidenceUploadFormValues = z.infer<typeof evidenceUploadSchema>;
 
 export function EvidenceUploadDialog({
   open,
@@ -86,19 +96,19 @@ export function EvidenceUploadDialog({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<FormData>({
-    defaultValues: {
-      title: "",
-      description: "",
-      evidenceType: "DOCUMENT",
-      classification: "INTERNAL",
-      category: "",
-      tags: "",
-      validFrom: "",
-      validUntil: "",
-      notes: "",
-    },
+  const form = useZodForm(evidenceUploadSchema, {
+    title: "",
+    description: "",
+    evidenceType: "DOCUMENT",
+    classification: "INTERNAL",
+    category: "",
+    tags: "",
+    validFrom: "",
+    validUntil: "",
+    notes: "",
   });
+
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = form;
 
   const evidenceType = watch("evidenceType");
   const classification = watch("classification");
@@ -117,7 +127,7 @@ export function EvidenceUploadDialog({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       setSelectedFile(file);
@@ -137,7 +147,7 @@ export function EvidenceUploadDialog({
     }
   };
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = handleSubmit(async (data: EvidenceUploadFormValues) => {
     try {
       setUploading(true);
       setError(null);
@@ -145,7 +155,7 @@ export function EvidenceUploadDialog({
       // In a real implementation, you would upload the file first
       // and get back a URL. For now, we'll create the evidence record
       // with placeholder file info.
-      
+
       const input: CreateEvidenceInput = {
         title: data.title,
         description: data.description || undefined,
@@ -167,7 +177,7 @@ export function EvidenceUploadDialog({
       };
 
       await createEvidence(input);
-      
+
       reset();
       setSelectedFile(null);
       onOpenChange(false);
@@ -178,7 +188,7 @@ export function EvidenceUploadDialog({
     } finally {
       setUploading(false);
     }
-  };
+  });
 
   const handleClose = () => {
     reset();
@@ -200,7 +210,7 @@ export function EvidenceUploadDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={onSubmit} className="space-y-6">
           {/* File Drop Zone */}
           <div
             className={`
@@ -254,11 +264,9 @@ export function EvidenceUploadDialog({
               <Input
                 id="title"
                 placeholder="Evidence title"
-                {...register("title", { required: "Title is required" })}
+                {...register("title")}
               />
-              {errors.title && (
-                <p className="text-xs text-destructive">{errors.title.message}</p>
-              )}
+              <FieldErrorMessage error={errors.title} />
             </div>
 
             <div className="space-y-2">
@@ -287,7 +295,7 @@ export function EvidenceUploadDialog({
               <Label>Evidence Type *</Label>
               <Select
                 value={evidenceType}
-                onValueChange={(v) => setValue("evidenceType", v as EvidenceType)}
+                onValueChange={(v) => setValue("evidenceType", v as EvidenceUploadFormValues["evidenceType"], { shouldValidate: true })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -306,7 +314,7 @@ export function EvidenceUploadDialog({
               <Label>Classification *</Label>
               <Select
                 value={classification}
-                onValueChange={(v) => setValue("classification", v as EvidenceClassification)}
+                onValueChange={(v) => setValue("classification", v as EvidenceUploadFormValues["classification"], { shouldValidate: true })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -391,4 +399,3 @@ export function EvidenceUploadDialog({
     </Dialog>
   );
 }
-

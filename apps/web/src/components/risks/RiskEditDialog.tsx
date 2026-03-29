@@ -21,6 +21,30 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { updateRisk, type Risk, type RiskTier, type RiskStatus, type ControlFramework } from "@/lib/risks-api";
 import { Edit, Loader2 } from "lucide-react";
+import { useZodForm, z } from "@/lib/form-utils";
+import { FieldErrorMessage } from "@/components/common/form-field";
+
+const riskEditSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional().default(""),
+  tier: z.enum(["CORE", "EXTENDED", "ADVANCED"]),
+  status: z.enum(["IDENTIFIED", "ASSESSED", "TREATING", "ACCEPTED", "CLOSED"]),
+  framework: z.enum(["ISO", "SOC2", "NIS2", "DORA"]),
+  riskOwner: z.string().optional().default(""),
+  likelihood: z.string().optional().default(""),
+  impact: z.string().optional().default(""),
+  treatmentPlan: z.string().optional().default(""),
+  acceptanceCriteria: z.string().optional().default(""),
+  inherentScore: z.number().min(0).max(25).default(0),
+  residualScore: z.number().min(0).max(25).default(0),
+  applicable: z.boolean().default(true),
+  justificationIfNa: z.string().optional().default(""),
+  soc2Criteria: z.string().optional().default(""),
+  tscCategory: z.string().optional().default(""),
+  orgSize: z.string().optional().default(""),
+});
+
+type RiskEditFormValues = z.infer<typeof riskEditSchema>;
 
 interface RiskEditDialogProps {
   risk: Risk | null;
@@ -32,12 +56,13 @@ interface RiskEditDialogProps {
 export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEditDialogProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
+
+  const form = useZodForm(riskEditSchema, {
     title: "",
     description: "",
-    tier: "CORE" as RiskTier,
-    status: "IDENTIFIED" as RiskStatus,
-    framework: "ISO" as ControlFramework,
+    tier: "CORE",
+    status: "IDENTIFIED",
+    framework: "ISO",
     riskOwner: "",
     likelihood: "",
     impact: "",
@@ -52,9 +77,14 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
     orgSize: "",
   });
 
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = form;
+
+  const applicable = watch("applicable");
+  const framework = watch("framework");
+
   useEffect(() => {
     if (risk) {
-      setForm({
+      reset({
         title: risk.title || "",
         description: risk.description || "",
         tier: risk.tier,
@@ -74,20 +104,15 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
         orgSize: risk.orgSize || "",
       });
     }
-  }, [risk]);
+  }, [risk, reset]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!risk || !form.title) {
-      setError("Title is required");
-      return;
-    }
+  const onSubmit = handleSubmit(async (data: RiskEditFormValues) => {
+    if (!risk) return;
 
     try {
       setSaving(true);
       setError(null);
-      await updateRisk(risk.id, form);
+      await updateRisk(risk.id, data);
       onSuccess?.();
       onOpenChange(false);
     } catch (err: unknown) {
@@ -96,7 +121,7 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const handleClose = () => {
     setError(null);
@@ -118,7 +143,7 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={onSubmit}>
           <div className="space-y-6 py-4">
             {error && (
               <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -140,8 +165,8 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
               <div className="space-y-2">
                 <Label htmlFor="framework">Framework</Label>
                 <Select
-                  value={form.framework}
-                  onValueChange={(v) => setForm({ ...form, framework: v as ControlFramework })}
+                  value={watch("framework")}
+                  onValueChange={(v) => setValue("framework", v as ControlFramework, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -160,19 +185,17 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
               <Label htmlFor="title">Title *</Label>
               <Input
                 id="title"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                {...register("title")}
                 placeholder="Brief risk title"
-                required
               />
+              <FieldErrorMessage error={errors.title} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                {...register("description")}
                 placeholder="Detailed risk description..."
                 rows={4}
               />
@@ -183,8 +206,8 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
               <div className="space-y-2">
                 <Label htmlFor="tier">Risk Tier</Label>
                 <Select
-                  value={form.tier}
-                  onValueChange={(v) => setForm({ ...form, tier: v as RiskTier })}
+                  value={watch("tier")}
+                  onValueChange={(v) => setValue("tier", v as RiskTier, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -199,8 +222,8 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select
-                  value={form.status}
-                  onValueChange={(v) => setForm({ ...form, status: v as RiskStatus })}
+                  value={watch("status")}
+                  onValueChange={(v) => setValue("status", v as RiskStatus, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -221,8 +244,8 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
               <div className="space-y-2">
                 <Label htmlFor="likelihood">Likelihood</Label>
                 <Select
-                  value={form.likelihood}
-                  onValueChange={(v) => setForm({ ...form, likelihood: v })}
+                  value={watch("likelihood")}
+                  onValueChange={(v) => setValue("likelihood", v, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select..." />
@@ -239,8 +262,8 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
               <div className="space-y-2">
                 <Label htmlFor="impact">Impact</Label>
                 <Select
-                  value={form.impact}
-                  onValueChange={(v) => setForm({ ...form, impact: v })}
+                  value={watch("impact")}
+                  onValueChange={(v) => setValue("impact", v, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select..." />
@@ -258,8 +281,7 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
                 <Label htmlFor="riskOwner">Risk Owner</Label>
                 <Input
                   id="riskOwner"
-                  value={form.riskOwner}
-                  onChange={(e) => setForm({ ...form, riskOwner: e.target.value })}
+                  {...register("riskOwner")}
                   placeholder="Name or role"
                 />
               </div>
@@ -274,10 +296,10 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
                   type="number"
                   min={0}
                   max={25}
-                  value={form.inherentScore || ""}
-                  onChange={(e) => setForm({ ...form, inherentScore: parseInt(e.target.value) || 0 })}
+                  {...register("inherentScore", { valueAsNumber: true })}
                   placeholder="0"
                 />
+                <FieldErrorMessage error={errors.inherentScore} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="residualScore">Residual Risk Score (1-25)</Label>
@@ -286,10 +308,10 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
                   type="number"
                   min={0}
                   max={25}
-                  value={form.residualScore || ""}
-                  onChange={(e) => setForm({ ...form, residualScore: parseInt(e.target.value) || 0 })}
+                  {...register("residualScore", { valueAsNumber: true })}
                   placeholder="0"
                 />
+                <FieldErrorMessage error={errors.residualScore} />
               </div>
             </div>
 
@@ -298,8 +320,7 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
               <Label htmlFor="treatmentPlan">Treatment Plan</Label>
               <Textarea
                 id="treatmentPlan"
-                value={form.treatmentPlan}
-                onChange={(e) => setForm({ ...form, treatmentPlan: e.target.value })}
+                {...register("treatmentPlan")}
                 placeholder="Describe the risk treatment approach..."
                 rows={3}
               />
@@ -309,8 +330,7 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
               <Label htmlFor="acceptanceCriteria">Acceptance Criteria</Label>
               <Textarea
                 id="acceptanceCriteria"
-                value={form.acceptanceCriteria}
-                onChange={(e) => setForm({ ...form, acceptanceCriteria: e.target.value })}
+                {...register("acceptanceCriteria")}
                 placeholder="Criteria for accepting residual risk..."
                 rows={2}
               />
@@ -324,32 +344,30 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
                 <Label htmlFor="applicable">Applicable</Label>
                 <Switch
                   id="applicable"
-                  checked={form.applicable}
-                  onCheckedChange={(checked) => setForm({ ...form, applicable: checked })}
+                  checked={applicable}
+                  onCheckedChange={(checked) => setValue("applicable", checked, { shouldValidate: true })}
                 />
               </div>
 
-              {!form.applicable && (
+              {!applicable && (
                 <div className="space-y-2">
                   <Label htmlFor="justificationIfNa">Justification (if N/A)</Label>
                   <Textarea
                     id="justificationIfNa"
-                    value={form.justificationIfNa}
-                    onChange={(e) => setForm({ ...form, justificationIfNa: e.target.value })}
+                    {...register("justificationIfNa")}
                     placeholder="Explain why this risk is not applicable..."
                     rows={2}
                   />
                 </div>
               )}
 
-              {form.framework === "SOC2" && (
+              {framework === "SOC2" && (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="soc2Criteria">SOC 2 Criteria</Label>
                     <Input
                       id="soc2Criteria"
-                      value={form.soc2Criteria}
-                      onChange={(e) => setForm({ ...form, soc2Criteria: e.target.value })}
+                      {...register("soc2Criteria")}
                       placeholder="e.g., CC6.1"
                     />
                   </div>
@@ -357,8 +375,7 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
                     <Label htmlFor="tscCategory">TSC Category</Label>
                     <Input
                       id="tscCategory"
-                      value={form.tscCategory}
-                      onChange={(e) => setForm({ ...form, tscCategory: e.target.value })}
+                      {...register("tscCategory")}
                       placeholder="e.g., Security"
                     />
                   </div>
@@ -369,8 +386,7 @@ export function RiskEditDialog({ risk, open, onOpenChange, onSuccess }: RiskEdit
                 <Label htmlFor="orgSize">Organization Size</Label>
                 <Input
                   id="orgSize"
-                  value={form.orgSize}
-                  onChange={(e) => setForm({ ...form, orgSize: e.target.value })}
+                  {...register("orgSize")}
                   placeholder="e.g., SME, Large Enterprise"
                 />
               </div>

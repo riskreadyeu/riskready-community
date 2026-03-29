@@ -20,7 +20,22 @@ import {
 } from "@/components/ui/select";
 import { createRiskScenario, updateRiskScenario, type RiskScenario, type ControlFramework, type LikelihoodLevel, type ImpactLevel } from "@/lib/risks-api";
 import { Target, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useZodForm, z } from "@/lib/form-utils";
+import { FieldErrorMessage } from "@/components/common/form-field";
+
+const scenarioSchema = z.object({
+  scenarioId: z.string().min(1, "Scenario ID is required"),
+  title: z.string().min(1, "Title is required"),
+  cause: z.string().optional().default(""),
+  event: z.string().optional().default(""),
+  consequence: z.string().optional().default(""),
+  framework: z.enum(["ISO", "SOC2", "NIS2", "DORA"]).default("ISO"),
+  likelihood: z.string().optional().default(""),
+  impact: z.string().optional().default(""),
+  controlIds: z.string().optional().default(""),
+});
+
+type ScenarioFormValues = z.infer<typeof scenarioSchema>;
 
 interface RiskScenarioDialogProps {
   scenario?: RiskScenario | null;
@@ -30,31 +45,34 @@ interface RiskScenarioDialogProps {
   onSuccess?: () => void;
 }
 
-export function RiskScenarioDialog({ 
-  scenario, 
-  riskId, 
-  open, 
-  onOpenChange, 
-  onSuccess 
+export function RiskScenarioDialog({
+  scenario,
+  riskId,
+  open,
+  onOpenChange,
+  onSuccess
 }: RiskScenarioDialogProps) {
   const isEditing = !!scenario;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
+
+  const form = useZodForm(scenarioSchema, {
     scenarioId: "",
     title: "",
     cause: "",
     event: "",
     consequence: "",
-    framework: "ISO" as ControlFramework,
+    framework: "ISO",
     likelihood: "",
     impact: "",
     controlIds: "",
   });
 
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = form;
+
   useEffect(() => {
     if (scenario) {
-      setForm({
+      reset({
         scenarioId: scenario.scenarioId || "",
         title: scenario.title || "",
         cause: scenario.cause || "",
@@ -66,41 +84,29 @@ export function RiskScenarioDialog({
         controlIds: scenario.controlIds || "",
       });
     } else {
-      resetForm();
+      reset({
+        scenarioId: "",
+        title: "",
+        cause: "",
+        event: "",
+        consequence: "",
+        framework: "ISO",
+        likelihood: "",
+        impact: "",
+        controlIds: "",
+      });
     }
-  }, [scenario]);
+  }, [scenario, reset]);
 
-  const resetForm = () => {
-    setForm({
-      scenarioId: "",
-      title: "",
-      cause: "",
-      event: "",
-      consequence: "",
-      framework: "ISO",
-      likelihood: "",
-      impact: "",
-      controlIds: "",
-    });
-    setError(null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!form.scenarioId || !form.title) {
-      setError("Scenario ID and Title are required");
-      return;
-    }
-
+  const onSubmit = handleSubmit(async (data: ScenarioFormValues) => {
     try {
       setSaving(true);
       setError(null);
 
       const payload = {
-        ...form,
-        likelihood: form.likelihood ? form.likelihood as LikelihoodLevel : undefined,
-        impact: form.impact ? form.impact as ImpactLevel : undefined,
+        ...data,
+        likelihood: data.likelihood ? data.likelihood as LikelihoodLevel : undefined,
+        impact: data.impact ? data.impact as ImpactLevel : undefined,
         riskId: riskId || scenario?.riskId,
       };
 
@@ -109,20 +115,20 @@ export function RiskScenarioDialog({
       } else {
         await createRiskScenario(payload);
       }
-      
+
       onSuccess?.();
       onOpenChange(false);
-      if (!isEditing) resetForm();
+      if (!isEditing) reset();
     } catch (err: unknown) {
       console.error("Error saving scenario:", err);
       setError(err instanceof Error ? err.message : "Failed to save scenario");
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const handleClose = () => {
-    if (!isEditing) resetForm();
+    if (!isEditing) reset();
     setError(null);
     onOpenChange(false);
   };
@@ -140,7 +146,7 @@ export function RiskScenarioDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={onSubmit}>
           <div className="space-y-6 py-4">
             {error && (
               <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -154,18 +160,17 @@ export function RiskScenarioDialog({
                 <Label htmlFor="scenarioId">Scenario ID *</Label>
                 <Input
                   id="scenarioId"
-                  value={form.scenarioId}
-                  onChange={(e) => setForm({ ...form, scenarioId: e.target.value })}
+                  {...register("scenarioId")}
                   placeholder="e.g., SCN-001"
                   disabled={isEditing}
-                  required
                 />
+                <FieldErrorMessage error={errors.scenarioId} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="framework">Framework</Label>
                 <Select
-                  value={form.framework}
-                  onValueChange={(v) => setForm({ ...form, framework: v as ControlFramework })}
+                  value={watch("framework")}
+                  onValueChange={(v) => setValue("framework", v as ControlFramework, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -184,23 +189,21 @@ export function RiskScenarioDialog({
               <Label htmlFor="title">Title *</Label>
               <Input
                 id="title"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                {...register("title")}
                 placeholder="Brief scenario title"
-                required
               />
+              <FieldErrorMessage error={errors.title} />
             </div>
 
             {/* Cause-Event-Consequence */}
             <div className="space-y-4 p-4 rounded-lg bg-secondary/30 border">
               <h4 className="font-medium text-sm">Risk Flow (Cause → Event → Consequence)</h4>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="cause" className="text-blue-600">Cause</Label>
                 <Textarea
                   id="cause"
-                  value={form.cause}
-                  onChange={(e) => setForm({ ...form, cause: e.target.value })}
+                  {...register("cause")}
                   placeholder="What triggers or enables this risk scenario?"
                   rows={2}
                 />
@@ -210,8 +213,7 @@ export function RiskScenarioDialog({
                 <Label htmlFor="event" className="text-amber-600">Event</Label>
                 <Textarea
                   id="event"
-                  value={form.event}
-                  onChange={(e) => setForm({ ...form, event: e.target.value })}
+                  {...register("event")}
                   placeholder="What happens when this risk materializes?"
                   rows={2}
                 />
@@ -221,8 +223,7 @@ export function RiskScenarioDialog({
                 <Label htmlFor="consequence" className="text-red-600">Consequence</Label>
                 <Textarea
                   id="consequence"
-                  value={form.consequence}
-                  onChange={(e) => setForm({ ...form, consequence: e.target.value })}
+                  {...register("consequence")}
                   placeholder="What is the impact on the organization?"
                   rows={2}
                 />
@@ -234,8 +235,8 @@ export function RiskScenarioDialog({
               <div className="space-y-2">
                 <Label htmlFor="likelihood">Likelihood</Label>
                 <Select
-                  value={form.likelihood}
-                  onValueChange={(v) => setForm({ ...form, likelihood: v })}
+                  value={watch("likelihood")}
+                  onValueChange={(v) => setValue("likelihood", v, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select..." />
@@ -252,8 +253,8 @@ export function RiskScenarioDialog({
               <div className="space-y-2">
                 <Label htmlFor="impact">Impact</Label>
                 <Select
-                  value={form.impact}
-                  onValueChange={(v) => setForm({ ...form, impact: v })}
+                  value={watch("impact")}
+                  onValueChange={(v) => setValue("impact", v, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select..." />
@@ -274,8 +275,7 @@ export function RiskScenarioDialog({
               <Label htmlFor="controlIds">Related Control IDs</Label>
               <Input
                 id="controlIds"
-                value={form.controlIds}
-                onChange={(e) => setForm({ ...form, controlIds: e.target.value })}
+                {...register("controlIds")}
                 placeholder="e.g., A.5.1, A.5.2, A.6.1 (comma-separated)"
               />
               <p className="text-xs text-muted-foreground">Comma-separated list of control IDs that mitigate this scenario</p>
