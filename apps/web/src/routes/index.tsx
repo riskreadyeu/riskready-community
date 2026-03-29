@@ -15,7 +15,11 @@ import { policiesRoutes } from "./policies-routes";
 import { risksRoutes } from "./risks-routes";
 import { settingsRoutes } from "./settings-routes";
 
-export const loadingFallback = <div className="p-6">Loading...</div>;
+export const loadingFallback = (
+  <div className="flex items-center justify-center min-h-[200px]">
+    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+  </div>
+);
 
 export function buildUnauthenticatedRoutes(props: {
   from: string;
