@@ -64,16 +64,21 @@ async function seedUsers(): Promise<DemoContext['users']> {
 
   const users: Record<string, string> = {};
 
+  // These demo roles get ADMIN access in the app
+  const adminRoles = new Set(['admin', 'ciso']);
+
   for (const def of userDefs) {
+    const dbRole = adminRoles.has(def.role) ? 'ADMIN' : 'USER';
     const user = await prisma.user.upsert({
       where: { email: def.email },
-      update: {},
+      update: { role: dbRole },
       create: {
         email: def.email,
         passwordHash: hash,
         firstName: def.firstName,
         lastName: def.lastName,
         isActive: true,
+        role: dbRole,
       },
     });
     users[def.role] = user.id;
