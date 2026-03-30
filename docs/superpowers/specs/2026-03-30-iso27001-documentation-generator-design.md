@@ -86,6 +86,7 @@ interface Iso27001DocumentDef {
   tags: string[];
   requiresAcknowledgment: boolean;
   parentDocumentId?: string;
+  documentOwner: string;          // role name, e.g. "CISO", "IT Security Manager"
   seeded?: boolean;               // true for existing 12 docs — generator skips these
 }
 
@@ -229,7 +230,9 @@ async function generateIso27001Documents(
 
 **Error handling:** If Claude API fails mid-wave, the engine returns a partial result with successfully created pending actions and an error for the failed document. NestJS endpoint returns HTTP 200 with the partial `GenerationResult` (the `summary` field indicates partial completion). The user can re-run the wave and duplicate protection (including pending action check) skips already-created docs.
 
-**Concurrency control:** The engine sets an in-memory flag per wave before starting. If a second request arrives for the same wave, it returns immediately with an error: "Generation already in progress for wave X." The flag is cleared on completion or failure.
+**Concurrency control:** The engine sets an in-memory flag per wave before starting. If a second request arrives for the same wave, it returns immediately with an error: "Generation already in progress for wave X." The flag is cleared on completion or failure. Note: this is a best-effort guard — if the process crashes mid-generation, the flag is lost but the pending-action duplicate check (step 2) is the true safety net preventing duplicate documents on re-run.
+
+**Wave ordering:** Waves can be generated in any order, but wave 1 is recommended first since later documents may cross-reference mandatory ISMS procedures. The generation prompt includes all existing policy titles (not just those from earlier waves) for cross-references, so generating out of order produces valid but potentially less cross-referenced documents.
 
 ### 3. Seed Data
 
@@ -269,7 +272,7 @@ Added to `apps/server/src/policies/`:
 **`POST /api/policies/generate-iso27001`**
 - Auth: `@UseGuards(JwtAuthGuard, AdminOnlyGuard)` + `@AdminOnly()`
 - Body: `{ wave: 1 | 2 | 3 }`
-- Calls the generation engine (imported from `apps/mcp-server-policies` as a shared function, or duplicated as a thin orchestrator that calls the same Claude logic)
+- Implements a thin `PolicyGenerationService` that reuses the shared types and registry from `packages/mcp-shared/src/iso27001/` but has its own Claude API call logic (avoids cross-package import from MCP server into NestJS)
 - `mcpSessionId` is omitted (optional param) — pending actions created without session linkage
 - Returns: `GenerationResult`
 
