@@ -32,6 +32,9 @@ RUN apt-get update -y \
 
 ENV NODE_ENV=production
 
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/package-lock.json ./package-lock.json
+COPY --from=build /app/.npmrc ./.npmrc
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
