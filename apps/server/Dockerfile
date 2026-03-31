@@ -7,7 +7,7 @@ RUN apt-get update -y \
   && apt-get install -y --no-install-recommends openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-COPY package.json package-lock.json .swcrc ./
+COPY package.json package-lock.json .swcrc .npmrc ./
 COPY tsconfig.json tsconfig.build.json ./
 COPY prisma ./prisma
 
