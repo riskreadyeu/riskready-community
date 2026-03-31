@@ -25,6 +25,7 @@
     "db:reset": "prisma migrate reset --force --schema=prisma/schema && npm run prisma:seed"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@nestjs/common": "11.1.16",
     "@nestjs/core": "11.1.16",
     "@nestjs/event-emitter": "3.0.1",
@@ -34,6 +35,7 @@
     "@nestjs/schedule": "6.1.0",
     "@nestjs/throttler": "6.5.0",
     "@prisma/client": "5.19.1",
+    "@riskready/mcp-shared": "file:../../packages/mcp-shared",
     "axios": "1.13.6",
     "bcryptjs": "2.4.3",
     "class-transformer": "0.5.1",

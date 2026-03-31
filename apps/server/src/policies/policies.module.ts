@@ -20,6 +20,7 @@ import { DocumentSectionService } from './services/document-section.service';
 import { DocumentAttachmentService } from './services/document-attachment.service';
 import { PolicySchedulerService } from './services/policy-scheduler.service';
 import { PolicyEvidenceCollectorService } from './services/policy-evidence-collector.service';
+import { Iso27001GenerationService } from './services/iso27001-generation.service';
 
 // Controllers
 import { PolicyDocumentController } from './controllers/policy-document.controller';
@@ -66,6 +67,7 @@ import { PolicyEvidenceController } from './controllers/policy-evidence.controll
     DocumentAttachmentService,
     PolicySchedulerService,
     PolicyEvidenceCollectorService,
+    Iso27001GenerationService,
   ],
   exports: [
     PolicyDocumentService,
@@ -82,6 +84,7 @@ import { PolicyEvidenceController } from './controllers/policy-evidence.controll
     DocumentAttachmentService,
     PolicySchedulerService,
     PolicyEvidenceCollectorService,
+    Iso27001GenerationService,
   ],
 })
 export class PoliciesModule {}
