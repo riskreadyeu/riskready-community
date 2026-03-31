@@ -180,6 +180,7 @@ export class McpApprovalExecutorService {
       policyDocumentService: this.policyDocumentService,
       documentExceptionService: this.documentExceptionService,
       changeRequestService: this.changeRequestService,
+      prismaService: this.prismaService,
     });
 
     registerEvidenceExecutors(this.executors, {
