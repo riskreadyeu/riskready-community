@@ -21,6 +21,20 @@ vi.mock('#src/prisma.js', () => {
   };
 });
 
+vi.mock('#mcp-shared', () => {
+  const { z } = require('zod');
+  const ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$|^c[a-z0-9]{24,}$/i;
+  return {
+    withErrorHandling: (_name: string, handler: Function) => handler,
+    createPendingAction: vi.fn(),
+    getDefaultOrganisationId: vi.fn().mockResolvedValue('org-test-001'),
+    zId: z.string().max(100).regex(ID_PATTERN),
+    zSessionId: z.string().max(200).optional(),
+    zOrgId: z.string().max(100).regex(ID_PATTERN).optional(),
+    zReason: z.string().max(1000).optional(),
+  };
+});
+
 import { registerMutationTools } from './mutation-tools.js';
 
 describe('policies — registerMutationTools', () => {

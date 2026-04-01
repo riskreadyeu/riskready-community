@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Request, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Request, NotFoundException, UseGuards } from '@nestjs/common';
 import { PolicyDocumentService } from '../services/policy-document.service';
+import { Iso27001GenerationService } from '../services/iso27001-generation.service';
 import {
   CreatePolicyDocumentDto,
   UpdatePolicyDocumentDto,
@@ -7,10 +8,14 @@ import {
 } from '../dto/policy.dto';
 import { DocumentType, DocumentStatus, Prisma } from '@prisma/client';
 import { AuthenticatedRequest } from '../../shared/types';
+import { AdminOnly, AdminOnlyGuard } from '../../shared/guards/admin-only.guard';
 
 @Controller('policies')
 export class PolicyDocumentController {
-  constructor(private readonly service: PolicyDocumentService) {}
+  constructor(
+    private readonly service: PolicyDocumentService,
+    private readonly iso27001GenerationService: Iso27001GenerationService,
+  ) {}
 
   @Get()
   async findAll(
@@ -99,6 +104,25 @@ export class PolicyDocumentController {
   ) {
     const documentId = await this.service.generateDocumentId(documentType, req.user.organisationId!, parentDocumentId);
     return { documentId };
+  }
+
+  @Post('generate-iso27001')
+  @UseGuards(AdminOnlyGuard)
+  @AdminOnly()
+  async generateIso27001(
+    @Body() body: { wave: 1 | 2 | 3 },
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.iso27001GenerationService.generate(
+      body.wave,
+      req.user.organisationId!,
+      req.user.id,
+    );
+  }
+
+  @Get('iso27001-status')
+  async getIso27001Status(@Request() req: AuthenticatedRequest) {
+    return this.iso27001GenerationService.getStatus(req.user.organisationId!);
   }
 
   @Get(':id')

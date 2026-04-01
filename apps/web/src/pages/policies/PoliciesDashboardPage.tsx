@@ -32,6 +32,7 @@ import {
   type RecentActivityItem,
 } from "@/lib/policies-api";
 import { cn } from "@/lib/utils";
+import Iso27001CoverageCard from "@/components/policies/Iso27001CoverageCard";
 
 const documentTypeColors: Record<string, string> = {
   POLICY: "bg-blue-500/10 text-blue-500 border-blue-500/30",
@@ -276,6 +277,9 @@ export default function PoliciesDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ISO 27001 Documentation Coverage */}
+      <Iso27001CoverageCard />
 
       {/* Actions Needed and Recent Activity */}
       <div className="grid gap-6 lg:grid-cols-2">

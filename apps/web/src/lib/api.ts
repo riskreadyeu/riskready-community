@@ -1,6 +1,6 @@
 import { fetchWithAuth } from './fetch-with-auth';
 
-type User = { id: string; email: string };
+type User = { id: string; email: string; organisationId?: string };
 
 type MeResponse = { user: User };
 

@@ -5,6 +5,7 @@ import { registerPolicyLifecycleTools } from './tools/policy-lifecycle-tools.js'
 import { registerPolicyMappingTools } from './tools/policy-mapping-tools.js';
 import { registerAnalysisTools } from './tools/analysis-tools.js';
 import { registerMutationTools } from './tools/mutation-tools.js';
+import { registerIso27001Tools } from './tools/iso27001-tools.js';
 import { registerResources } from './resources/index.js';
 import { registerPrompts } from './prompts/index.js';
 
@@ -34,6 +35,7 @@ registerPolicyLifecycleTools(server);
 registerPolicyMappingTools(server);
 registerAnalysisTools(server);
 registerMutationTools(server);
+registerIso27001Tools(server);
 
 // Register resources and prompts
 registerResources(server);

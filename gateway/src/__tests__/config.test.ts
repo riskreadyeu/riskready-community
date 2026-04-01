@@ -17,13 +17,20 @@ describe('DEFAULT_COUNCIL_CONFIG', () => {
 });
 
 describe('loadConfig', () => {
-  it('falls back to JWT_SECRET when GATEWAY_SECRET is empty', () => {
+  it('throws when GATEWAY_SECRET is empty', () => {
     process.env.DATABASE_URL = 'postgresql://riskready:riskready@db:5432/riskready?schema=public';
     process.env.GATEWAY_SECRET = '';
     process.env.JWT_SECRET = 'jwt-fallback-secret';
 
+    expect(() => loadConfig()).toThrow('GATEWAY_SECRET environment variable is required');
+  });
+
+  it('returns gatewaySecret when GATEWAY_SECRET is set', () => {
+    process.env.DATABASE_URL = 'postgresql://riskready:riskready@db:5432/riskready?schema=public';
+    process.env.GATEWAY_SECRET = 'a-valid-gateway-secret';
+
     const config = loadConfig();
 
-    expect(config.gatewaySecret).toBe('jwt-fallback-secret');
+    expect(config.gatewaySecret).toBe('a-valid-gateway-secret');
   });
 });

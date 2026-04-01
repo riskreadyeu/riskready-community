@@ -213,13 +213,13 @@ export function registerCapacityTools(server: McpServer) {
 
       // Filter to only those actually exceeding thresholds
       const alerts = assets
-        .filter(a => {
+        .filter((a: typeof assets[number]) => {
           const cpuExceeded = a.cpuUsagePercent != null && a.cpuThresholdPercent != null && a.cpuUsagePercent > a.cpuThresholdPercent;
           const memExceeded = a.memoryUsagePercent != null && a.memoryThresholdPercent != null && a.memoryUsagePercent > a.memoryThresholdPercent;
           const storExceeded = a.storageUsagePercent != null && a.storageThresholdPercent != null && a.storageUsagePercent > a.storageThresholdPercent;
           return cpuExceeded || memExceeded || storExceeded;
         })
-        .map(a => ({
+        .map((a: typeof assets[number]) => ({
           id: a.id,
           assetTag: a.assetTag,
           name: a.name,

@@ -167,7 +167,7 @@ export class PolicyDocumentService {
         // POL-001 → POL-002, POL-003, etc. If not numeric, append -2, -3
         const match = baseId.match(/^(.+?)(\d+)$/);
         if (match) {
-          const nextNum = (parseInt(match[2], 10) + suffix - 1).toString().padStart(match[2].length, '0');
+          const nextNum = (parseInt(match[2]!, 10) + suffix - 1).toString().padStart(match[2]!.length, '0');
           candidateId = `${match[1]}${nextNum}`;
         } else {
           candidateId = `${baseId}-${suffix}`;
