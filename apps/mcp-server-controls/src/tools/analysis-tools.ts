@@ -57,8 +57,8 @@ export function registerAnalysisTools(server: McpServer) {
               gaps: failedTests,
               summary: {
                 totalGaps: failedTests.length,
-                failCount: failedTests.filter(t => t.result === 'FAIL').length,
-                partialCount: failedTests.filter(t => t.result === 'PARTIAL').length,
+                failCount: failedTests.filter((t: typeof failedTests[number]) => t.result === 'FAIL').length,
+                partialCount: failedTests.filter((t: typeof failedTests[number]) => t.result === 'PARTIAL').length,
               },
             }, null, 2),
           }],
@@ -79,9 +79,10 @@ export function registerAnalysisTools(server: McpServer) {
         orderBy: { controlId: 'asc' },
       });
 
-      const gaps = controls.filter(c => c.implementationStatus !== 'IMPLEMENTED');
+      type ControlRow = typeof controls[number];
+      const gaps = controls.filter((c: ControlRow) => c.implementationStatus !== 'IMPLEMENTED');
       const total = controls.length;
-      const implemented = controls.filter(c => c.implementationStatus === 'IMPLEMENTED').length;
+      const implemented = controls.filter((c: ControlRow) => c.implementationStatus === 'IMPLEMENTED').length;
 
       return {
         content: [{
@@ -89,7 +90,7 @@ export function registerAnalysisTools(server: McpServer) {
           text: JSON.stringify({
             assessment: null,
             note: 'No completed assessments found. Showing implementation-status-based gap analysis.',
-            gaps: gaps.map(c => ({
+            gaps: gaps.map((c: ControlRow) => ({
               controlId: c.controlId,
               name: c.name,
               theme: c.theme,
@@ -98,8 +99,8 @@ export function registerAnalysisTools(server: McpServer) {
             summary: {
               total,
               implemented,
-              partial: controls.filter(c => c.implementationStatus === 'PARTIAL').length,
-              notStarted: controls.filter(c => c.implementationStatus === 'NOT_STARTED').length,
+              partial: controls.filter((c: ControlRow) => c.implementationStatus === 'PARTIAL').length,
+              notStarted: controls.filter((c: ControlRow) => c.implementationStatus === 'NOT_STARTED').length,
               completionRate: total > 0 ? Math.round((implemented / total) * 100) : 0,
             },
           }, null, 2),
@@ -150,7 +151,7 @@ export function registerAnalysisTools(server: McpServer) {
       });
 
       const response: Record<string, unknown> = {
-        overdueTests: overdueTests.map(t => ({
+        overdueTests: overdueTests.map((t: typeof overdueTests[number]) => ({
           ...t,
           daysOverdue: t.assessment.dueDate
             ? Math.floor((now.getTime() - t.assessment.dueDate.getTime()) / (1000 * 60 * 60 * 24))
@@ -220,8 +221,8 @@ export function registerAnalysisTools(server: McpServer) {
               status: assessment.status,
               dueDate: assessment.dueDate,
             },
-            byStatus: Object.fromEntries(byStatus.map(s => [s.status, s._count])),
-            byResult: Object.fromEntries(byResult.map(r => [r.result, r._count])),
+            byStatus: Object.fromEntries(byStatus.map((s: typeof byStatus[number]) => [s.status, s._count])),
+            byResult: Object.fromEntries(byResult.map((r: typeof byResult[number]) => [r.result, r._count])),
             completionRate: assessment.totalTests > 0
               ? Math.round((assessment.completedTests / assessment.totalTests) * 100)
               : 0,
@@ -277,15 +278,17 @@ export function registerAnalysisTools(server: McpServer) {
         },
       });
 
-      const matrix = controls.map(c => {
+      type MatrixControl = typeof controls[number];
+      type MetricRow = MatrixControl['metrics'][number];
+      const matrix = controls.map((c: MatrixControl) => {
         const latestAssessment = c.assessmentControls[0]?.assessment;
         const latestTestResult = latestAssessment?.tests[0]?.result ?? null;
         const metricSummary = c.metrics.length > 0
           ? {
               total: c.metrics.length,
-              green: c.metrics.filter(m => m.status === 'GREEN').length,
-              amber: c.metrics.filter(m => m.status === 'AMBER').length,
-              red: c.metrics.filter(m => m.status === 'RED').length,
+              green: c.metrics.filter((m: MetricRow) => m.status === 'GREEN').length,
+              amber: c.metrics.filter((m: MetricRow) => m.status === 'AMBER').length,
+              red: c.metrics.filter((m: MetricRow) => m.status === 'RED').length,
             }
           : null;
 

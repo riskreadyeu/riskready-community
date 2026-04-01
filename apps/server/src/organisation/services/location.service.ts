@@ -47,7 +47,7 @@ export class LocationService {
         suffix++;
         const match = baseCode.match(/^(.+?)(\d+)$/);
         if (match) {
-          const nextNum = (parseInt(match[2], 10) + suffix - 1).toString().padStart(match[2].length, '0');
+          const nextNum = (parseInt(match[2]!, 10) + suffix - 1).toString().padStart(match[2]!.length, '0');
           candidateCode = `${match[1]}${nextNum}`;
         } else {
           candidateCode = `${baseCode}-${suffix}`;

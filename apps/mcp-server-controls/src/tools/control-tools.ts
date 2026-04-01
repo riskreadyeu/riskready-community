@@ -140,8 +140,8 @@ export function registerControlTools(server: McpServer) {
         applicable,
         notApplicable: total - applicable,
         byImplementationStatus: { implemented, partial, notStarted },
-        byTheme: Object.fromEntries(byTheme.map(t => [t.theme, t._count])),
-        byFramework: Object.fromEntries(byFramework.map(f => [f.framework, f._count])),
+        byTheme: Object.fromEntries(byTheme.map((t: typeof byTheme[number]) => [t.theme, t._count])),
+        byFramework: Object.fromEntries(byFramework.map((f: typeof byFramework[number]) => [f.framework, f._count])),
       };
 
       return {
@@ -273,9 +273,10 @@ export function registerControlTools(server: McpServer) {
       });
 
       const total = controls.length;
-      const implemented = controls.filter(c => c.implementationStatus === 'IMPLEMENTED').length;
-      const partial = controls.filter(c => c.implementationStatus === 'PARTIAL').length;
-      const notStarted = controls.filter(c => c.implementationStatus === 'NOT_STARTED').length;
+      type EffControl = typeof controls[number];
+      const implemented = controls.filter((c: EffControl) => c.implementationStatus === 'IMPLEMENTED').length;
+      const partial = controls.filter((c: EffControl) => c.implementationStatus === 'PARTIAL').length;
+      const notStarted = controls.filter((c: EffControl) => c.implementationStatus === 'NOT_STARTED').length;
 
       const response: Record<string, unknown> = {
         controls,

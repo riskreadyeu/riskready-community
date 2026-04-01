@@ -45,7 +45,7 @@ export class AssessmentService {
         suffix++;
         const match = assessmentRef.match(/^(.+?)(\d+)$/);
         if (match) {
-          const nextNum = (parseInt(match[2], 10) + suffix - 1).toString().padStart(match[2].length, '0');
+          const nextNum = (parseInt(match[2]!, 10) + suffix - 1).toString().padStart(match[2]!.length, '0');
           candidateRef = `${match[1]}${nextNum}`;
         } else {
           candidateRef = `${assessmentRef}-${suffix}`;

@@ -31,7 +31,7 @@ export function registerAssessmentTools(server: McpServer) {
         prisma.assessment.count({ where }),
       ]);
 
-      const formatted = results.map(a => ({
+      const formatted = results.map((a: typeof results[number]) => ({
         ...a,
         testStats: {
           total: a.totalTests,
@@ -156,17 +156,18 @@ export function registerAssessmentTools(server: McpServer) {
         }),
       ]);
 
-      const totalTests = assessments.reduce((sum, a) => sum + a.totalTests, 0);
-      const completedTests = assessments.reduce((sum, a) => sum + a.completedTests, 0);
-      const passedTests = assessments.reduce((sum, a) => sum + a.passedTests, 0);
-      const failedTests = assessments.reduce((sum, a) => sum + a.failedTests, 0);
+      type AssessmentRow = typeof assessments[number];
+      const totalTests = assessments.reduce((sum: number, a: AssessmentRow) => sum + a.totalTests, 0);
+      const completedTests = assessments.reduce((sum: number, a: AssessmentRow) => sum + a.completedTests, 0);
+      const passedTests = assessments.reduce((sum: number, a: AssessmentRow) => sum + a.passedTests, 0);
+      const failedTests = assessments.reduce((sum: number, a: AssessmentRow) => sum + a.failedTests, 0);
 
       return {
         content: [{
           type: 'text' as const,
           text: JSON.stringify({
             totalAssessments: total,
-            byStatus: Object.fromEntries(byStatus.map(s => [s.status, s._count])),
+            byStatus: Object.fromEntries(byStatus.map((s: typeof byStatus[number]) => [s.status, s._count])),
             testResults: {
               total: totalTests,
               completed: completedTests,
@@ -242,11 +243,12 @@ export function registerAssessmentTools(server: McpServer) {
         _count: true,
       });
 
-      const total = counts.reduce((sum, c) => sum + c._count, 0);
+      type CountRow = typeof counts[number];
+      const total = counts.reduce((sum: number, c: CountRow) => sum + c._count, 0);
 
       const response: Record<string, unknown> = {
         testerId,
-        byStatus: Object.fromEntries(counts.map(c => [c.status, c._count])),
+        byStatus: Object.fromEntries(counts.map((c: CountRow) => [c.status, c._count])),
         total,
       };
       if (total === 0) {

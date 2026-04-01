@@ -91,16 +91,17 @@ export function registerMetricTools(server: McpServer) {
         }),
       ]);
 
-      const measured = metrics.filter(m => m.lastMeasured !== null).length;
-      const notMeasured = metrics.filter(m => m.lastMeasured === null).length;
+      type MetricRow = typeof metrics[number];
+      const measured = metrics.filter((m: MetricRow) => m.lastMeasured !== null).length;
+      const notMeasured = metrics.filter((m: MetricRow) => m.lastMeasured === null).length;
 
       return {
         content: [{
           type: 'text' as const,
           text: JSON.stringify({
             totalMetrics: total,
-            ragDistribution: Object.fromEntries(byStatus.map(s => [s.status ?? 'NOT_MEASURED', s._count])),
-            trendBreakdown: Object.fromEntries(byTrend.map(t => [t.trend ?? 'NEW', t._count])),
+            ragDistribution: Object.fromEntries(byStatus.map((s: typeof byStatus[number]) => [s.status ?? 'NOT_MEASURED', s._count])),
+            trendBreakdown: Object.fromEntries(byTrend.map((t: typeof byTrend[number]) => [t.trend ?? 'NEW', t._count])),
             collectionStatus: { measured, notMeasured },
           }, null, 2),
         }],

@@ -195,9 +195,9 @@ export class AssetService {
         suffix++;
         const match = baseTag.match(/^(.+?)(\d+)$/);
         if (match) {
-          const nextNum = (parseInt(match[2], 10) + suffix - 1)
+          const nextNum = (parseInt(match[2]!, 10) + suffix - 1)
             .toString()
-            .padStart(match[2].length, '0');
+            .padStart(match[2]!.length, '0');
           candidateTag = `${match[1]}${nextNum}`;
         } else {
           candidateTag = `${baseTag}-${suffix}`;

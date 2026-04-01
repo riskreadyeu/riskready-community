@@ -155,6 +155,12 @@ export async function seedDemo() {
   await seedPolicies(prisma, ctx);
   console.log('  ✅ Policies complete\n');
 
+  // Step 6b: ISO 27001 Policy Documents (18 additional)
+  console.log('📋 Seeding ISO 27001 policy documents...');
+  const { seedPoliciesIso27001 } = await import('./seed-policies-iso27001');
+  await seedPoliciesIso27001(prisma, ctx);
+  console.log('  ✅ ISO 27001 policies complete\n');
+
   // Step 7: Audits / Nonconformities
   console.log('🔍 Seeding audits...');
   const { seedAudits } = await import('./seed-audits');
