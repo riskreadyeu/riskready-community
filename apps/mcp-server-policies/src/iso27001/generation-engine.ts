@@ -131,11 +131,9 @@ async function loadOrgContext(organisationId: string): Promise<OrgContext> {
         },
       }),
       prisma.department.findMany({
-        where: { organisationId },
         select: { name: true },
       }),
       prisma.businessProcess.findMany({
-        where: { organisationId },
         select: { name: true },
       }),
       prisma.riskToleranceStatement.findMany({

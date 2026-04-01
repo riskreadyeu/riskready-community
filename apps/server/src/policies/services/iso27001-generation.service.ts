@@ -42,6 +42,7 @@ let _getIsoReference: ((documentId: string) => string) | undefined;
 
 async function ensureRegistry(): Promise<Iso27001DocumentDef[]> {
   if (!_registry) {
+    // @ts-ignore — ESM package resolved at runtime via dynamic import
     const mod = await import('@riskready/mcp-shared');
     _registry = mod.ISO27001_REGISTRY as Iso27001DocumentDef[];
   }
@@ -50,6 +51,7 @@ async function ensureRegistry(): Promise<Iso27001DocumentDef[]> {
 
 async function ensureGetIsoReference(): Promise<(documentId: string) => string> {
   if (!_getIsoReference) {
+    // @ts-ignore — ESM package resolved at runtime via dynamic import
     const mod = await import('@riskready/mcp-shared');
     _getIsoReference = mod.getIsoReference;
   }
