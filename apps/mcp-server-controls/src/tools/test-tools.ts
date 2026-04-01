@@ -130,7 +130,7 @@ export function registerTestTools(server: McpServer) {
       });
 
       const response: Record<string, unknown> = {
-        templates: templates.map(t => ({
+        templates: templates.map((t: typeof templates[number]) => ({
           testCode: t.testCode,
           testName: t.testName,
           note: 'Community Edition: templates derived from existing assessment tests',

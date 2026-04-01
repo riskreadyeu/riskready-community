@@ -77,7 +77,7 @@ export function registerIso27001Tools(server: McpServer) {
         select: { documentId: true, status: true },
       });
       const existingSet = new Map(
-        existingDocs.map((d) => [d.documentId, d.status as string]),
+        existingDocs.map((d: typeof existingDocs[number]) => [d.documentId, d.status as string]),
       );
 
       // Query pending actions

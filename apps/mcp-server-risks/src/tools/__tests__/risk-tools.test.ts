@@ -34,17 +34,18 @@ function getToolHandler(toolSpy: ReturnType<typeof vi.spyOn>, toolName: string) 
 }
 
 function parseToolResult(result: { content: Array<{ type: string; text: string }> }) {
-  return JSON.parse(result.content[0].text);
+  return JSON.parse(result.content[0]!.text);
 }
 
 describe('risk-tools — tool behavior', () => {
   let server: McpServer;
-  let toolSpy: ReturnType<typeof vi.spyOn>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let toolSpy: ReturnType<typeof vi.spyOn<any, any>>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     server = new McpServer({ name: 'test-risks', version: '0.1.0' });
-    toolSpy = vi.spyOn(server, 'tool');
+    toolSpy = vi.spyOn(server, 'tool') as ReturnType<typeof vi.spyOn<any, any>>;
     registerRiskTools(server);
   });
 
@@ -183,7 +184,7 @@ describe('risk-tools — tool behavior', () => {
       const result = await handler({ id: 'nonexistent' });
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('not found');
+      expect(result.content[0]!.text).toContain('not found');
     });
 
     it('filters by organisationId when provided', async () => {
@@ -305,7 +306,7 @@ describe('risk-tools — tool behavior', () => {
       const result = await handler({ skip: 0, take: 50 });
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('Error in list_risks');
+      expect(result.content[0]!.text).toContain('Error in list_risks');
     });
   });
 });

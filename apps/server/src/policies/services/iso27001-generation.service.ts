@@ -42,7 +42,7 @@ let _getIsoReference: ((documentId: string) => string) | undefined;
 
 async function ensureRegistry(): Promise<Iso27001DocumentDef[]> {
   if (!_registry) {
-    const mod = await import('@riskready/mcp-shared/dist/iso27001/document-registry.js');
+    const mod = await import('@riskready/mcp-shared');
     _registry = mod.ISO27001_REGISTRY as Iso27001DocumentDef[];
   }
   return _registry;
@@ -50,7 +50,7 @@ async function ensureRegistry(): Promise<Iso27001DocumentDef[]> {
 
 async function ensureGetIsoReference(): Promise<(documentId: string) => string> {
   if (!_getIsoReference) {
-    const mod = await import('@riskready/mcp-shared/dist/iso27001/iso-references/index.js');
+    const mod = await import('@riskready/mcp-shared');
     _getIsoReference = mod.getIsoReference;
   }
   return _getIsoReference!;

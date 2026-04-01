@@ -69,13 +69,14 @@ export function registerSOATools(server: McpServer) {
 
       // Add summary stats
       const entries = soa.entries;
+      type SOAEntryRow = typeof entries[number];
       const summary = {
         totalEntries: entries.length,
-        applicable: entries.filter(e => e.applicable).length,
-        notApplicable: entries.filter(e => !e.applicable).length,
-        implemented: entries.filter(e => e.implementationStatus === 'IMPLEMENTED').length,
-        partial: entries.filter(e => e.implementationStatus === 'PARTIAL').length,
-        notStarted: entries.filter(e => e.implementationStatus === 'NOT_STARTED').length,
+        applicable: entries.filter((e: SOAEntryRow) => e.applicable).length,
+        notApplicable: entries.filter((e: SOAEntryRow) => !e.applicable).length,
+        implemented: entries.filter((e: SOAEntryRow) => e.implementationStatus === 'IMPLEMENTED').length,
+        partial: entries.filter((e: SOAEntryRow) => e.implementationStatus === 'PARTIAL').length,
+        notStarted: entries.filter((e: SOAEntryRow) => e.implementationStatus === 'NOT_STARTED').length,
       };
 
       return {
@@ -147,16 +148,17 @@ export function registerSOATools(server: McpServer) {
       let latestSummary = null;
       if (latest) {
         const entries = latest.entries;
+        type StatsEntryRow = typeof entries[number];
         latestSummary = {
           id: latest.id,
           version: latest.version,
           status: latest.status,
           totalEntries: entries.length,
-          applicable: entries.filter(e => e.applicable).length,
-          notApplicable: entries.filter(e => !e.applicable).length,
-          implemented: entries.filter(e => e.implementationStatus === 'IMPLEMENTED').length,
-          partial: entries.filter(e => e.implementationStatus === 'PARTIAL').length,
-          notStarted: entries.filter(e => e.implementationStatus === 'NOT_STARTED').length,
+          applicable: entries.filter((e: StatsEntryRow) => e.applicable).length,
+          notApplicable: entries.filter((e: StatsEntryRow) => !e.applicable).length,
+          implemented: entries.filter((e: StatsEntryRow) => e.implementationStatus === 'IMPLEMENTED').length,
+          partial: entries.filter((e: StatsEntryRow) => e.implementationStatus === 'PARTIAL').length,
+          notStarted: entries.filter((e: StatsEntryRow) => e.implementationStatus === 'NOT_STARTED').length,
         };
       }
 
@@ -165,7 +167,7 @@ export function registerSOATools(server: McpServer) {
           type: 'text' as const,
           text: JSON.stringify({
             totalSOAs: total,
-            byStatus: Object.fromEntries(byStatus.map(s => [s.status, s._count])),
+            byStatus: Object.fromEntries(byStatus.map((s: typeof byStatus[number]) => [s.status, s._count])),
             latestSOA: latestSummary,
           }, null, 2),
         }],
@@ -202,13 +204,14 @@ export function registerSOATools(server: McpServer) {
       }
 
       const entries = soa.entries;
+      type LatestEntryRow = typeof entries[number];
       const summary = {
         totalEntries: entries.length,
-        applicable: entries.filter(e => e.applicable).length,
-        notApplicable: entries.filter(e => !e.applicable).length,
-        implemented: entries.filter(e => e.implementationStatus === 'IMPLEMENTED').length,
-        partial: entries.filter(e => e.implementationStatus === 'PARTIAL').length,
-        notStarted: entries.filter(e => e.implementationStatus === 'NOT_STARTED').length,
+        applicable: entries.filter((e: LatestEntryRow) => e.applicable).length,
+        notApplicable: entries.filter((e: LatestEntryRow) => !e.applicable).length,
+        implemented: entries.filter((e: LatestEntryRow) => e.implementationStatus === 'IMPLEMENTED').length,
+        partial: entries.filter((e: LatestEntryRow) => e.implementationStatus === 'PARTIAL').length,
+        notStarted: entries.filter((e: LatestEntryRow) => e.implementationStatus === 'NOT_STARTED').length,
       };
 
       return {

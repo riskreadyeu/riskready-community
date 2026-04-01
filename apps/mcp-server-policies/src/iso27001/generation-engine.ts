@@ -319,7 +319,7 @@ export async function generateIso27001Documents(
       });
 
       // Extract actionId from the MCP response format
-      const actionId = JSON.parse(result.content[0].text).actionId as string;
+      const actionId = JSON.parse(result.content[0]!.text).actionId as string;
 
       generated.push({
         documentId: doc.documentId,
