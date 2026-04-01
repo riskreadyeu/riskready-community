@@ -165,7 +165,7 @@ jobs:
           persist-credentials: false
 
       - name: Run Semgrep SAST
-        uses: semgrep/semgrep-action@713efdd6ee5cda2a4540a9e4ec1964e7e8a8882b  # v1
+        uses: semgrep/semgrep-action@713efdd345f3035192eaa63f56867b88e63e4e5d  # v1
         with:
           config: >-
             p/typescript

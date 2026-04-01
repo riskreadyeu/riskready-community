@@ -29,6 +29,8 @@ describe('Gateway Integration', () => {
         maxMembersPerSession: 6,
         maxTurnsPerMember: 15,
         defaultPattern: 'parallel_then_synthesis',
+        maxTokenBudgetPerMember: 80_000,
+        domainThreshold: 3,
       },
       rateLimit: {
         perUserHour: 30,
