@@ -56,4 +56,15 @@ packages/mcp-shared/tsconfig.tsbuildinfo
 LATTICE_CONTEXT.md
 documentation/plans/
 documentation/specs/
+
+# Security-sensitive docs (audit results, threat models)
+documentation/AGENT_SECURITY_AUDIT.md
+documentation/AGENT_THREAT_MODEL.md
+
+# Internal docs (launch plans, remediation plans)
+docs/
+
+# Root lock file (monorepo uses workspace-level locks)
+package-lock.json
+
 .worktrees/
