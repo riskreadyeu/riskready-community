@@ -155,10 +155,4 @@ cd ../web && npm install && npm run dev  # frontend :5173
 
 ---
 
-## Business Edition
-
-Additional modules for larger organisations: Risk Appetite Cascade, Loss Magnitude (FAIR), Supply Chain Risk, BCM/BIA, Vulnerability Management, Application Security Posture, External Requirements Mapping.
-
----
-
 [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [License: AGPL-3.0](LICENSE)
