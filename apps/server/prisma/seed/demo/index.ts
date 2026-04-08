@@ -197,6 +197,12 @@ export async function seedDemo() {
   await seedAgentic(prisma, ctx);
   console.log('  ✅ Agentic AI complete\n');
 
+  // Step 10b: NIS2 eligibility survey
+  console.log('📋 Seeding NIS2 eligibility survey...');
+  const { seedNis2Survey } = await import('./seed-nis2-survey');
+  await seedNis2Survey(prisma, ctx);
+  console.log('  ✅ NIS2 survey complete\n');
+
   // Step 11: Cross-entity relationships
   console.log('🔗 Seeding cross-entity relationships...');
   const { seedRelationships } = await import('./seed-relationships');
