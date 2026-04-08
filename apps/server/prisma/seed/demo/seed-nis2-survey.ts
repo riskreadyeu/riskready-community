@@ -314,7 +314,7 @@ export async function seedNis2Survey(
 
   // Build a lookup: stepNumber → question id
   const qMap = new Map(
-    questionDefs.map((def, i) => [def.stepNumber, questions[i].id]),
+    questionDefs.map((def, i) => [def.stepNumber, questions[i]!.id]),
   );
 
   // ============================================================
