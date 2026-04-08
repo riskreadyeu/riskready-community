@@ -58,6 +58,7 @@ export async function seedIncidentsDemo(
       createdById: ctx.users.securityLead,
     },
   });
+  ctx.incidentIds['INC-2026-001'] = inc1.id;
 
   // INC-001 Timeline (5 entries)
   await prisma.incidentTimelineEntry.createMany({
@@ -157,6 +158,7 @@ export async function seedIncidentsDemo(
       createdById: ctx.users.securityLead,
     },
   });
+  ctx.incidentIds['INC-2026-002'] = inc2.id;
 
   // INC-002 Timeline (4 entries)
   await prisma.incidentTimelineEntry.createMany({
@@ -243,6 +245,7 @@ export async function seedIncidentsDemo(
       createdById: ctx.users.securityLead,
     },
   });
+  ctx.incidentIds['INC-2026-003'] = inc3.id;
 
   // INC-003 Timeline (4 entries)
   await prisma.incidentTimelineEntry.createMany({
@@ -329,6 +332,7 @@ export async function seedIncidentsDemo(
       createdById: ctx.users.securityLead,
     },
   });
+  ctx.incidentIds['INC-2026-004'] = inc4.id;
 
   // INC-004 Timeline (3 entries)
   await prisma.incidentTimelineEntry.createMany({
@@ -403,6 +407,7 @@ export async function seedIncidentsDemo(
       createdById: ctx.users.securityLead,
     },
   });
+  ctx.incidentIds['INC-2026-005'] = inc5.id;
 
   // INC-005 Timeline (3 entries)
   await prisma.incidentTimelineEntry.createMany({
@@ -470,6 +475,7 @@ export async function seedIncidentsDemo(
       createdById: ctx.users.securityLead,
     },
   });
+  ctx.incidentIds['INC-2026-006'] = inc6.id;
 
   // INC-006 Timeline (2 entries)
   await prisma.incidentTimelineEntry.createMany({
@@ -528,6 +534,7 @@ export async function seedIncidentsDemo(
       createdById: ctx.users.securityLead,
     },
   });
+  ctx.incidentIds['INC-2026-007'] = inc7.id;
 
   // INC-007 Timeline (3 entries)
   await prisma.incidentTimelineEntry.createMany({
@@ -596,6 +603,7 @@ export async function seedIncidentsDemo(
       createdById: ctx.users.complianceOfficer,
     },
   });
+  ctx.incidentIds['INC-2026-008'] = inc8.id;
 
   // INC-008 Timeline (1 entry)
   await prisma.incidentTimelineEntry.createMany({

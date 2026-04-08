@@ -1076,7 +1076,7 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
   // 6 TREATMENT PLANS
   // ============================================================
 
-  await prisma.treatmentPlan.create({
+  const tp001 = await prisma.treatmentPlan.create({
     data: {
       treatmentId: 'TP-001',
       title: 'Ransomware defence hardening',
@@ -1100,8 +1100,9 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       createdById: ctx.users.ciso,
     },
   });
+  ctx.treatmentIds['TP-001'] = tp001.id;
 
-  await prisma.treatmentPlan.create({
+  const tp002 = await prisma.treatmentPlan.create({
     data: {
       treatmentId: 'TP-002',
       title: 'API security enhancement program',
@@ -1125,8 +1126,9 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       createdById: ctx.users.ciso,
     },
   });
+  ctx.treatmentIds['TP-002'] = tp002.id;
 
-  await prisma.treatmentPlan.create({
+  const tp003 = await prisma.treatmentPlan.create({
     data: {
       treatmentId: 'TP-003',
       title: 'DORA compliance implementation',
@@ -1149,8 +1151,9 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       createdById: ctx.users.ciso,
     },
   });
+  ctx.treatmentIds['TP-003'] = tp003.id;
 
-  await prisma.treatmentPlan.create({
+  const tp004 = await prisma.treatmentPlan.create({
     data: {
       treatmentId: 'TP-004',
       title: 'Anti-phishing controls upgrade',
@@ -1173,8 +1176,9 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       createdById: ctx.users.ciso,
     },
   });
+  ctx.treatmentIds['TP-004'] = tp004.id;
 
-  await prisma.treatmentPlan.create({
+  const tp005 = await prisma.treatmentPlan.create({
     data: {
       treatmentId: 'TP-005',
       title: 'Supply chain security program',
@@ -1196,8 +1200,9 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       createdById: ctx.users.ciso,
     },
   });
+  ctx.treatmentIds['TP-005'] = tp005.id;
 
-  await prisma.treatmentPlan.create({
+  const tp006 = await prisma.treatmentPlan.create({
     data: {
       treatmentId: 'TP-006',
       title: 'Cloud resilience risk transfer',
@@ -1219,6 +1224,7 @@ export async function seedRisks(prisma: PrismaClient, ctx: DemoContext): Promise
       createdById: ctx.users.ciso,
     },
   });
+  ctx.treatmentIds['TP-006'] = tp006.id;
 
   // ============================================================
   // 5 RISK TOLERANCE STATEMENTS

@@ -417,6 +417,9 @@ export async function seedEvidence(prisma: PrismaClient, ctx: DemoContext): Prom
     evidenceRecords[evd.evidenceRef] = record.id;
   }
 
+  // Copy evidence IDs to context for cross-linking in seed-relationships
+  Object.assign(ctx.evidenceIds, evidenceRecords);
+
   console.log('    20 evidence records created');
 
   // ==========================================

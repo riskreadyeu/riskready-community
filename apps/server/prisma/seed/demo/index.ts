@@ -45,6 +45,14 @@ export interface DemoContext {
   policyIds: Record<string, string>;
   // Populated by seed-audits
   ncIds: Record<string, string>;
+  // Populated by seed-incidents
+  incidentIds: Record<string, string>;
+  // Populated by seed-evidence
+  evidenceIds: Record<string, string>;
+  // Populated by seed-organisation
+  businessProcessIds: Record<string, string>;
+  // Populated by seed-risks
+  treatmentIds: Record<string, string>;
 }
 
 async function seedUsers(): Promise<DemoContext['users']> {
@@ -117,6 +125,10 @@ export async function seedDemo() {
     changeIds: {},
     policyIds: {},
     ncIds: {},
+    incidentIds: {},
+    evidenceIds: {},
+    businessProcessIds: {},
+    treatmentIds: {},
   };
 
   // Step 1: Organisation
@@ -184,6 +196,12 @@ export async function seedDemo() {
   const { seedAgentic } = await import('./seed-agentic');
   await seedAgentic(prisma, ctx);
   console.log('  ✅ Agentic AI complete\n');
+
+  // Step 11: Cross-entity relationships
+  console.log('🔗 Seeding cross-entity relationships...');
+  const { seedRelationships } = await import('./seed-relationships');
+  await seedRelationships(prisma, ctx);
+  console.log('  ✅ Relationships complete\n');
 
   console.log('🎉 ClearStream Payments demo data seeded successfully!');
   console.log('   Login: ceo@clearstream.ie / password123');

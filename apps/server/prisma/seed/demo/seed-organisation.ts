@@ -409,7 +409,7 @@ export async function seedOrganisation(prisma: PrismaClient, ctx: DemoContext): 
   // ============================================
   // 4. Business Processes
   // ============================================
-  await prisma.businessProcess.create({
+  const bpPay = await prisma.businessProcess.create({
     data: {
       name: 'Payment Processing',
       processCode: 'PROC-PAY',
@@ -466,8 +466,9 @@ export async function seedOrganisation(prisma: PrismaClient, ctx: DemoContext): 
       createdById: ctx.users.admin,
     },
   });
+  ctx.businessProcessIds['PROC-PAY'] = bpPay.id;
 
-  await prisma.businessProcess.create({
+  const bpOnboard = await prisma.businessProcess.create({
     data: {
       name: 'Merchant Onboarding',
       processCode: 'PROC-ONBOARD',
@@ -524,8 +525,9 @@ export async function seedOrganisation(prisma: PrismaClient, ctx: DemoContext): 
       createdById: ctx.users.admin,
     },
   });
+  ctx.businessProcessIds['PROC-ONBOARD'] = bpOnboard.id;
 
-  await prisma.businessProcess.create({
+  const bpFraud = await prisma.businessProcess.create({
     data: {
       name: 'Fraud Detection',
       processCode: 'PROC-FRAUD',
@@ -584,8 +586,9 @@ export async function seedOrganisation(prisma: PrismaClient, ctx: DemoContext): 
       createdById: ctx.users.admin,
     },
   });
+  ctx.businessProcessIds['PROC-FRAUD'] = bpFraud.id;
 
-  await prisma.businessProcess.create({
+  const bpReg = await prisma.businessProcess.create({
     data: {
       name: 'Regulatory Reporting',
       processCode: 'PROC-REG',
@@ -642,8 +645,9 @@ export async function seedOrganisation(prisma: PrismaClient, ctx: DemoContext): 
       createdById: ctx.users.admin,
     },
   });
+  ctx.businessProcessIds['PROC-REG'] = bpReg.id;
 
-  await prisma.businessProcess.create({
+  const bpIr = await prisma.businessProcess.create({
     data: {
       name: 'Incident Response',
       processCode: 'PROC-IR',
@@ -698,6 +702,7 @@ export async function seedOrganisation(prisma: PrismaClient, ctx: DemoContext): 
       createdById: ctx.users.admin,
     },
   });
+  ctx.businessProcessIds['PROC-IR'] = bpIr.id;
 
   // ============================================
   // 5. Security Committees
