@@ -69,7 +69,7 @@ RiskReady supports three ways to connect AI to your GRC data. Each mode has diff
 
 ### Security Audit Scores
 
-Based on the [8-point agent security framework](AGENT_SECURITY_AUDIT.md):
+Based on the 8-point agent security framework:
 
 | Point | Web App (Gateway) | MCP Proxy | Direct (stdio) |
 |-------|:--:|:--:|:--:|
